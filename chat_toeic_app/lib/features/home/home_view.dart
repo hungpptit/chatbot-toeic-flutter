@@ -19,97 +19,117 @@ class HomeView extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.bgDark,
-      body: Column(
-        children: [
-          // Nav Bar
-          const CustomNavBar(),
+      backgroundColor: const Color(0xFF0F172A),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 768;
+          final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1200;
           
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left Column: Filter + Grid
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Thư viện đề thi',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+          return Column(
+            children: [
+              const CustomNavBar(),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Main Content
+                    Expanded(
+                      flex: 3,
+                      child: CustomScrollView(
+                        slivers: [
+                          // Header Section
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                            sliver: SliverToBoxAdapter(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Thư viện đề thi',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  
+                                  // Category Tabs (Filter Chips)
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: categories.map((cat) => _buildCategoryTab(cat, homeController)).toList(),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  
+                                  // Search Bar
+                                  _buildSearchBar(homeController),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 24),
-                            
-                            // Category Tabs
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: categories.map((cat) => _buildCategoryTab(cat, homeController)).toList(),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Search Bar
-                            _buildSearchBar(homeController),
-                            const SizedBox(height: 32),
-                            
-                            // Grid
-                            Obx(() {
+                          ),
+                          
+                          // Grid Section
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                            sliver: Obx(() {
                               if (homeController.isLoading.value) {
-                                return const Center(child: CircularProgressIndicator());
+                                return const SliverToBoxAdapter(
+                                  child: Center(child: CircularProgressIndicator()),
+                                );
                               }
                               
                               final tests = homeController.paginatedTests;
                               if (tests.isEmpty) {
-                                return const Center(
-                                  child: Text('Không tìm thấy đề thi nào', style: TextStyle(color: Colors.white70)),
+                                return const SliverToBoxAdapter(
+                                  child: Center(
+                                    child: Text('Không tìm thấy đề thi nào', style: TextStyle(color: Color(0xFF94A3B8))),
+                                  ),
                                 );
                               }
                               
-                              return Column(
-                                children: [
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 20,
-                                      mainAxisSpacing: 20,
-                                      childAspectRatio: 1.4,
-                                    ),
-                                    itemCount: tests.length,
-                                    itemBuilder: (context, index) => ExamCard(test: tests[index]),
-                                  ),
-                                  const SizedBox(height: 32),
-                                  _buildPagination(homeController),
-                                ],
+                              return SliverGrid(
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 3),
+                                  crossAxisSpacing: 20,
+                                  mainAxisSpacing: 20,
+                                  childAspectRatio: 1.1,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) => ExamCard(test: tests[index]),
+                                  childCount: tests.length,
+                                ),
                               );
                             }),
-                          ],
-                        ),
+                          ),
+                          
+                          // Pagination
+                          SliverPadding(
+                            padding: const EdgeInsets.only(bottom: 48),
+                            sliver: SliverToBoxAdapter(
+                              child: _buildPagination(homeController),
+                            ),
+                          ),
+                        ],
                       ),
-                      
-                      const SizedBox(width: 32),
-                      
-                      // Right Column: Sidebox
-                      const UserSideBox(),
-                    ],
-                  ),
-                ],
+                    ),
+                    
+                    // Sidebar (Only on large screens)
+                    if (!isMobile)
+                      Container(
+                        width: 320,
+                        padding: const EdgeInsets.fromLTRB(0, 32, 24, 32),
+                        child: const UserSideBox(),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
+      drawer: MediaQuery.of(context).size.width < 768 ? const Drawer(child: UserSideBox()) : null,
     );
   }
 
@@ -120,19 +140,27 @@ class HomeView extends StatelessWidget {
         onTap: () => controller.selectedCategory.value = title,
         child: Container(
           margin: const EdgeInsets.only(right: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primaryStart : Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(20),
+            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? AppColors.primaryStart : Colors.white10,
+              color: isSelected ? const Color(0xFF818CF8) : Colors.white.withOpacity(0.05),
             ),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: const Color(0xFF6366F1).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              )
+            ] : null,
           ),
           child: Text(
             title,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 14,
             ),
           ),
         ),
@@ -142,35 +170,27 @@ class HomeView extends StatelessWidget {
 
   Widget _buildSearchBar(HomeController controller) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 500),
+      constraints: const BoxConstraints(maxWidth: 600),
       child: TextField(
         onChanged: (val) => controller.searchQuery.value = val,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: 'Nhập tên đề thi...',
-          hintStyle: const TextStyle(color: Colors.white24),
-          prefixIcon: const Icon(Icons.search, color: Colors.white24),
-          suffixIcon: Container(
-            margin: const EdgeInsets.all(8),
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Tìm kiếm'),
-            ),
-          ),
+          hintText: 'Tìm kiếm đề thi...',
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B), size: 20),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
+          fillColor: const Color(0xFF1E293B),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white10),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
           ),
         ),
       ),
@@ -185,12 +205,13 @@ class HomeView extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, color: Colors.white),
+          _buildPageButton(
+            icon: Icons.chevron_left,
             onPressed: controller.currentPage.value > 1 
                 ? () => controller.currentPage.value-- 
                 : null,
           ),
+          const SizedBox(width: 8),
           ...List.generate(total, (index) {
             final page = index + 1;
             final isSelected = controller.currentPage.value == page;
@@ -198,23 +219,29 @@ class HomeView extends StatelessWidget {
               onTap: () => controller.currentPage.value = page,
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.all(10),
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primaryStart : Colors.white.withOpacity(0.05),
-                  shape: BoxShape.circle,
+                  color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFF818CF8) : Colors.white.withOpacity(0.05),
+                  ),
                 ),
                 child: Text(
                   '$page',
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
+                    color: isSelected ? Colors.white : const Color(0xFF94A3B8),
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
             );
           }),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
+          const SizedBox(width: 8),
+          _buildPageButton(
+            icon: Icons.chevron_right,
             onPressed: controller.currentPage.value < total 
                 ? () => controller.currentPage.value++ 
                 : null,
@@ -222,5 +249,22 @@ class HomeView extends StatelessWidget {
         ],
       );
     });
+  }
+
+  Widget _buildPageButton({required IconData icon, VoidCallback? onPressed}) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Icon(icon, color: onPressed != null ? Colors.white : Colors.white24, size: 20),
+      ),
+    );
   }
 }

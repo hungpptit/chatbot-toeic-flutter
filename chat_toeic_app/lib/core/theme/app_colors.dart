@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Gradient
-  static const Color primaryStart = Color(0xFF6366F1); // Indigo 500
-  static const Color primaryEnd = Color(0xFFA855F7);   // Purple 500
+  // Primary
+  static const Color primary = Color(0xFF6366F1); // Indigo 500
+  static const Color primaryLight = Color(0xFF818CF8); // Indigo 400
   
   // Backgrounds
   static const Color bgDark = Color(0xFF0F172A);      // Slate 900
@@ -17,4 +17,5 @@ class AppColors {
   // Text
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Color(0xFF94A3B8); // Slate 400
+  static const Color textMuted = Color(0xFF475569);    // Slate 600
 }

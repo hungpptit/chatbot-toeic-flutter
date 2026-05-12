@@ -12,15 +12,9 @@ class CustomNavBar extends StatelessWidget {
     return Container(
       height: 70,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B5E20), // Dark Green
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A), // Same as scaffold background
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
@@ -36,9 +30,9 @@ class CustomNavBar extends StatelessWidget {
           const SizedBox(width: 48),
           
           // Nav Items
-          _buildNavItem('Trang chủ', isSelected: true),
-          _buildNavItem('Tra từ vựng'),
-          _buildNavItem('Chat TOEIC'),
+          _buildNavItem('Trang chủ', '/home'),
+          _buildNavItem('Tra từ vựng', '/vocabulary'),
+          _buildNavItem('Chat TOEIC', '/chatbot'),
           
           const Spacer(),
           
@@ -51,8 +45,8 @@ class CustomNavBar extends StatelessWidget {
               : ElevatedButton(
                   onPressed: () => Get.toNamed('/login'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF1B5E20),
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -64,15 +58,26 @@ class CustomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(String title, {bool isSelected = false}) {
+  Widget _buildNavItem(String title, String route) {
+    // Standardize route checking for web/mobile
+    final currentRoute = Get.currentRoute;
+    final isSelected = currentRoute == route || currentRoute == '/#$route';
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.white70,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 16,
+      child: InkWell(
+        onTap: () {
+          if (!isSelected) {
+            Get.offNamed(route);
+          }
+        },
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 16,
+          ),
         ),
       ),
     );

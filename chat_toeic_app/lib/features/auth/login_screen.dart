@@ -27,12 +27,12 @@ class _LoginScreenState extends State<LoginScreen> {
           Positioned(
             top: -100,
             right: -100,
-            child: _buildGradientCircle(AppColors.primaryStart),
+            child: _buildGradientCircle(AppColors.primary),
           ),
           Positioned(
             bottom: -50,
             left: -50,
-            child: _buildGradientCircle(AppColors.primaryEnd),
+            child: _buildGradientCircle(AppColors.primaryLight),
           ),
           
           // Main Content
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? null
                                     : _handleLogin,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryStart,
+                                  backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
@@ -251,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primaryStart, width: 1.5),
+              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
             ),
           ),
         ),

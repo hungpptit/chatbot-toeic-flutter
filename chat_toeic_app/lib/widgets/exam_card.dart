@@ -10,85 +10,97 @@ class ExamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.bgCard,
+        color: const Color(0xFF1E293B), // Slate 800
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
+          // Content Padding for the main info
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              test['title'] ?? 'N/A',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          
-          // Info Row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                _buildIconInfo(Icons.access_time, test['duration'] ?? '--'),
-                _buildIconInfo(Icons.people_outline, '${test['participants'] ?? 0}'),
-                _buildIconInfo(Icons.chat_bubble_outline, '${test['commentsCount'] ?? 0}'),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Structure & Tags
-          Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Title
                 Text(
-                  'Cấu trúc: ${test['questionsCount'] ?? 0} câu hỏi',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  test['title'] ?? 'N/A',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  children: (test['tags'] as List? ?? []).map((tag) => _buildTag(tag)).toList(),
+                const SizedBox(height: 12),
+                
+                // Info Row
+                Row(
+                  children: [
+                    _buildIconInfo(Icons.access_time, test['duration'] ?? '--'),
+                    const SizedBox(width: 16),
+                    _buildIconInfo(Icons.people_outline, '${test['participants'] ?? 0}'),
+                    const SizedBox(width: 16),
+                    _buildIconInfo(Icons.chat_bubble_outline, '${test['comments'] ?? 0}'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                // Secondary Info
+                Text(
+                  '${test['questions'] ?? 0} câu hỏi',
+                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                 ),
               ],
             ),
           ),
           
-          // Action Button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
-            ),
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryStart,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Xem kết quả'),
+          const Spacer(),
+          
+          // Action Buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 45,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text(
+                        'Làm bài',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 45,
+                    child: OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF6366F1)),
+                        foregroundColor: const Color(0xFF6366F1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text(
+                        'Kết quả',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
