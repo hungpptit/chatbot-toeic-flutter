@@ -1,0 +1,10 @@
+targets:
+  $default:
+    builders:
+      swagger_dart_code_generator:
+        options:
+          input_folder: "lib/core/api/"
+          output_folder: "lib/core/api/generated/"
+          separate_models: true
+          use_path_for_request_names: true
+          include_null_fields: true

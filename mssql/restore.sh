@@ -49,4 +49,4 @@ WITH MOVE '$DB_NAME' TO '$DATA_PATH/${DB_NAME}.mdf',
 
 echo "✅ Restore of $DB_NAME completed."
 # echo "👤 Tạo login mới 'chatbot_admin' với quyền sysadmin..."
-# /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -Q "IF NOT EXISTS (SELECT * FROM sys.sql_logins WHERE name = 'chatbot_admin') BEGIN CREATE LOGIN chatbot_admin WITH PASSWORD = 'Doancanhantoeic123!'; ALTER SERVER ROLE sysadmin ADD MEMBER chatbot_admin; END"
+# /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$SA_PASSWORD" -Q "IF NOT EXISTS (SELECT * FROM sys.sql_logins WHERE name = 'chatbot_admin') BEGIN CREATE LOGIN chatbot_admin WITH PASSWORD = '123'; ALTER SERVER ROLE sysadmin ADD MEMBER chatbot_admin; END"
