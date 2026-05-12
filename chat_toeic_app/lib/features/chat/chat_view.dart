@@ -292,6 +292,7 @@ class ChatView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 32),
       child: Row(
+        mainAxisAlignment: isAI ? MainAxisAlignment.start : MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isAI) ...[
@@ -304,27 +305,47 @@ class ChatView extends StatelessWidget {
               ),
               child: const Icon(LucideIcons.bot, color: Colors.white, size: 18),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
           ],
-          Expanded(
+          
+          Flexible(
             child: Container(
-              padding: isAI ? EdgeInsets.zero : const EdgeInsets.all(20),
+              constraints: const BoxConstraints(maxWidth: 700), // Limit width for readability
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: isAI ? Colors.transparent : const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(20),
+                color: isAI ? Colors.white.withOpacity(0.03) : const Color(0xFF1E293B),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isAI ? 4 : 20),
+                  bottomRight: Radius.circular(isAI ? 20 : 4),
+                ),
+                border: isAI ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
               ),
               child: Text(
                 content,
                 style: GoogleFonts.inter(
                   color: Colors.white,
-                  fontSize: 16,
-                  height: 1.6,
+                  fontSize: 15,
+                  height: 1.5,
                   letterSpacing: -0.2,
                 ),
               ),
             ),
           ),
-          if (!isAI) const SizedBox(width: 48), // Push user message left
+          
+          if (!isAI) ...[
+            const SizedBox(width: 12),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.user, color: Colors.white70, size: 18),
+            ),
+          ],
         ],
       ),
     );
@@ -378,37 +399,52 @@ class ChatView extends StatelessWidget {
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: TextField(
-            controller: controller.messageController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Hỏi tôi bất cứ điều gì...',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-              filled: true,
-              fillColor: const Color(0xFF1E293B),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center, // Better default alignment
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller.messageController,
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  maxLines: 5,
+                  minLines: 1,
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    hintText: 'Hỏi tôi bất cứ điều gì...',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    filled: false,
+                    fillColor: Colors.transparent,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                  ),
+                ),
               ),
-              suffixIcon: Padding(
+              Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Obx(() => IconButton(
                   onPressed: controller.isSending.value ? null : () => controller.sendMessage(),
                   icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF6366F1),
-                      shape: BoxShape.circle,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: controller.isSending.value 
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Icon(LucideIcons.arrowUp, color: Colors.white, size: 18),
+                      : const Icon(LucideIcons.arrowUp, color: Colors.white, size: 20),
                   ),
                 )),
               ),
-            ),
-            onSubmitted: (_) => controller.sendMessage(),
+            ],
           ),
         ),
       ),
