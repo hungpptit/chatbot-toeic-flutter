@@ -103,7 +103,13 @@
   // 📌 Tự do
   const askFreeQuestion = async (questionText, conversationId) => {
     const { data: history } = await getMessagesForGemini(conversationId);
-    const prompt = `Bạn là trợ lý tiếng Anh. Dưới đây là lịch sử hội thoại và câu hỏi mới, trả lời ngắn gọn và rõ ràng bằng tiếng Việt:\nLịch sử:\n${JSON.stringify(history)}\nCâu hỏi mới:\n"${questionText}"`;
+    const prompt = `Bạn là trợ lý tiếng Anh. Dưới đây là lịch sử hội thoại và câu hỏi mới, trả lời ngắn gọn và rõ ràng bằng tiếng Việt.
+    ⚠️ LƯU Ý: Không thêm các tiền tố như "💬 Trả lời:", "Trả lời:", "AI:" hay bất kỳ ký hiệu nào ở đầu câu. Chỉ trả lời trực tiếp nội dung.
+    
+    Lịch sử:
+    ${JSON.stringify(history)}
+    Câu hỏi mới:
+    "${questionText}"`;
     return await callGemini(history.concat({ role: "user", parts: [{ text: prompt }] }));
   };
 
@@ -231,7 +237,13 @@
   // 🇻🇳 Giải thích nghĩa tiếng Việt
   const askVietnameseExplanation = async (word, conversationId) => {
     const { data: history } = await getMessagesForGemini(conversationId);
-    const prompt = `Bạn là trợ lý tiếng Anh. Dưới đây là lịch sử hội thoại và từ cần giải thích:\nLịch sử:\n${JSON.stringify(history)}\nTừ: "${word}", hãy giải thích nghĩa bằng tiếng Việt một cách đơn giản và dễ hiểu.`;
+    const prompt = `Bạn là trợ lý tiếng Anh. Dưới đây là lịch sử hội thoại và từ cần giải thích:
+    Lịch sử:
+    ${JSON.stringify(history)}
+    Từ: "${word}"
+    
+    Hãy giải thích nghĩa bằng tiếng Việt một cách đơn giản và dễ hiểu.
+    ⚠️ LƯU Ý: Trả lời trực tiếp nội dung, không thêm các tiền tố như "💬 Trả lời:", "Giải thích:", v.v.`;
     return await callGemini(history.concat({ role: "user", parts: [{ text: prompt }] }));
   };
 
