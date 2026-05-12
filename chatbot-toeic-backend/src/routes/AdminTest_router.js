@@ -40,7 +40,63 @@ router.delete('/parts/:id', authMiddleware, deletePartController);
 // Tạo / Xóa QuestionType
 router.post('/question-types', authMiddleware, createQuestionTypeController);
 router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeController);
-// Tạo bài test mới
+/**
+ * @swagger
+ * /api/adminTest/createTestNew:
+ *   post:
+ *     summary: Tạo bài thi mới (Hỗ trợ định dạng Flat và Mixed)
+ *     description: |
+ *       API hợp nhất cho phép tạo bài thi theo 2 cách:
+ *       1. **Flat:** Gửi một mảng `questions` duy nhất.
+ *       2. **Mixed:** Gửi 2 mảng `listeningQuestions` và `readingQuestions` riêng biệt.
+ *       
+ *       **Tính năng tự động:**
+ *       - Nếu gửi `imagePath` hoặc `audioPath` (local path trên server), server sẽ tự động upload lên Cloudinary.
+ *       - Nếu gửi định dạng Mixed, server tự động gán `skillId` (1 cho Listening, 2 cho Reading).
+ *       - Tự động tạo AI Embeddings cho tất cả câu hỏi.
+ *     tags: [Admin Test]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - courseId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "TOEIC Practice Test #10"
+ *               courseId:
+ *                 type: integer
+ *                 example: 1
+ *               duration:
+ *                 type: string
+ *                 example: "120 minutes"
+ *               questions:
+ *                 type: array
+ *                 description: Mảng câu hỏi (định dạng phẳng)
+ *                 items:
+ *                   $ref: '#/components/schemas/AdminQuestionInput'
+ *               listeningQuestions:
+ *                 type: array
+ *                 description: Mảng câu hỏi phần Nghe (định dạng Mixed)
+ *                 items:
+ *                   $ref: '#/components/schemas/AdminQuestionInput'
+ *               readingQuestions:
+ *                 type: array
+ *                 description: Mảng câu hỏi phần Đọc (định dạng Mixed)
+ *                 items:
+ *                   $ref: '#/components/schemas/AdminQuestionInput'
+ *     responses:
+ *       201:
+ *         description: Bài thi đã được tạo và lưu thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ */
 router.post('/createTestNew', authMiddleware, createNewTestController);
 // Xóa bài test theo ID
 router.delete('/deleteTest/:testId', authMiddleware, deleteTestByIdController);

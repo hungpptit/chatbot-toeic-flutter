@@ -200,6 +200,34 @@ Sử dụng chuẩn RESTful v1.
           },
           required: ['id', 'conversationId', 'role', 'content'],
         },
+        AdminQuestionInput: {
+          type: 'object',
+          properties: {
+            question: { type: 'string', example: 'What is the synonym of "Happy"?' },
+            optionA: { type: 'string', example: 'Sad' },
+            optionB: { type: 'string', example: 'Joyful' },
+            optionC: { type: 'string', example: 'Angry' },
+            optionD: { type: 'string', example: 'Fast' },
+            correctAnswer: { type: 'string', enum: ['A', 'B', 'C', 'D'], example: 'B' },
+            explanation: { type: 'string', example: 'Joyful means the same as Happy.' },
+            typeId: { type: 'integer', example: 1 },
+            partId: { type: 'integer', example: 5 },
+            skillId: { type: 'integer', example: 2, description: "1: Listening, 2: Reading" },
+            imagePath: { type: 'string', description: "Đường dẫn cục bộ trên server (để auto-upload)" },
+            audioPath: { type: 'string', description: "Đường dẫn cục bộ trên server (để auto-upload)" },
+            media: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  type: { type: 'string', enum: ['image', 'audio', 'video'] },
+                  url: { type: 'string', example: 'http://res.cloudinary.com/...' },
+                  description: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
       },
     },
     // Global security setting (optional, can be overridden per route)
