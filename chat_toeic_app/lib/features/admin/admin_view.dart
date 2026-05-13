@@ -125,38 +125,77 @@ class _AdminViewState extends State<AdminView> {
           ),
           const SizedBox(width: 48),
           // Nav Items
-          _buildTopNavItem('Trang chủ', true),
+          _buildTopNavItem('Trang chủ', false, route: '/home'),
           const SizedBox(width: 12),
-          _buildTopNavItem('Tra từ vựng', false),
+          _buildTopNavItem('Tra từ vựng', false, route: '/vocabulary'),
           const SizedBox(width: 12),
-          _buildTopNavItem('Chat TOEIC', false),
+          _buildTopNavItem('Chat TOEIC', false, route: '/chatbot'),
           const Spacer(),
-          // User Profile
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24),
+          // User Profile Menu
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'profile') {
+                Get.toNamed('/profile');
+              } else if (value == 'logout') {
+                Get.find<AuthController>().logout();
+              }
+            },
+            offset: const Offset(0, 50),
+            color: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 20, color: Colors.white70),
+                    SizedBox(width: 12),
+                    Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  ],
                 ),
-                child: const Icon(Icons.person, size: 20, color: Colors.white),
               ),
-              const SizedBox(width: 12),
-              Text(
-                user?['username'] ?? 'phanhung',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                    SizedBox(width: 12),
+                    Text('Đăng xuất', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                  ],
+                ),
               ),
             ],
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: const Icon(Icons.person, size: 20, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  user?['username'] ?? 'phanhung',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                ),
+                const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.white54),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTopNavItem(String title, bool isActive) {
+  Widget _buildTopNavItem(String title, bool isActive, {String? route}) {
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        if (route != null) {
+          Get.toNamed(route);
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
