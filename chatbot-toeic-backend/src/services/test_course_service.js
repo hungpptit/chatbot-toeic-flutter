@@ -169,10 +169,34 @@ const getAllCoursesWithTests = async () => {
 };
 
 
+const getTestsByCourseId = async (courseId) => {
+  try {
+    const course = await Course.findByPk(courseId, {
+      include: [
+        {
+          model: Test,
+          attributes: ['id', 'title', 'duration', 'participants', 'comments'],
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    if (!course) {
+      throw new Error(`Course with ID ${courseId} not found`);
+    }
+
+    return course.Tests;
+  } catch (error) {
+    console.error("❌ Error fetching tests by courseId:", error);
+    throw error;
+  }
+};
+
 export{
     getAllTestsWithCourses,
     getAllCourseNames,
     getAllCoursesWithTests,
+    getTestsByCourseId,
     updateCourseName,
     deleteCourseById,
     insertCourse
