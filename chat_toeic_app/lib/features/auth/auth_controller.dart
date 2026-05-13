@@ -75,8 +75,22 @@ class AuthController extends GetxController {
   }
 
   Future<void> logout() async {
-    await StorageService.clearTokens();
-    isLoggedIn.value = false;
-    Get.offAllNamed('/login');
+    try {
+      final refreshToken = await StorageService.getRefreshToken();
+      if (refreshToken != null) {
+        // Gọi API logout để Server xóa Cookie
+        await DioClient.dio.post('/v1/auth/logout', data: {
+          'refreshToken': refreshToken,
+        });
+      }
+    } catch (e) {
+      print('Error during API logout: $e');
+    } finally {
+      // Luôn luôn xóa dữ liệu local dù API có lỗi hay không
+      await StorageService.clearTokens();
+      user.value = null;
+      isLoggedIn.value = false;
+      Get.offAllNamed('/login');
+    }
   }
 }
