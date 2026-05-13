@@ -102,10 +102,30 @@ const lockUserController = async (req, res) => {
   }
 };
 
+const updateUserController = async (req, res) => {
+  try {
+    const callerId = req.user?.id;
+    const { userId, username, email, role_id, status } = req.body;
+
+    if (!callerId) {
+      return res.status(401).json({ message: "Unauthorized: Missing user id" });
+    }
+
+    const { updateUser } = await import("../services/AdminUser_service.js");
+    const data = await updateUser(callerId, userId, { username, email, role_id, status });
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("❌ Error updating user:", error);
+    return res.status(error.message.includes('quyền') ? 403 : 400).json({ message: error.message });
+  }
+};
+
 
 export {
   getAllUserController,
   updateUserRoleController,
   deleteUserController,
-  lockUserController
+  lockUserController,
+  updateUserController
 };

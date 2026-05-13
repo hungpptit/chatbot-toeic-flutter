@@ -12,12 +12,6 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final homeController = Get.put(HomeController());
-    final List<String> categories = [
-      'Tất cả', 'TOFEL', 'IELTS Academic', 'IELTS General', 
-      'TOEIC', 'Digital SAT', 'TOPIK I & II', 'Tiếng Anh THPTQG', 
-      'ACT', 'AI-Test', 'Practice - Toeic'
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: LayoutBuilder(
@@ -57,9 +51,9 @@ class HomeView extends StatelessWidget {
                                   // Category Tabs (Filter Chips)
                                   SingleChildScrollView(
                                     scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: categories.map((cat) => _buildCategoryTab(cat, homeController)).toList(),
-                                    ),
+                                    child: Obx(() => Row(
+                                      children: homeController.categories.map((cat) => _buildCategoryTab(cat, homeController)).toList(),
+                                    )),
                                   ),
                                   const SizedBox(height: 24),
                                   
