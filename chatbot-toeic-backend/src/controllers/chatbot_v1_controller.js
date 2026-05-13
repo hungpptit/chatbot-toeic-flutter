@@ -150,6 +150,13 @@ export const askChatbot = async (req, res) => {
             return sendError(res, 400, "rawText is required");
         }
 
+        // 1. Lưu tin nhắn của User
+        await createMessage({
+            conversationId,
+            role: 'user',
+            content: rawText
+        });
+
         const items = await getSmartItem(rawText, conversationId);
         
         const formattedResults = items.map((r) => {
@@ -187,10 +194,34 @@ export const askChatbot = async (req, res) => {
             };
         });
 
+        // 2. Tạo nội dung văn bản để lưu vào DB cho Model
+        let aiContent = "";
+        if (formattedResults.length > 0) {
+            const first = formattedResults[0];
+            if (first.type === 'General-AI') {
+                aiContent = first.answer;
+            } else if (first.type === 'Vocabulary-Lookup') {
+                aiContent = `Từ vựng: ${first.word}\nĐịnh nghĩa: ${first.definition}\nGiải thích: ${first.viExplanation}`;
+            } else if (first.type === 'Question') {
+                aiContent = `Câu hỏi: ${first.question}\nĐáp án: ${first.answer}\nGiải thích: ${first.explanation}`;
+            } else {
+                aiContent = first.answer || "Tôi không tìm thấy câu trả lời phù hợp.";
+            }
+        } else {
+            aiContent = "Xin lỗi, tôi không thể xử lý yêu cầu này.";
+        }
+
+        // 3. Lưu tin nhắn của Model
+        await createMessage({
+            conversationId,
+            role: 'model',
+            content: aiContent
+        });
+
         return sendSuccess(res, {
             count: items.length,
             results: formattedResults
-        }, "AI response generated");
+        }, "AI response generated and saved");
     } catch (error) {
         console.error("[CHATBOT V1] askChatbot error:", error);
         return sendError(res, 500, "Error generating AI response", [error.message]);
