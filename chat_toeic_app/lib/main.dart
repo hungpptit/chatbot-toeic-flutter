@@ -8,6 +8,8 @@ import 'package:chat_toeic_app/features/auth/login_screen.dart';
 import 'package:chat_toeic_app/features/home/home_view.dart';
 import 'package:chat_toeic_app/features/vocabulary/vocabulary_view.dart';
 import 'package:chat_toeic_app/features/chat/chat_view.dart';
+import 'package:chat_toeic_app/features/profile/profile_view.dart';
+import 'package:chat_toeic_app/features/admin/admin_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +96,14 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/chatbot',
           page: () => const ChatView(),
+        ),
+        GetPage(
+          name: '/profile',
+          page: () => const ProfileView(),
+        ),
+        GetPage(
+          name: '/admin',
+          page: () => const AdminView(),
         ),
       ],
     );
