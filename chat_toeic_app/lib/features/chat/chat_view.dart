@@ -277,15 +277,63 @@ class ChatView extends StatelessWidget {
 
       return ListView.builder(
         controller: controller.scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40), // Large horizontal padding for "Grok" style
-        itemCount: controller.messages.length,
+        padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
+        itemCount: controller.messages.length + (controller.isSending.value ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index == controller.messages.length) {
+            return _buildTypingIndicator();
+          }
           final msg = controller.messages[index];
           final isAI = msg['role'] == 'model' || msg['role'] == 'ai';
           return _buildMessageBubble(msg['content'] ?? '', isAI);
         },
       );
     });
+  }
+
+  Widget _buildTypingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(LucideIcons.bot, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(20),
+              ),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _TypingDot(delay: 0),
+                SizedBox(width: 4),
+                _TypingDot(delay: 200),
+                SizedBox(width: 4),
+                _TypingDot(delay: 400),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMessageBubble(String content, bool isAI) {
@@ -446,6 +494,57 @@ class ChatView extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TypingDot extends StatefulWidget {
+  final int delay;
+  const _TypingDot({required this.delay});
+
+  @override
+  State<_TypingDot> createState() => _TypingDotState();
+}
+
+class _TypingDotState extends State<_TypingDot> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _animation = Tween<double>(begin: 0.2, end: 1.0).animate(_controller);
+
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) {
+        _controller.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _animation,
+      child: Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          color: Colors.white70,
+          shape: BoxShape.circle,
         ),
       ),
     );

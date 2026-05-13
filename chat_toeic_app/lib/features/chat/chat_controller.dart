@@ -120,16 +120,27 @@ class ChatController extends GetxController {
       );
       
       if (response.statusCode == 200) {
-        // The backend might return the AI response directly or we might need to fetch messages
-        // Based on the router, askChatbot likely returns the answer
-        final aiResponse = response.data['data'];
-        if (aiResponse != null) {
+        final data = response.data['data'];
+        if (data != null && data['results'] != null && (data['results'] as List).isNotEmpty) {
+          final firstResult = data['results'][0];
+          String content = '';
+          
+          if (firstResult['type'] == 'General-AI') {
+            content = firstResult['answer'] ?? '';
+          } else if (firstResult['type'] == 'Vocabulary-Lookup') {
+            content = 'Từ vựng: ${firstResult['word']}\nĐịnh nghĩa: ${firstResult['definition']}\nGiải thích: ${firstResult['viExplanation']}';
+          } else if (firstResult['type'] == 'Question') {
+            content = 'Câu hỏi: ${firstResult['question']}\nĐáp án: ${firstResult['answer']}\nGiải thích: ${firstResult['explanation']}';
+          } else {
+            content = firstResult['answer'] ?? firstResult.toString();
+          }
+
           messages.add({
             'role': 'model',
-            'content': aiResponse['content'] ?? aiResponse.toString(),
+            'content': content,
           });
         } else {
-          // Fallback: reload messages
+          // Fallback: reload messages if result format is unexpected
           await fetchMessages(currentConversationId.value!);
         }
         _scrollToBottom();

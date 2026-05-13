@@ -97,7 +97,13 @@ export const logoutController = async (req, res) => {
       return sendError(res, result.code, result.message, result.details);
     }
 
-    // Clear refreshToken cookie if used
+    // Clear all auth related cookies
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Lax',
+    });
+    
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
