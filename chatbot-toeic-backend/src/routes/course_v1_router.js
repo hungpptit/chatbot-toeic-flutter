@@ -1,6 +1,7 @@
 import express from 'express';
 import { 
     getCourses, 
+    getCourseTests,
     createCourse, 
     updateCourse, 
     deleteCourse 
@@ -8,6 +9,26 @@ import {
 import { authMiddleware } from '../Middleware/authMiddleware.js';
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/v1/courses/{id}/tests:
+ *   get:
+ *     summary: Lấy danh sách bài test trong một khóa học cụ thể
+ *     tags: [Course (v1)]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/:id/tests', authMiddleware, getCourseTests);
 
 /**
  * @swagger

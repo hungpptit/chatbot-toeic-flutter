@@ -1,11 +1,30 @@
 import { 
     getAllCourseNames, 
     getAllCoursesWithTests,
+    getTestsByCourseId,
     updateCourseName,
     deleteCourseById,
     insertCourse
 } from "../services/test_course_service.js";
 import { sendSuccess, sendError } from "../utils/response.js";
+
+/**
+ * GET /api/v1/courses/:id/tests
+ * Lấy danh sách các bài test trong một khóa học cụ thể
+ */
+export const getCourseTests = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const tests = await getTestsByCourseId(id);
+        return sendSuccess(res, tests, "Fetched tests by course ID successfully");
+    } catch (error) {
+        console.error("[COURSE V1] getCourseTests error:", error);
+        if (error.message.includes('not found')) {
+            return sendError(res, 404, error.message);
+        }
+        return sendError(res, 500, "Error fetching tests for course", [error.message]);
+    }
+};
 
 /**
  * GET /api/v1/courses
