@@ -18,10 +18,10 @@ class DioClient {
     dio.interceptors.add(AuthInterceptor(dio));
     
     // Log interceptor for debugging
-    dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
-      logPrint: (o) => logger.d(o),
-    ));
+    // dio.interceptors.add(LogInterceptor(
+    //   requestBody: true,
+    //   responseBody: true,
+    //   logPrint: (o) => print(o),
+    // ));
   }
 }

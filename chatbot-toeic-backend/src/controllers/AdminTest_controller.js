@@ -115,91 +115,72 @@ const deleteQuestionTypeController = async (req, res) => {
 // Create Test new
 const createNewTestController = async (req, res) => {
   try {
-    const { title, courseId, questions } = req.body;
-    
-    // ✅ DEBUG: Check what we actually received
-    console.log("📥 Payload nhận được từ client:");
-    console.log(JSON.stringify({ 
-      title, 
-      courseId, 
-      questionsCount: questions?.length,
-      hasQuestionsArray: Array.isArray(questions),
-      firstQuestionKeys: questions?.[0] ? Object.keys(questions[0]) : 'NO_QUESTIONS',
-      firstQuestionHasMedia: questions?.[0]?.media !== undefined,
-      bodyKeys: Object.keys(req.body)
-    }, null, 2));
-    
-    // ✅ If questions exist, log first question structure
-    if (questions && questions.length > 0) {
-      console.log("🔍 First question structure:", {
-        ...questions[0],
-        mediaCount: questions[0].media?.length || 0
-      });
-    }
+    let testData = req.body;
+    const { title, courseId } = testData;
 
-    // ✅ Validate basic fields
-    if (!title || typeof title !== 'string') {
+    // 1. Kiểm tra định dạng dữ liệu (Hỗ trợ cả flat questions và mixed)
+    const hasFlatQuestions = Array.isArray(testData.questions) && testData.questions.length > 0;
+    const hasMixedQuestions = Array.isArray(testData.listeningQuestions) || Array.isArray(testData.readingQuestions);
+
+    if (!hasFlatQuestions && !hasMixedQuestions) {
       return res.status(400).json({
-        message: 'Test title is required and must be a string',
+        message: 'Questions array (flat or mixed) is required and must contain at least one question',
       });
     }
 
-    if (!courseId || typeof courseId !== 'number') {
-      return res.status(400).json({
-        message: 'Course ID is required and must be a number',
-      });
+    // 2. Kiểm tra xem có cần upload media từ local path không
+    // (Dấu hiệu: có trường imagePath hoặc audioPath trong bất kỳ câu hỏi nào)
+    const needsUpload = (questions) => {
+      if (!Array.isArray(questions)) return false;
+      return questions.some(q => q.imagePath || q.audioPath || (q.media && q.media.some(m => m.localPath)));
+    };
+
+    const shouldProcessUpload = needsUpload(testData.questions) || 
+                               needsUpload(testData.listeningQuestions) || 
+                               needsUpload(testData.readingQuestions) ||
+                               testData.audioPath;
+
+    if (shouldProcessUpload) {
+      console.log("📤 Local paths detected. Starting batch upload to Cloudinary...");
+      // Import động service để tránh vòng lặp phụ thuộc nếu có
+      const { batchUploadFromPaths } = await import('../services/batchUploadService.js');
+      testData = await batchUploadFromPaths(testData);
+      console.log("✅ Batch upload completed. Proceeding to database save.");
     }
 
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({
-        message: 'Questions array is required and must contain at least one question',
-      });
-    }
-
-    // ✅ Validate each question structure
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      
-      // Required fields
-      if (!q.typeId || !q.partId) {
-        return res.status(400).json({
-          message: `Question ${i + 1}: typeId and partId are required`,
-        });
-      }
-
-      // ✅ Validate media array ONLY if it exists (optional for Reading questions)
-      if (q.media && Array.isArray(q.media) && q.media.length > 0) {
-        for (let j = 0; j < q.media.length; j++) {
-          const m = q.media[j];
-          
-          if (!m.type || !['audio', 'image', 'video'].includes(m.type)) {
-            return res.status(400).json({
-              message: `Question ${i + 1}, Media ${j + 1}: mediaType must be 'audio', 'image', or 'video'`,
-            });
-          }
-
-          if (!m.url || typeof m.url !== 'string') {
-            return res.status(400).json({
-              message: `Question ${i + 1}, Media ${j + 1}: mediaUrl is required and must be a string`,
-            });
-          }
+    // 3. Chuẩn hóa dữ liệu media (Chuyển imageUrl/audioUrl thành mảng media chuẩn nếu cần)
+    const normalizeMedia = (questions) => {
+      if (!Array.isArray(questions)) return;
+      questions.forEach(q => {
+        if (!q.media) q.media = [];
+        if (q.imageUrl) {
+          q.media.push({ type: 'image', url: q.imageUrl });
+          delete q.imageUrl;
         }
-      }
-      // ✅ Media array có thể không có (null, undefined, []) - OK cho Reading questions
-    }
+        if (q.audioUrl) {
+          q.media.push({ type: 'audio', url: q.audioUrl });
+          delete q.audioUrl;
+        }
+      });
+    };
 
-    // ✅ Call service to create test
-    const result = await createNewTest({ title, courseId, questions });
+    normalizeMedia(testData.questions);
+    normalizeMedia(testData.listeningQuestions);
+    normalizeMedia(testData.readingQuestions);
+
+    // 4. Gọi service để lưu bài thi
+    const { createNewTest } = await import('../services/AdminTest_service.js');
+    const result = await createNewTest(testData);
 
     res.status(201).json({
-      message: 'Test created successfully',
-      data: result, // Includes testId and questionIds
+      message: 'Test created and saved successfully',
+      data: result,
     });
   } catch (error) {
-    console.error('❌ Error in createNewTestController:', error);
+    console.error('❌ Error in createNewTestController (Unified):', error);
     res.status(500).json({ 
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 };

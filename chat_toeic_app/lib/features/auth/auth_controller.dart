@@ -23,13 +23,23 @@ class AuthController extends GetxController {
   }
 
   Future<void> fetchUserProfile() async {
+    isLoading.value = true;
     try {
+      print('Fetching user profile from /v1/auth/me...');
       final response = await DioClient.dio.get('/v1/auth/me');
-      if (response.statusCode == 200) {
+      print('Response status: ${response.statusCode}');
+      print('Response data: ${response.data}');
+      
+      if (response.statusCode == 200 && response.data['data'] != null) {
         user.value = response.data['data'];
+        print('User profile updated: ${user.value}');
+      } else {
+        print('Failed to fetch profile: ${response.data}');
       }
     } catch (e) {
       print('Error fetching user profile: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 
