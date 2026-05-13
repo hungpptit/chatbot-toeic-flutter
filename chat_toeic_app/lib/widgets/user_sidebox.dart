@@ -71,7 +71,7 @@ class UserSideBox extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => Get.toNamed('/statistics'),
                 icon: const Icon(Icons.bar_chart, size: 20),
                 label: const Text('THỐNG KÊ KẾT QUẢ'),
                 style: ElevatedButton.styleFrom(

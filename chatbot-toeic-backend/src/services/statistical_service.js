@@ -122,28 +122,26 @@ const getPartStatisticsByUser = async (userId) => {
       dateLimit.setDate(dateLimit.getDate() - days);
 
     const results = await UserResult.findAll({
-      where: {
-        userId,
-        answeredAt: { [Op.gte]: dateLimit },
-      },
       include: [
         {
           model: UserTests,
           required: true,
           attributes: ['id', 'startedAt', 'completedAt'],
           where: {
-            startedAt: { [Op.ne]: null },
-            completedAt: { [Op.ne]: null },
+            userId,
+            completedAt: { [Op.gte]: dateLimit },
           },
         },
       ],
     });
-     console.log("🔍 [getAccuracyOverTime] Kết quả truy vấn:", results.length, "kết quả");
-    // Nhóm theo ngày
+
+    // Nhóm theo ngày (Dựa trên thời điểm nộp bài thi)
     const grouped = {};
 
     for (const result of results) {
-      const date = new Date(result.answeredAt).toISOString().slice(0, 10); // yyyy-mm-dd
+      if (!result.UserTest || !result.UserTest.completedAt) continue;
+      
+      const date = new Date(result.UserTest.completedAt).toISOString().slice(0, 10); // yyyy-mm-dd
       if (!grouped[date]) {
         grouped[date] = { total: 0, correct: 0 };
       }
