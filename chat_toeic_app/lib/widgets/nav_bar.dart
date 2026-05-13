@@ -38,9 +38,51 @@ class CustomNavBar extends StatelessWidget {
           
           // Login Button / Profile
           Obx(() => authController.isLoggedIn.value
-              ? IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  onPressed: () => authController.logout(),
+              ? PopupMenuButton<int>(
+                  offset: const Offset(0, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  color: const Color(0xFF1E293B),
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: const Icon(Icons.person, color: Colors.white, size: 24),
+                  ),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 1,
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 20, color: Colors.white70),
+                          SizedBox(width: 12),
+                          Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(height: 1),
+                    const PopupMenuItem(
+                      value: 2,
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                          SizedBox(width: 12),
+                          Text('Đăng xuất', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 1) {
+                      Get.toNamed('/profile');
+                    } else if (value == 2) {
+                      authController.logout();
+                    }
+                  },
                 )
               : ElevatedButton(
                   onPressed: () => Get.toNamed('/login'),

@@ -4,6 +4,7 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 class HomeController extends GetxController {
   var isLoading = false.obs;
   var tests = <Map<String, dynamic>>[].obs;
+  var categories = <String>['Tất cả'].obs;
   var selectedCategory = 'Tất cả'.obs;
   var searchQuery = ''.obs;
   
@@ -15,10 +16,25 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     fetchTests();
+    fetchCourses();
     
     // Reset page when category or search changes
     ever(selectedCategory, (_) => currentPage.value = 1);
     ever(searchQuery, (_) => currentPage.value = 1);
+  }
+
+  Future<void> fetchCourses() async {
+    try {
+      final response = await DioClient.dio.get('/v1/courses');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        // Chuyển đổi danh sách course thành danh sách tên category
+        final List<String> fetchedCategories = data.map((e) => e['name'].toString()).toList();
+        categories.value = ['Tất cả', ...fetchedCategories];
+      }
+    } catch (e) {
+      print('Error fetching courses: $e');
+    }
   }
 
   Future<void> fetchTests() async {

@@ -101,9 +101,42 @@ const lockUser = async (callerId, userId, newStatus) => {
   }
 };
 
+const updateUser = async (callerId, userId, updateData) => {
+  try {
+    await checkAdmin(callerId);
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('Người dùng không tồn tại');
+    }
+
+    // ❌ Không cho admin chỉnh sửa admin khác (ngoại trừ chính mình nếu cần, nhưng thường dùng route riêng)
+    if (user.role_id === 2 && callerId !== user.id) {
+      throw new Error('Bạn không thể chỉnh sửa admin khác');
+    }
+
+    // Cập nhật các trường được phép
+    if (updateData.username) user.username = updateData.username;
+    if (updateData.email) user.email = updateData.email;
+    if (updateData.role_id !== undefined) {
+        // Chỉ admin mới đổi được role, và không tự hạ role mình nếu là admin cuối cùng (tạm bỏ qua check admin cuối)
+        user.role_id = updateData.role_id;
+    }
+    if (updateData.status !== undefined) user.status = updateData.status;
+
+    await user.save();
+
+    return { message: 'Cập nhật thông tin người dùng thành công', user };
+  } catch (err) {
+    console.error('❌ Error updating user:', err);
+    throw err;
+  }
+};
+
 export {
   getAllUser,
   updateUserRole,
   deleteUser,
-  lockUser
+  lockUser,
+  updateUser
 };

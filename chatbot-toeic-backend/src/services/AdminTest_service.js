@@ -163,30 +163,42 @@ const updateQuestionType = async (typeId, newName, newDescription = null) => {
 
 const createNewTest = async (testData) => {
   try {
-    // ✅ LOG: Check data nhận được từ frontend
-    console.log('📥 Backend createNewTest received:');
-    console.log({
-      title: testData.title,
-      courseId: testData.courseId,
-      totalQuestions: testData.questions?.length || 0,
-      sampleQuestion: testData.questions?.[0] ? {
-        question: testData.questions[0].question?.substring(0, 50) + '...',
-        partId: testData.questions[0].partId,
-        skillId: testData.questions[0].skillId,
-        hasMediaFiles: testData.questions[0].media && testData.questions[0].media.length > 0,
-        mediaCount: testData.questions[0].media?.length || 0
-      } : null
-    });
+    const { title, courseId, questions: flatQuestions, listeningQuestions, readingQuestions } = testData;
 
-    const { title, courseId, questions } = testData;
+    // 1. Chuẩn bị danh sách câu hỏi tổng hợp
+    let finalQuestions = [];
+
+    if (Array.isArray(flatQuestions) && flatQuestions.length > 0) {
+      finalQuestions = [...flatQuestions];
+    } else {
+      // ✅ Cập nhật ID chuẩn theo DB của bạn: Listening = 6, Reading = 4
+      if (Array.isArray(listeningQuestions)) {
+        finalQuestions = [
+          ...finalQuestions,
+          ...listeningQuestions.map(q => ({ ...q, skillId: q.skillId || 6 }))
+        ];
+      }
+      if (Array.isArray(readingQuestions)) {
+        finalQuestions = [
+          ...finalQuestions,
+          ...readingQuestions.map(q => ({ ...q, skillId: q.skillId || 4 }))
+        ];
+      }
+    }
+
+    if (finalQuestions.length === 0) {
+      throw new Error("No questions provided in any supported format.");
+    }
+
+    // ✅ LOG: Check data chuẩn bị lưu
+    console.log(`📥 Processing test creation: ${title} with ${finalQuestions.length} questions`);
 
     // Create test
     const test = await db.Test.create({
       title,
-      duration: "45 minutes", // Default value, can be updated later
-      participants: 0, // Default value, can be updated later
-      comments: null, // Default value, can be updated later
-      questions: questions.length,
+      duration: testData.duration || "45 minutes",
+      participants: 0,
+      questions: finalQuestions.length,
     });
 
     // Create test-course relationship
@@ -196,7 +208,21 @@ const createNewTest = async (testData) => {
     });
 
     // Create questions
-    const questionRecords = await Promise.all(questions.map(async (q) => {
+    const questionRecords = await Promise.all(finalQuestions.map(async (q) => {
+      // ✅ Chuẩn bị mảng media (Gộp media riêng của câu hỏi + Audio tổng của bài test nếu có)
+      let questionMedia = q.media ? [...q.media] : [];
+      
+      // Nếu bài test có audio tổng (audioUrl) và câu hỏi chưa có audio nào
+      if (testData.audioUrl && !questionMedia.some(m => m.type === 'audio')) {
+        questionMedia.push({
+          type: 'audio',
+          url: testData.audioUrl,
+          description: 'Global test audio',
+          startSecond: q.startSecond ?? null, // Lấy timestamp riêng của câu hỏi nếu có
+          endSecond: q.endSecond ?? null
+        });
+      }
+
       const question = await Question.create({
         question: q.question || null,
         optionA: q.optionA || null,
@@ -209,57 +235,56 @@ const createNewTest = async (testData) => {
         partId: q.partId || null,
       });
       
-      // 🔴 FIX: Validate skillId exists before creating QuestionSkill
-      if (q.skillId) {
-        const skillExists = await Skill.findByPk(q.skillId);
-        if (!skillExists) {
-          console.warn(`⚠️ Skill ID ${q.skillId} không tồn tại, bỏ qua QuestionSkill`);
-        } else {
-          await QuestionSkill.create({
-            questionId: question.id,
-            skillId: q.skillId,
-            weight: 1,
-          });
-        }
+      // ✅ Xử lý gán Skill ID (Hỗ trợ cả mảng skillIds hoặc 1 skillId đơn lẻ)
+      let skillsToAssign = [];
+      if (Array.isArray(q.skillIds)) {
+        skillsToAssign = q.skillIds;
+      } else if (q.skillId) {
+        skillsToAssign = [q.skillId];
       }
 
-      // Nếu có media (ảnh/audio)
-      if (q.media && q.media.length > 0) {
-        await Promise.all(q.media.map(async (m, idx) => {
-          // 1. Lưu file vào MediaFiles
+      if (skillsToAssign.length > 0) {
+        await Promise.all(skillsToAssign.map(async (sId) => {
+          await QuestionSkill.create({
+            questionId: question.id,
+            skillId: sId,
+            weight: 1,
+          });
+        }));
+      }
+
+      // Lưu media
+      if (questionMedia.length > 0) {
+        await Promise.all(questionMedia.map(async (m, idx) => {
           const mediaFile = await MediaFiles.create({
-            mediaType: m.type,   // 'audio' | 'image'
-            mediaUrl: m.url,     // link Cloudinary
+            mediaType: m.type,
+            mediaUrl: m.url,
             description: m.description || null,
           });
 
-          // 2. Tạo mapping tới câu hỏi
           await QuestionMediaMap.create({
             questionId: question.id,
             mediaId: mediaFile.id,
-            startSecond: m.startSecond !== undefined && m.startSecond !== null ? m.startSecond : null,
-            endSecond: m.endSecond !== undefined && m.endSecond !== null ? m.endSecond : null,
+            startSecond: m.startSecond ?? null,
+            endSecond: m.endSecond ?? null,
             sortOrder: idx + 1,
           });
         }));
       }
 
-      // tạo questionStat record trong hook của question model rồi 
-       // ⬇️ Generate embedding cho câu hỏi mới tạo
+      // Generate embedding cho AI
       if (question.question) {
         try {
           await embeddingService.generateEmbeddingForQuestion(question);
-          console.log(`✅ Embedding generated for questionId ${question.id}`);
         } catch (err) {
           console.error(`⚠️ Failed to generate embedding for questionId ${question.id}:`, err);
         }
       }
+
       return question;
     }));
 
-
-
-    // Create test-question relationships
+    // Tạo liên kết Test-Question
     const testQuestionRecords = questionRecords.map((q, index) => ({
       testId: test.id,
       questionId: q.id,
@@ -270,9 +295,10 @@ const createNewTest = async (testData) => {
     return {
       testId: test.id,
       questionIds: questionRecords.map(q => q.id),
+      totalQuestions: finalQuestions.length
     };
   } catch (err) {
-    console.error('❌ Error creating test:', err);
+    console.error('❌ Error in createNewTest service:', err);
     throw err;
   }
 };
