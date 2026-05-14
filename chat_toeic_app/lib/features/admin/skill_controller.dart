@@ -1,0 +1,82 @@
+import 'package:get/get.dart';
+import 'package:chat_toeic_app/core/api/dio_client.dart';
+
+class SkillController extends GetxController {
+  var isLoading = false.obs;
+  var skills = <Map<String, dynamic>>[].obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchSkills();
+  }
+
+  Future<void> fetchSkills() async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.get('/adminMetadata/skills');
+      if (response.statusCode == 200) {
+        final raw = response.data;
+        List<dynamic> data = [];
+        if (raw is List) {
+          data = raw;
+        } else if (raw is Map && raw['data'] != null) {
+          data = raw['data'];
+        } else if (raw is Map && raw['items'] != null) {
+          data = raw['items'];
+        }
+        skills.value = data.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      Get.snackbar('Lỗi', 'Không thể tải danh sách Skill: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> createSkill(String name) async {
+    try {
+      final response = await DioClient.dio.post('/adminMetadata/skills', data: {'name': name});
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
+        skills.insert(0, created as Map<String, dynamic>);
+        skills.refresh();
+        return created.cast<String, dynamic>();
+      }
+    } catch (e) {
+      Get.snackbar('Lỗi', 'Không thể tạo Skill: $e');
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> updateSkill(int id, String name) async {
+    try {
+      final response = await DioClient.dio.put('/adminMetadata/skills/$id', data: {'name': name});
+      if (response.statusCode == 200) {
+        final updated = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
+        final idx = skills.indexWhere((s) => s['id'] == id);
+        if (idx != -1) {
+          skills[idx] = {...skills[idx], 'name': updated['name'] ?? name};
+          skills.refresh();
+        }
+        return updated.cast<String, dynamic>();
+      }
+    } catch (e) {
+      Get.snackbar('Lỗi', 'Không thể cập nhật Skill: $e');
+    }
+    return null;
+  }
+
+  Future<bool> deleteSkill(int id) async {
+    try {
+      final response = await DioClient.dio.delete('/adminMetadata/skills/$id');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        skills.removeWhere((s) => s['id'] == id);
+        return true;
+      }
+    } catch (e) {
+      Get.snackbar('Lỗi', 'Không thể xóa Skill: $e');
+    }
+    return false;
+  }
+}

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:chat_toeic_app/features/auth/auth_controller.dart';
+import 'package:chat_toeic_app/features/admin/course_list_panel.dart';
+import 'package:chat_toeic_app/features/admin/user_list_panel.dart';
+import 'package:chat_toeic_app/features/admin/part_list_panel.dart';
+import 'package:chat_toeic_app/features/admin/type_list_panel.dart';
+import 'package:chat_toeic_app/features/admin/skill_list_panel.dart';
 
 class AdminView extends StatefulWidget {
   const AdminView({super.key});
@@ -18,6 +23,8 @@ class _AdminViewState extends State<AdminView> {
     super.initState();
     expandedItems = {};
   }
+
+  String? activeAdminContent; // null = default empty dashboard
 
   @override
   Widget build(BuildContext context) {
@@ -64,21 +71,48 @@ class _AdminViewState extends State<AdminView> {
                     ),
                     child: Stack(
                       children: [
-                        // Empty Content
-                        const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.dashboard_customize_outlined, size: 64, color: Colors.white10),
-                              SizedBox(height: 16),
-                              Text(
-                                'Nội dung quản trị sẽ hiển thị ở đây',
-                                style: TextStyle(color: Colors.white24, fontSize: 18),
-                              ),
-                            ],
+                        // Either show default placeholder or the selected admin panel
+                        if (activeAdminContent == null) ...[
+                          const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.dashboard_customize_outlined, size: 64, color: Colors.white10),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Nội dung quản trị sẽ hiển thị ở đây',
+                                  style: TextStyle(color: Colors.white24, fontSize: 18),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        
+                        ] else if (activeAdminContent == 'courses') ...[
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: CourseListPanel(),
+                          ),
+                                    ] else if (activeAdminContent == 'parts') ...[
+                                      Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: PartListPanel(),
+                                      ),
+                                    ] else if (activeAdminContent == 'types') ...[
+                                      Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: TypeListPanel(),
+                                      ),
+                                    ] else if (activeAdminContent == 'skills') ...[
+                                      Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: SkillListPanel(),
+                                      ),
+                                    ] else if (activeAdminContent == 'users') ...[
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: UserListPanel(),
+                          ),
+                        ],
+
                         // Floating Cloud Icon (Bottom Right)
                         Positioned(
                           bottom: 24,
@@ -265,7 +299,7 @@ class _AdminViewState extends State<AdminView> {
             _buildExpandableSidebarItem(
               Icons.people_outline, 
               'Quản lý người dùng', 
-              ['Danh sách', 'Chỉnh sửa']
+              ['Danh sách', 'Chức năng khác']
             ),
             _buildExpandableSidebarItem(
               Icons.quiz_outlined, 
@@ -274,8 +308,8 @@ class _AdminViewState extends State<AdminView> {
             ),
             _buildExpandableSidebarItem(
               Icons.import_contacts_outlined, 
-              'Quản lý khóa học', 
-              ['Danh sách khóa học', 'Thêm / Sửa']
+              'Quản lý chung', 
+              ['Danh sách khóa học', 'Danh sách part', 'Danh sách type', 'Danh sách skill']
             ),
             _buildSidebarItem(Icons.analytics_outlined, 'Thống kê nhanh', isSelected: false),
           ],
@@ -305,16 +339,58 @@ class _AdminViewState extends State<AdminView> {
           }
         ),
         if (isExpanded)
-          ...subItems.map((subItem) => _buildSubItem(subItem)),
+          ...subItems.map((subItem) => _buildSubItem(subItem, parentTitle: title)),
       ],
     );
   }
 
-  Widget _buildSubItem(String title) {
+  Widget _buildSubItem(String title, {required String parentTitle}) {
     return Container(
       margin: const EdgeInsets.only(left: 54, right: 16, bottom: 4),
       child: InkWell(
-        onTap: () {},
+        onTap: () {
+          // Hiển thị trực tiếp trong panel phải thay vì chuyển route
+          setState(() {
+            if (parentTitle == 'Quản lý người dùng') {
+              if (title == 'Danh sách') {
+                activeAdminContent = 'users';
+              } else if (title == 'Chức năng khác') {
+                activeAdminContent = 'users_manage';
+              } else {
+                activeAdminContent = null;
+              }
+            } else if (parentTitle == 'Quản lý chung') {
+              if (title == 'Danh sách khóa học') {
+                activeAdminContent = 'courses';
+              } else if (title == 'Danh sách part') {
+                activeAdminContent = 'parts';
+              } else if (title == 'Danh sách type') {
+                activeAdminContent = 'types';
+              } else if (title == 'Danh sách skill') {
+                activeAdminContent = 'skills';
+              } else if (title == 'Thêm / Sửa') {
+                activeAdminContent = 'courses_manage';
+              } else {
+                activeAdminContent = null;
+              }
+            } else {
+              // fallback mapping based on explicit title
+              if (title == 'Danh sách khóa học') {
+                activeAdminContent = 'courses';
+              } else if (title == 'Danh sách part') {
+                activeAdminContent = 'parts';
+              } else if (title == 'Danh sách type') {
+                activeAdminContent = 'types';
+              } else if (title == 'Danh sách skill') {
+                activeAdminContent = 'skills';
+              } else if (title == 'Thêm / Sửa') {
+                activeAdminContent = 'courses_manage';
+              } else {
+                activeAdminContent = null;
+              }
+            }
+          });
+        },
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),

@@ -10,7 +10,11 @@ import 'package:chat_toeic_app/features/vocabulary/vocabulary_view.dart';
 import 'package:chat_toeic_app/features/chat/chat_view.dart';
 import 'package:chat_toeic_app/features/profile/profile_view.dart';
 import 'package:chat_toeic_app/features/admin/admin_view.dart';
+<<<<<<< HEAD
 import 'package:chat_toeic_app/features/statistics/statistics_view.dart';
+=======
+import 'package:chat_toeic_app/features/admin/course_list_view.dart';
+>>>>>>> origin/QuyCoding
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,8 +111,13 @@ class MyApp extends StatelessWidget {
           page: () => const AdminView(),
         ),
         GetPage(
+<<<<<<< HEAD
           name: '/statistics',
           page: () => const StatisticsView(),
+=======
+          name: '/admin/courses',
+          page: () => const CourseListView(),
+>>>>>>> origin/QuyCoding
         ),
       ],
     );
