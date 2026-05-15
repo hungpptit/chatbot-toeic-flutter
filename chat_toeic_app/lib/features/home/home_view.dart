@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:chat_toeic_app/core/theme/app_colors.dart';
 import 'package:chat_toeic_app/features/home/home_controller.dart';
 import 'package:chat_toeic_app/widgets/nav_bar.dart';
 import 'package:chat_toeic_app/widgets/exam_card.dart';

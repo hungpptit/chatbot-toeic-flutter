@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:chat_toeic_app/core/theme/app_colors.dart';
 import 'package:chat_toeic_app/features/test/test_detail_view.dart';
+import 'package:chat_toeic_app/features/test/test_history_view.dart';
+import 'package:chat_toeic_app/features/test/test_history_view.dart';
 
 class ExamCard extends StatelessWidget {
   final Map<String, dynamic> test;
@@ -98,7 +100,20 @@ class ExamCard extends StatelessWidget {
                   child: SizedBox(
                     height: 45,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        final testId = test['id'];
+                        if (testId != null) {
+                          Navigator.of(Get.context!, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => TestHistoryView(testId: testId),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(Get.context!).showSnackBar(
+                            const SnackBar(content: Text('Không thể xác định bài thi')),
+                          );
+                        }
+                      },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFF6366F1)),
                         foregroundColor: const Color(0xFF6366F1),

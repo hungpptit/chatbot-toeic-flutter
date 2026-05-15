@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:chat_toeic_app/core/api/dio_client.dart';
@@ -22,20 +25,56 @@ class TestController extends GetxController {
   
   // === Audio State ===
   var isAudioPlaying = false.obs;
+  late StreamSubscription<Duration> _audioPositionSubscription;
+  var currentAudioPosition = 0.0.obs; // Current playback time in seconds
+
+  // === Listening Test Mode ===
+  var isListeningTest = false.obs;
+  var hasListeningQuestions = false.obs;
+  var hasReadingQuestions = false.obs;
+  var testStarted = false.obs; // Track if user clicked START button
+  var audioPath = ''.obs; // Full audio file path for listening test
 
   // === Test Metadata ===
   var testId = 0.obs;
   var testTitle = ''.obs;
   var totalQuestions = 0.obs;
+  var attemptId = ''.obs; // ID of current test attempt
 
   @override
   void onInit() {
     super.onInit();
+    
     _startTimer();
     
-    // Auto-play audio when question changes
+    // Initialize empty position subscription (will be replaced in _setupAudioPositionListener)
+    _audioPositionSubscription = player.positionStream.listen((_) {});
+    
+    // For listening tests: trigger auto-play when testStarted becomes true
+    ever(testStarted, (started) {
+      if (started && isListeningTest.value) {
+        print('🎬 Listening test started - loading unified audio');
+        _startListeningMode();
+      }
+    });
+
     ever(currentQuestionIndex, (_) {
-      _autoPlayAudio();
+      _syncListeningModeForCurrentQuestion();
+    });
+
+    // Auto-initialize test attempt when questions are loaded (for reading tests only)
+    // Listening tests will initialize when user clicks START button
+    ever(questions, (list) {
+      if (list.isNotEmpty && attemptId.value.isEmpty && testId.value > 0) {
+        // Only auto-init for non-listening tests
+        // Listening test detection happens after questions load
+        Future.delayed(Duration.zero, () {
+          if (!isListeningTest.value) {
+            print('📌 Reading test detected, auto-initializing attempt');
+            startTestAttempt(testId.value);
+          }
+        });
+      }
     });
   }
 
@@ -43,8 +82,65 @@ class TestController extends GetxController {
   void onClose() {
     _stopTimer();
     _stopAudio();
+    _audioPositionSubscription.cancel();
     player.dispose();
+    
+    // Reset orientation when test closes
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    
     super.onClose();
+  }
+
+  /// Set the attempt ID (should be called when test starts, after creating attempt in backend)
+  /// Example: After user clicks START button, call backend to create attempt, then set this
+  void setAttemptId(String id) {
+    attemptId.value = id;
+  }
+
+  /// ========== TEST ATTEMPT MANAGEMENT ==========
+
+  /// Create a new test attempt and get attemptId
+  Future<void> startTestAttempt(int id) async {
+    try {
+      testId.value = id;
+      print('🎬 Starting test attempt for testId=$id');
+      
+      final response = await DioClient.dio.post('/v1/tests/$id/attempts');
+      
+      print('📥 Create attempt response:');
+      print('  Status: ${response.statusCode}');
+      print('  Data: ${jsonEncode(response.data)}');
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        print('  data keys: ${data.keys}');
+        print('  data[data]: ${data['data']}');
+        print('  data[data][userTestId]: ${data['data']?['userTestId']}');
+        
+        // Backend returns userTestId, not id
+        final newAttemptId = data['data']?['userTestId']?.toString() ?? data['userTestId']?.toString();
+        
+        print('  Extracted attemptId: $newAttemptId (type: ${newAttemptId.runtimeType})');
+        
+        if (newAttemptId != null && newAttemptId.isNotEmpty && newAttemptId != 'null') {
+          setAttemptId(newAttemptId);
+          print('✅ Test attempt created: attemptId=$newAttemptId');
+        } else {
+          throw Exception('No userTestId in response (extracted: $newAttemptId)');
+        }
+      } else {
+        throw Exception('Failed to create attempt: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error starting test attempt: $e');
+      print('Không thể bắt đầu bài thi: $e');
+      isTestActive.value = false;
+    }
   }
 
   /// ========== TIMER METHODS ==========
@@ -56,13 +152,11 @@ class TestController extends GetxController {
       } else {
         _stopTimer();
         isTestActive.value = false;
-        Get.snackbar(
-          'Hết giờ',
-          'Thời gian làm bài đã hết. Bài thi sẽ được nộp tự động.',
-          duration: const Duration(seconds: 3),
-        );
+        print('⏰ Thời gian làm bài đã hết. Bài thi sẽ được nộp tự động.');
         Future.delayed(const Duration(seconds: 1), () {
-          submitTest();
+          if (Get.context != null) {
+            submitTest(Get.context!);
+          }
         });
       }
     });
@@ -88,49 +182,83 @@ class TestController extends GetxController {
     isLoading.value = true;
     try {
       final response = await DioClient.dio.get('/v1/tests/$id/questions');
+      
       if (response.statusCode == 200) {
         // Backend returns array directly or wrapped in 'data' object
-        List<dynamic> data = response.data['data'] ?? response.data as List<dynamic>;
+        final rawData = response.data['data'] ?? response.data;
+        
+        // If wrapped in an object with 'questions' key, extract it
+        List<dynamic> data;
+        String? retrievedAudioPath;
+        
+        if (rawData is Map<String, dynamic> && rawData.containsKey('questions')) {
+          data = rawData['questions'] as List<dynamic>;
+          retrievedAudioPath = rawData['audioPath'] as String?;
+        } else if (rawData is List<dynamic>) {
+          data = rawData;
+        } else {
+          throw Exception('Unexpected response format');
+        }
         
         // Use questions directly without transformation
         questions.assignAll(
           data.cast<Map<String, dynamic>>(),
         );
+        
         totalQuestions.value = questions.length;
         
         // Initialize userAnswers map
         userAnswers.clear();
         
-        // DEBUG: Print first question structure
+        // Detect listening/reading composition for pure listening vs mixed tests.
         if (questions.isNotEmpty) {
-          print('════════════════════════════════');
-          print('🔍 FIRST QUESTION:');
-          final q = questions[0];
-          print('Keys: ${q.keys.toList()}');
-          print('question: "${q['question']}"');
-          print('optionA: "${q['optionA']}"');
-          print('optionB: "${q['optionB']}"');
-          print('optionC: "${q['optionC']}"');
-          print('optionD: "${q['optionD']}"');
-          print('mediaMappings: ${q['mediaMappings']}');
-          print('════════════════════════════════');
+          hasListeningQuestions.value = questions.any(_isListeningQuestion);
+          hasReadingQuestions.value = questions.any((q) => !_isListeningQuestion(q));
+          isListeningTest.value = hasListeningQuestions.value && !hasReadingQuestions.value;
+          
+          if (hasListeningQuestions.value) {
+            // Primary: unified audio path from response.
+            if (retrievedAudioPath != null && retrievedAudioPath.isNotEmpty) {
+              audioPath.value = retrievedAudioPath;
+            } else {
+              // Fallback: extract first available audio URL from listening questions.
+              for (final q in questions) {
+                final extracted = _extractAudioUrlFromQuestion(q);
+                if (extracted.isNotEmpty) {
+                  audioPath.value = extracted;
+                  break;
+                }
+              }
+            }
+          }
+          
+          // Lock orientation only for pure listening test intro flow.
+          if (isListeningTest.value) {
+            SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+          } else {
+            SystemChrome.setPreferredOrientations([
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.portraitDown,
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]);
+          }
+
+          _syncListeningModeForCurrentQuestion();
         }
         
-        Get.snackbar(
-          'Thành công',
-          'Tải ${questions.length} câu hỏi thành công',
-          duration: const Duration(seconds: 1),
-        );
+        print('✅ Tải ${questions.length} câu hỏi thành công');
       }
     } catch (e) {
       print('❌ Error fetching questions: $e');
-      Get.snackbar('Lỗi', 'Không thể tải câu hỏi: $e');
+      print('Không thể tải câu hỏi: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
   /// ========== QUESTION NAVIGATION ==========
+  /// NOTE: In listening test mode (isTestActive=true), these are effectively disabled
 
   /// Lấy câu hỏi hiện tại
   Map<String, dynamic> get currentQuestion {
@@ -152,7 +280,12 @@ class TestController extends GetxController {
   }
 
   /// Chuyển đến câu hỏi tiếp theo
+  /// DISABLED in listening test mode - only called via auto-switch logic
   Future<void> nextQuestion() async {
+    if (isManualNavigationLocked) {
+      print('⛔ Cannot manually navigate in listening test mode');
+      return;
+    }
     if (hasNextQuestion) {
       await _stopAudio();
       currentQuestionIndex.value++;
@@ -160,7 +293,12 @@ class TestController extends GetxController {
   }
 
   /// Chuyển đến câu hỏi trước
+  /// DISABLED in listening test mode
   Future<void> previousQuestion() async {
+    if (isManualNavigationLocked) {
+      print('⛔ Cannot manually navigate in listening test mode');
+      return;
+    }
     if (hasPreviousQuestion) {
       await _stopAudio();
       currentQuestionIndex.value--;
@@ -168,12 +306,17 @@ class TestController extends GetxController {
   }
 
   /// Nhảy đến câu hỏi cụ thể
+  /// DISABLED in listening test mode
   Future<void> goToQuestion(int index) async {
+    if (isManualNavigationLocked) {
+      print('⛔ Cannot manually navigate in listening test mode');
+      return;
+    }
     if (index >= 0 && index < questions.length) {
       await _stopAudio();
       currentQuestionIndex.value = index;
     } else {
-      Get.snackbar('Lỗi', 'Chỉ số câu hỏi không hợp lệ');
+      print('Lỗi: Chỉ số câu hỏi không hợp lệ');
     }
   }
 
@@ -186,11 +329,7 @@ class TestController extends GetxController {
       // Lưu đáp án (map từ index câu hỏi -> index đáp án A/B/C/D)
       userAnswers[currentQuestionIndex.value] = answerIndex;
       
-      Get.snackbar(
-        'Đã lưu',
-        'Đáp án đã được lưu',
-        duration: const Duration(milliseconds: 500),
-      );
+      print('💾 Đã lưu đáp án cho câu ${currentQuestionIndex.value + 1}');
          }
   }
 
@@ -204,28 +343,274 @@ class TestController extends GetxController {
     return userAnswers.containsKey(index);
   }
 
-  /// ========== AUDIO METHODS ==========
+  /// ========== AUDIO METHODS FOR LISTENING TEST ==========
 
+  int _safeExtractInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? 0;
+    if (v is Map) {
+      if (v.containsKey('id')) return _safeExtractInt(v['id']);
+      if (v.isNotEmpty) return _safeExtractInt(v.values.first);
+    }
+    return 0;
+  }
+
+  double? _safeExtractDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  bool _isListeningPartId(int partId) {
+    return partId >= 1 && partId <= 4;
+  }
+
+  bool _isListeningQuestion(Map<String, dynamic> question) {
+    final dynamic part = question['part'];
+    final int partId = _safeExtractInt(part ?? question['partId']);
+    if (_isListeningPartId(partId)) {
+      return true;
+    }
+
+    final hasTiming = _extractStartSecond(question) != null || _extractEndSecond(question) != null;
+    final hasAudio = _extractAudioUrlFromQuestion(question).isNotEmpty;
+    return hasTiming || hasAudio;
+  }
+
+  String _extractAudioUrlFromQuestion(Map<String, dynamic> question) {
+    if (question['mediaMappings'] is! List) {
+      return '';
+    }
+
+    final mappings = question['mediaMappings'] as List;
+    for (final mapping in mappings) {
+      if (mapping is! Map<String, dynamic> || mapping['media'] == null) {
+        continue;
+      }
+
+      final media = mapping['media'];
+      final String type = (media['type'] ?? media['mediaType'] ?? '').toString().toLowerCase();
+      final String url = (media['url'] ?? media['mediaUrl'] ?? '').toString();
+      if (type == 'audio' && url.isNotEmpty) {
+        return url;
+      }
+    }
+
+    return '';
+  }
+
+  double? _extractStartSecond(Map<String, dynamic> question) {
+    if (question['mediaMappings'] is List) {
+      for (final mapping in (question['mediaMappings'] as List)) {
+        if (mapping is Map<String, dynamic>) {
+          final parsed = _safeExtractDouble(mapping['startSecond']);
+          if (parsed != null) return parsed;
+        }
+      }
+    }
+    return _safeExtractDouble(question['startSecond']);
+  }
+
+  double? _extractEndSecond(Map<String, dynamic> question) {
+    if (question['mediaMappings'] is List) {
+      for (final mapping in (question['mediaMappings'] as List)) {
+        if (mapping is Map<String, dynamic>) {
+          final parsed = _safeExtractDouble(mapping['endSecond']);
+          if (parsed != null) return parsed;
+        }
+      }
+    }
+    return _safeExtractDouble(question['endSecond']);
+  }
+
+  bool get isCurrentQuestionListening {
+    final current = currentQuestion;
+    if (current.isEmpty) {
+      return false;
+    }
+    return _isListeningQuestion(current);
+  }
+
+  bool get isManualNavigationLocked {
+    if (!isTestActive.value) {
+      return false;
+    }
+
+    if (isListeningTest.value) {
+      return true;
+    }
+
+    return isCurrentQuestionListening && isAudioPlaying.value;
+  }
+
+  bool get shouldUseListeningNavigationUi {
+    if (isListeningTest.value) {
+      return true;
+    }
+    return isCurrentQuestionListening && isAudioPlaying.value;
+  }
+
+  Future<void> _syncListeningModeForCurrentQuestion() async {
+    if (!isTestActive.value || questions.isEmpty || !hasListeningQuestions.value) {
+      return;
+    }
+
+    // Pure listening mode waits for START from intro.
+    if (isListeningTest.value && !testStarted.value) {
+      return;
+    }
+
+    if (isCurrentQuestionListening) {
+      if (audioPath.value.isEmpty) {
+        final extracted = _extractAudioUrlFromQuestion(currentQuestion);
+        if (extracted.isNotEmpty) {
+          audioPath.value = extracted;
+        }
+      }
+
+      if (!isAudioPlaying.value && audioPath.value.isNotEmpty) {
+        await _startListeningMode(seekToCurrentQuestionStart: !isListeningTest.value);
+      }
+      return;
+    }
+
+    if (isAudioPlaying.value) {
+      await _stopAudio();
+    }
+  }
+
+  /// Fallback: Extract audio URL from question's mediaMappings (OLD FORMAT)
+  /// This bridges support for existing data format until backend is updated
+  void _extractAudioFromMappings(Map<String, dynamic> question) {
+    final extracted = _extractAudioUrlFromQuestion(question);
+    if (extracted.isNotEmpty) {
+      audioPath.value = extracted;
+    }
+  }
+
+  /// ========== AUDIO METHODS FOR LISTENING TEST ==========
+
+  /// Start listening mode: Load unified audio and set up auto-switch logic
+  Future<void> _startListeningMode({bool seekToCurrentQuestionStart = false}) async {
+    if (audioPath.value.isEmpty) {
+      print('Lỗi: Không tìm thấy đường dẫn âm thanh. Vui lòng kiểm tra cấu hình backend.');
+      isTestActive.value = false;
+      return;
+    }
+
+    try {
+      // Load the unified audio file
+      await player.setUrl(audioPath.value);
+      
+      // Set up position listener BEFORE playing
+      _setupAudioPositionListener();
+
+      if (seekToCurrentQuestionStart) {
+        final start = _extractStartSecond(currentQuestion);
+        if (start != null && start >= 0) {
+          await player.seek(Duration(milliseconds: (start * 1000).round()));
+        }
+      }
+      
+      // Start playback
+      await player.play();
+      isAudioPlaying.value = true;
+      print('🎬 Bài thi listening đã bắt đầu');
+    } on Exception catch (e) {
+      print('Lỗi Âm thanh: Không thể phát: $e');
+      isAudioPlaying.value = false;
+      isTestActive.value = false;
+    }
+  }
+
+  /// Set up continuous listener on audio position
+  /// When currentTime >= endSecond of current question, auto-switch to next
+  void _setupAudioPositionListener() {
+    _audioPositionSubscription = player.positionStream.listen((position) {
+      final currentSeconds = position.inMilliseconds / 1000.0;
+      currentAudioPosition.value = currentSeconds;
+      
+      if (!isTestActive.value || questions.isEmpty) {
+        return;
+      }
+
+      final currentQ = currentQuestion;
+      if (currentQ.isEmpty) {
+        return;
+      }
+
+      if (!_isListeningQuestion(currentQ)) {
+        return;
+      }
+
+      // Extract timing from current question
+      final double? endSecond = _extractEndSecond(currentQ);
+      
+      // PRIMARY: Check if reached endSecond of current question
+      if (endSecond != null && currentSeconds >= endSecond) {
+        if (hasNextQuestion) {
+          final nextQ = questions[currentQuestionIndex.value + 1] as Map<String, dynamic>;
+          _autoSwitchToNextQuestion();
+          if (!_isListeningQuestion(nextQ)) {
+            _stopAudio();
+          }
+        }
+        return;
+      }
+      
+      // FALLBACK: If no endSecond, check startSecond of next question
+      if (endSecond == null && hasNextQuestion) {
+        final nextQ = questions[currentQuestionIndex.value + 1] as Map<String, dynamic>;
+        final double? nextStartSecond = _extractStartSecond(nextQ);
+        
+        if (nextStartSecond != null && currentSeconds >= nextStartSecond) {
+          _autoSwitchToNextQuestion();
+          if (!_isListeningQuestion(nextQ)) {
+            _stopAudio();
+          }
+          return;
+        }
+      }
+    });
+  }
+
+  /// Auto-switch to next question WITHOUT seeking audio
+  void _autoSwitchToNextQuestion() {
+    if (hasNextQuestion) {
+      currentQuestionIndex.value++;
+    }
+  }
+
+  /// Play audio (used only for non-listening mode)
   Future<void> playAudio(String url) async {
+    print('🎵 playAudio called with URL: ${url.substring(0, 50)}...');
+    
     if (url.isEmpty) {
-      Get.snackbar('Thông báo', 'Câu hỏi này không có audio');
+      print('   - ⚠️ URL is empty, skipping playback');
       return;
     }
     
+    // Skip if in listening test mode
+    if (isListeningTest.value) {
+      print('   - ⚠️ In listening test mode, ignoring individual audio play');
+      return;
+    }
+
     try {
       isAudioPlaying.value = true;
+      print('   - ✅ Setting audio URL...');
       await player.setUrl(url);
+      print('   - ✅ Playing...');
       await player.play();
-      
-      // Listen to player state changes
-      player.playerStateStream.listen((playerState) {
-        if (playerState.processingState == ProcessingState.completed) {
-          isAudioPlaying.value = false;
-        }
-      });
+      print('   - ✅ Audio playback started');
     } catch (e) {
+      print('   - ❌ Error: $e');
       isAudioPlaying.value = false;
-      Get.snackbar('Lỗi Audio', 'Không thể phát âm thanh: $e');
+      print('Lỗi Audio: Không thể phát âm thanh: $e');
     }
   }
 
@@ -234,7 +619,7 @@ class TestController extends GetxController {
       await player.pause();
       isAudioPlaying.value = false;
     } catch (e) {
-      Get.snackbar('Lỗi', 'Không thể tạm dừng âm thanh: $e');
+      print('Lỗi: Không thể tạm dừng âm thanh: $e');
     }
   }
 
@@ -243,7 +628,7 @@ class TestController extends GetxController {
       await player.stop();
       isAudioPlaying.value = false;
     } catch (e) {
-      Get.snackbar('Lỗi', 'Không thể dừng âm thanh: $e');
+      print('Lỗi: Không thể dừng âm thanh: $e');
     }
   }
 
@@ -258,75 +643,134 @@ class TestController extends GetxController {
     }
   }
 
-  /// Extract audio URL from current question
-  String? _getAudioUrlFromQuestion() {
-    final question = currentQuestion;
-    if (question.isEmpty) return null;
-    
-    if (question['mediaMappings'] is List && (question['mediaMappings'] as List).isNotEmpty) {
-      final firstMapping = (question['mediaMappings'] as List).first as Map<String, dynamic>?;
-      if (firstMapping != null && firstMapping['media'] != null) {
-        return firstMapping['media']['url'] as String?;
-      }
-    }
-    return null;
-  }
-
-  /// Auto-play audio for current question (if available)
-  Future<void> _autoPlayAudio() async {
-    await _stopAudio();
-    final audioUrl = _getAudioUrlFromQuestion();
-    if (audioUrl != null && audioUrl.isNotEmpty && isTestActive.value) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      await playAudio(audioUrl);
-    }
-  }
-
   /// ========== TEST SUBMISSION ==========
 
-  /// Nộp bài thi
-  Future<void> submitTest() async {
+  /// Nộp bài thi - with confirmation dialog and API submission
+  Future<void> submitTest(BuildContext context) async {
+    // Validate attemptId first
+    if (attemptId.value.isEmpty) {
+      print('❌ Cannot submit: attemptId is empty!');
+      print('Bài thi chưa được khởi tạo. Vui lòng nhấn BẮT ĐẦU trước.');
+      return;
+    }
+    
     _stopTimer();
     isTestActive.value = false;
     
-    // Tổng hợp thông tin trả lời
-    print('═══════════════════════════════════════');
-    print('📋 KẾT QUẢ NỘP BÀI THI');
-    print('═══════════════════════════════════════');
-    print('Test ID: ${testId.value}');
-    print('Tổng câu hỏi: ${questions.length}');
-    print('Câu đã trả lời: ${userAnswers.length}/${questions.length}');
-    print('───────────────────────────────────────');
-    print('Chi tiết câu trả lời:');
-    for (int i = 0; i < questions.length; i++) {
-      final answered = userAnswers.containsKey(i);
-      final answer = userAnswers[i] ?? -1;
-      print('  Câu $i: ${answered ? 'Đã chọn đáp án $answer' : 'Chưa trả lời'}');
+    // Calculate unanswered questions
+    final unansweredCount = totalQuestions.value - userAnswers.length;
+    
+    // Show confirmation dialog (with warning if there are unanswered questions)
+    final confirmed = await _showSubmitConfirmationDialog(context, unansweredCount);
+    if (!confirmed) {
+      // Resume test if cancelled
+      isTestActive.value = true;
+      _startTimer();
+      return;
     }
-    print('═══════════════════════════════════════');
     
-    // TODO: Gọi API để submit bài thi
-    // try {
-    //   final response = await DioClient.dio.post(
-    //     '/v1/tests/${testId.value}/attempts/${attemptId}/submit',
-    //     data: {
-    //       'answers': userAnswers,
-    //       'timeSpent': 2700 - timeRemaining.value,
-    //     },
-    //   );
-    //   if (response.statusCode == 200) {
-    //     Get.snackbar('Thành công', 'Bài thi đã được nộp');
-    //     // Navigate to result screen
-    //   }
-    // } catch (e) {
-    //   Get.snackbar('Lỗi', 'Không thể nộp bài thi: $e');
-    // }
-    
-    Get.snackbar(
-      'Nộp bài thành công',
-      'Bài thi của bạn đã được nộp',
-      duration: const Duration(seconds: 2),
-    );
+    // Send answers to API
+    await _submitAnswersToAPI(unansweredCount);
+  }
+
+  /// Show confirmation dialog before submitting (with warning if unanswered questions)
+  Future<bool> _showSubmitConfirmationDialog(BuildContext context, int unansweredCount) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text(
+            'Xác nhận nộp bài',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            unansweredCount > 0
+                ? 'Bạn còn $unansweredCount câu chưa làm. Bạn có chắc chắn muốn nộp?'
+                : 'Bạn có chắc chắn muốn nộp bài thi?',
+            style: const TextStyle(color: Color(0xFF94A3B8)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'Quay lại',
+                style: TextStyle(color: Color(0xFF6366F1)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text(
+                'Nộp bài',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+  }
+
+  /// Submit answers to API and handle result
+  Future<void> _submitAnswersToAPI(int unansweredCount) async {
+    try {
+      // Prepare answer data
+      // Convert answers map: {questionIndex: answerIndex} to {questionId: answerValue}
+      final answersData = <String, dynamic>{};
+      for (int i = 0; i < questions.length; i++) {
+        final question = questions[i];
+        final questionId = question['id'];
+        final answerIndex = userAnswers[i];
+        
+        if (answerIndex != null) {
+          // Convert index to answer letter (0->A, 1->B, 2->C, 3->D)
+          final answerLetter = ['A', 'B', 'C', 'D'][answerIndex];
+          answersData[questionId.toString()] = answerLetter;
+        }
+      }
+
+      final url = '/v1/tests/${testId.value}/attempts/${attemptId.value}/submit';
+      final requestData = {
+        'answers': answersData,
+        'timeSpent': 2700 - timeRemaining.value,
+      };
+      
+      print('📤 === SUBMIT REQUEST ===');
+      print('  URL: $url');
+      print('  testId: ${testId.value}');
+      print('  attemptId: ${attemptId.value}');
+      print('  answers count: ${answersData.length}');
+      print('  timeSpent: ${2700 - timeRemaining.value}');
+      print('  Full data: ${jsonEncode(requestData)}');
+
+      // Send POST request
+      final response = await DioClient.dio.post(url, data: requestData);
+
+      print('✅ === RESPONSE ===');
+      print('  Status: ${response.statusCode}');
+      print('  Data: ${jsonEncode(response.data)}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final result = response.data;
+        print('✅ Bài thi đã được ghi nhận');
+
+        // Navigate to result screen with result data
+        await Future.delayed(const Duration(seconds: 1));
+        Get.offNamed(
+          '/test-result',
+          arguments: {
+            'testId': testId.value,
+            'attemptId': attemptId.value,
+            'result': result,
+          },
+        );
+      } else {
+        print('Không thể nộp bài thi (${response.statusCode})');
+      }
+    } catch (e) {
+      print('Không thể nộp bài thi: ${e.toString()}');
+    }
   }
 
   /// Hủy bỏ bài thi (chưa hoàn thành)
@@ -336,6 +780,8 @@ class TestController extends GetxController {
     userAnswers.clear();
     currentQuestionIndex.value = 0;
     questions.clear();
-    Get.snackbar('Đã hủy', 'Bài thi đã bị hủy bỏ');
+    audioPath.value = '';
+    attemptId.value = '';
+    print('🛑 Bài thi đã bị hủy bỏ');
   }
 }

@@ -119,9 +119,33 @@ router.post('/:testId/attempts', authMiddleware, startTestAttempt);
  *         required: true
  *         schema:
  *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - answers
+ *             properties:
+ *               answers:
+ *                 type: object
+ *                 description: Map of questionId to answer letter (A/B/C/D)
+ *                 example:
+ *                   "123": "A"
+ *                   "124": "B"
+ *                   "125": "C"
+ *               timeSpent:
+ *                 type: integer
+ *                 description: Time spent in seconds
+ *                 example: 1200
  *     responses:
  *       200:
  *         description: Thành công
+ *       400:
+ *         description: Bad request - answers required
+ *       401:
+ *         description: Unauthorized
  */
 router.post('/:testId/attempts/:attemptId/submit', authMiddleware, submitTestAttempt);
 

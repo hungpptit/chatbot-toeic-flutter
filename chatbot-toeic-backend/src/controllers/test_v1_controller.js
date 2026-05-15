@@ -63,19 +63,41 @@ export const startTestAttempt = async (req, res) => {
 /**
  * POST /api/v1/tests/:testId/attempts/:attemptId/submit
  * Nộp bài thi
- * Note: attemptId currently mapped to logic that uses testId in service
+ * Body: { answers: {questionId: answerLetter, ...}, timeSpent: number }
  */
 export const submitTestAttempt = async (req, res) => {
     try {
+        console.log('[DEBUG] ============ submitTestAttempt CALLED ============');
+        console.log('[DEBUG] req.method:', req.method);
+        console.log('[DEBUG] req.url:', req.url);
+        console.log('[DEBUG] req.params:', req.params);
+        console.log('[DEBUG] req.headers:', JSON.stringify(req.headers).substring(0, 200));
+        console.log('[DEBUG] req.body:', JSON.stringify(req.body).substring(0, 500));
+        
         const userId = req.user.id;
-        const { testId } = req.params; // attemptId could be used if service supported it
-        const { answers } = req.body;
+        const { testId } = req.params;
+        const { answers, timeSpent } = req.body;
 
-        if (!Array.isArray(answers) || answers.length === 0) {
-            return sendError(res, 400, "Answers are required");
+        console.log('[DEBUG] Extracted: userId=%s, testId=%s, answers=%s, timeSpent=%s', 
+            userId, testId, JSON.stringify(answers).substring(0, 100), timeSpent);
+
+        // Validate answers - can be object {questionId: answerLetter}
+        // Allow empty object so a blank submission still creates a completed result.
+        if (!answers || (typeof answers !== 'object')) {
+            return sendError(res, 400, "Answers must be an object");
         }
 
-        const result = await SubmitTestResult({ userId, testId, answers });
+        // Convert object format {questionId: answerLetter} to array format [{questionId, selectedAnswer}, ...]
+        const answersArray = Object.entries(answers)
+            .filter(([_, selectedAnswer]) => selectedAnswer !== null && selectedAnswer !== undefined)
+            .map(([questionId, selectedAnswer]) => ({
+                questionId: parseInt(questionId, 10),
+                selectedAnswer: String(selectedAnswer).toUpperCase().trim()
+            }));
+
+        console.log('[DEBUG] Converted answers array:', JSON.stringify(answersArray).substring(0, 200));
+
+        const result = await SubmitTestResult({ userId, testId, answers: answersArray });
 
         // Background ML trigger
         triggerMLPredictionAsync(userId);

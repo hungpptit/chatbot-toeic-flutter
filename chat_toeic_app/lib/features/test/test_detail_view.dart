@@ -12,20 +12,34 @@ class TestDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final testController = Get.put(
-      TestController(),
-      tag: 'test_$testId',
-    );
-
-    // Fetch questions when view loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      testController.fetchQuestions(testId);
-    });
+    // Get existing controller or create new one
+    TestController testController;
+    try {
+      testController = Get.find<TestController>(tag: 'test_$testId');
+    } catch (e) {
+      testController = Get.put(
+        TestController(),
+        tag: 'test_$testId',
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: Obx(
         () {
+          // Fetch questions once if not loading and not fetched yet
+          if (testController.questions.isEmpty && !testController.isLoading.value && !testController.testStarted.value) {
+            print('📥 Pre-loading questions to detect test type...');
+            testController.fetchQuestions(testId);
+          }
+
+          // Show intro screen for listening tests that haven't started
+          if (testController.isListeningTest.value && !testController.testStarted.value) {
+            print('📖 Showing introduction screen for listening test');
+            return _buildListeningIntro(testController, context);
+          }
+
+          // If still loading, show spinner
           if (testController.isLoading.value) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -33,6 +47,7 @@ class TestDetailView extends StatelessWidget {
           }
 
           if (testController.questions.isEmpty) {
+            print('⚠️ Questions list is empty!');
             return const Center(
               child: Text(
                 'Không có câu hỏi nào',
@@ -40,6 +55,8 @@ class TestDetailView extends StatelessWidget {
               ),
             );
           }
+          
+          print('✅ Rendering ${testController.questions.length} questions');
 
           return Column(
             children: [
@@ -60,27 +77,192 @@ class TestDetailView extends StatelessWidget {
     );
   }
 
+  /// ========== LISTENING INTRO SCREEN ==========
+  Widget _buildListeningIntro(TestController controller, BuildContext context) {
+    return Container(
+      color: const Color(0xFF0F172A),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              children: [
+                // Header with PART info
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111C34),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF24324F)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'PART 1',
+                        style: TextStyle(
+                          color: Color(0xFF60A5FA),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Main content card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111C34),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF24324F)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'LISTENING TEST',
+                        style: TextStyle(
+                          color: Color(0xFF93C5FD),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'In the Listening test, you will be asked to demonstrate how well you understand spoken English. The entire Listening test will last approximately 45 minutes. There are four parts, and directions are given for each part. You must mark your answers on the separate answer sheet. Do not write your answers in your test book.',
+                        style: TextStyle(
+                          color: Color(0xFFE2E8F0),
+                          fontSize: 14,
+                          height: 1.75,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'PART 1',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Directions: For each question in this part, you will hear four statements about a picture in your test book. When you hear the statements, you must select the one statement that best describes what you see in the picture. Then find the number of the question on your answer sheet and mark your answer. The statements will not be printed in your test book and will be spoken only one time.',
+                        style: TextStyle(
+                          color: Color(0xFFCBD5E1),
+                          fontSize: 14,
+                          height: 1.75,
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+
+                      // Sample image
+                      Container(
+                        width: double.infinity,
+                        height: 240,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0B1327),
+                          border: Border.all(color: const Color(0xFF2A3D64)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(9),
+                          child: Image.network(
+                            'https://res.cloudinary.com/degzfp5hs/image/upload/v1762226881/toeic-media/images/ljlphpzp6v4qepytcdlo.jpg',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  size: 44,
+                                  color: Color(0xFF64748B),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Start action only
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            print('🎬 START button pressed - initiating test attempt');
+                            // Create test attempt and trigger audio auto-play
+                            await controller.startTestAttempt(testId);
+                            print('✅ START button - test attempt created, setting testStarted=true');
+                            controller.testStarted.value = true;
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFBBF24),
+                            foregroundColor: const Color(0xFF0F172A),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'BẮT ĐẦU',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// ========== SPLIT-SCREEN LAYOUT ==========
   Widget _buildSplitScreenContent(TestController controller) {
     final question = controller.currentQuestion;
     
+    print('🎬 _buildSplitScreenContent called');
+    print('   Current question index: ${controller.currentQuestionIndex.value}');
+    print('   Question keys: ${question.keys.toList()}');
+    print('   Has mediaMappings: ${question.containsKey('mediaMappings')}');
+    
     // Extract image URL from mediaMappings
     String? imageUrl;
-    if (question['mediaMappings'] is List && (question['mediaMappings'] as List).isNotEmpty) {
+    if (question.isNotEmpty && question['mediaMappings'] is List && (question['mediaMappings'] as List).isNotEmpty) {
       for (final mapping in (question['mediaMappings'] as List)) {
         if (mapping['media'] != null) {
           final mediaType = mapping['media']['type'] as String?;
           final mediaUrl = mapping['media']['url'] as String?;
           
+          print('   Found media - type: $mediaType, url: ${mediaUrl?.substring(0, 50)}...');
+          
           if (mediaType == 'image' && imageUrl == null) {
             imageUrl = mediaUrl;
+            print('   ✓ Set imageUrl: ${imageUrl?.substring(0, 50)}...');
           }
         }
       }
+    } else {
+      print('   ⚠️ No mediaMappings found or invalid structure');
     }
 
     // If no image, show full width question content
     if (imageUrl == null || imageUrl.isEmpty) {
+      print('   📄 No image - showing full-width layout');
       return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
@@ -105,6 +287,8 @@ class TestDetailView extends StatelessWidget {
         ),
       );
     }
+    
+    print('   🖼️  Showing split-screen layout with image');
 
     // Split-screen layout: Image on left, Content on right (ratio ~1:1.2)
     return Row(
@@ -243,10 +427,7 @@ class TestDetailView extends StatelessWidget {
               // Submit Button
               ElevatedButton(
                 onPressed: () {
-                  controller.submitTest();
-                  Future.delayed(const Duration(seconds: 1), () {
-                    Get.back();
-                  });
+                  controller.submitTest(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF7043),
@@ -269,7 +450,7 @@ class TestDetailView extends StatelessWidget {
               ),
               const SizedBox(width: 8),
 
-              // Timer
+              // Timer (or Question Timer for Listening)
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -285,10 +466,8 @@ class TestDetailView extends StatelessWidget {
                 child: Obx(
                   () => Text(
                     controller.timeString,
-                    style: TextStyle(
-                      color: controller.timeRemaining.value < 300
-                          ? Colors.red
-                          : Colors.white,
+                    style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Courier',
@@ -425,6 +604,11 @@ class TestDetailView extends StatelessWidget {
 
   /// ========== AUDIO PLAYER ==========
   Widget _buildAudioPlayer(TestController controller, String audioUrl) {
+    // Hide manual audio controls when current question is in listening mode.
+    if (controller.isCurrentQuestionListening) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -621,73 +805,96 @@ class TestDetailView extends StatelessWidget {
     return Container(
       color: const Color(0xFF1E293B),
       padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          // Previous Button
-          Obx(
-            () => Expanded(
-              child: ElevatedButton.icon(
-                onPressed: controller.hasPreviousQuestion
-                    ? () => controller.previousQuestion()
-                    : null,
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Câu trước'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: controller.hasPreviousQuestion
-                      ? const Color(0xFF6366F1)
-                      : const Color(0xFF334155),
-                  foregroundColor: Colors.white,
-                  disabledForegroundColor: const Color(0xFF94A3B8),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Obx(
+        () {
+          // For listening tests: show progress + timing info (no manual navigation)
+          if (controller.shouldUseListeningNavigationUi) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // Question Menu Button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _showQuestionMenu(context, controller);
+                  },
+                  icon: const Icon(Icons.menu),
+                  label: const Text('Danh sách câu'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF475569),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
+              ],
+            );
+          }
 
-          // Question Menu Button - Show answered/total
-          Obx(
-            () => Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showQuestionMenu(context, controller);
-                },
-                icon: const Icon(Icons.menu),
-                label: Text(
-                  '${controller.userAnswers.length}/${controller.totalQuestions.value}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF475569),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+          // For reading/other tests: show previous/next buttons
+          return Row(
+            children: [
+              // Previous Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: controller.hasPreviousQuestion
+                      ? () => controller.previousQuestion()
+                      : null,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Câu trước'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: controller.hasPreviousQuestion
+                        ? const Color(0xFF6366F1)
+                        : const Color(0xFF334155),
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor: const Color(0xFF94A3B8),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
+              const SizedBox(width: 8),
 
-          // Next Button
-          Obx(
-            () => Expanded(
-              child: ElevatedButton.icon(
-                onPressed: controller.hasNextQuestion
-                    ? () => controller.nextQuestion()
-                    : null,
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Câu sau'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: controller.hasNextQuestion
-                      ? const Color(0xFF6366F1)
-                      : const Color(0xFF334155),
-                  foregroundColor: Colors.white,
-                  disabledForegroundColor: const Color(0xFF94A3B8),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              // Question Menu Button - Show answered/total
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _showQuestionMenu(context, controller);
+                  },
+                  icon: const Icon(Icons.menu),
+                  label: Obx(
+                    () => Text(
+                      '${controller.userAnswers.length}/${controller.totalQuestions.value}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF475569),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+              const SizedBox(width: 8),
+
+              // Next Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: controller.hasNextQuestion
+                      ? () => controller.nextQuestion()
+                      : null,
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Câu sau'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: controller.hasNextQuestion
+                        ? const Color(0xFF6366F1)
+                        : const Color(0xFF334155),
+                    foregroundColor: Colors.white,
+                    disabledForegroundColor: const Color(0xFF94A3B8),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -825,6 +1032,7 @@ class TestDetailView extends StatelessWidget {
     );
   }
 
+  /// Helper: Format seconds to mm:ss
   /// Exit Confirmation Dialog
   Future<bool> _showExitConfirmation(
     BuildContext context,

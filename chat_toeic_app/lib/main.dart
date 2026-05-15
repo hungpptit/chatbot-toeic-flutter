@@ -11,6 +11,10 @@ import 'package:chat_toeic_app/features/chat/chat_view.dart';
 import 'package:chat_toeic_app/features/profile/profile_view.dart';
 import 'package:chat_toeic_app/features/admin/admin_view.dart';
 import 'package:chat_toeic_app/features/statistics/statistics_view.dart';
+import 'package:chat_toeic_app/features/test/test_detail_view.dart';
+import 'package:chat_toeic_app/features/test/test_history_view.dart';
+import 'package:chat_toeic_app/features/test/test_result_view.dart';
+import 'package:chat_toeic_app/features/test/test_answer_details_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,6 +113,57 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/statistics',
           page: () => const StatisticsView(),
+        ),
+        GetPage(
+          name: '/test-detail',
+          page: () {
+            final args = Get.arguments;
+
+            // Defensive extraction: arguments may be plain int, String, Map or internal IdentityMap
+            int _safeExtractInt(dynamic v) {
+              if (v == null) return 0;
+              if (v is int) return v;
+              if (v is String) return int.tryParse(v) ?? 0;
+              if (v is Map) {
+                if (v.containsKey('id')) return _safeExtractInt(v['id']);
+                if (v.containsKey('testId')) return _safeExtractInt(v['testId']);
+                if (v.isNotEmpty) return _safeExtractInt(v.values.first);
+              }
+              return 0;
+            }
+
+            final int id = _safeExtractInt((args is Map) ? args['testId'] ?? args : args);
+            return TestDetailView(testId: id);
+          },
+),  
+        GetPage(
+          name: '/test-history',
+          page: () {
+            final args = Get.arguments;
+
+            int _safeExtractInt(dynamic v) {
+              if (v == null) return 0;
+              if (v is int) return v;
+              if (v is String) return int.tryParse(v) ?? 0;
+              if (v is Map) {
+                if (v.containsKey('id')) return _safeExtractInt(v['id']);
+                if (v.containsKey('testId')) return _safeExtractInt(v['testId']);
+                if (v.isNotEmpty) return _safeExtractInt(v.values.first);
+              }
+              return 0;
+            }
+
+            final int id = _safeExtractInt((args is Map) ? args['testId'] ?? args : args);
+            return TestHistoryView(testId: id);
+          },
+        ),
+        GetPage(
+          name: '/test-result',
+          page: () => const TestResultView(),
+        ),
+        GetPage(
+          name: '/test-answer-details',
+          page: () => const TestAnswerDetailsView(),
         ),
       ],
     );
