@@ -183,8 +183,38 @@ class _CourseListPanelState extends State<CourseListPanel> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  AdminActionButton(type: AdminActionButtonType.view, onTap: () {}),
-                                  AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
+                                  AdminActionButton(
+                                    type: AdminActionButtonType.edit,
+                                    onTap: () async {
+                                      final TextEditingController nameCtrl = TextEditingController(text: course['name'] ?? '');
+                                      final result = await showDialog<String?>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          backgroundColor: const Color(0xFF1E293B),
+                                          title: const Text('Cập nhật khóa học', style: TextStyle(color: Colors.white)),
+                                          content: TextField(
+                                            controller: nameCtrl,
+                                            style: const TextStyle(color: Colors.white),
+                                            decoration: const InputDecoration(
+                                              hintText: 'Tên khóa học mới',
+                                              hintStyle: TextStyle(color: Colors.white38),
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')),
+                                            ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Cập nhật')),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (result != null && result.isNotEmpty && result != course['name']) {
+                                        final updated = await controller.updateCourseName(course['id'], result);
+                                        if (updated != null) {
+                                          Get.snackbar('Thành công', 'Đã cập nhật khóa học');
+                                        }
+                                      }
+                                    },
+                                  ),
                                   AdminActionButton(
                                     type: AdminActionButtonType.delete,
                                     onTap: () async {

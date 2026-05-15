@@ -37,6 +37,19 @@ class TestController extends GetxController {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchTestQuestions(int testId) async {
+    try {
+      final response = await DioClient.dio.get('/v1/tests/$testId/questions');
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        return data.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      Get.snackbar('Lỗi', 'Không thể tải câu hỏi: $e');
+    }
+    return [];
+  }
+
   Future<bool> deleteTest(int id) async {
     try {
       final response = await DioClient.dio.delete('/v1/tests/$id');

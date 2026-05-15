@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:chat_toeic_app/features/admin/test_controller.dart';
 import 'package:chat_toeic_app/widgets/admin_action_button.dart';
+import 'package:chat_toeic_app/features/admin/test_preview_dialog.dart';
 
 class TestListPanel extends StatefulWidget {
   const TestListPanel({super.key});
@@ -155,7 +156,15 @@ class _TestListPanelState extends State<TestListPanel> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  AdminActionButton(type: AdminActionButtonType.view, onTap: () {}),
+                                  AdminActionButton(
+                                    type: AdminActionButtonType.view,
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => TestPreviewDialog(test: test),
+                                      );
+                                    },
+                                  ),
                                   AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
                                   AdminActionButton(
                                     type: AdminActionButtonType.delete,
