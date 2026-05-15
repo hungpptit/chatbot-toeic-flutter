@@ -112,138 +112,160 @@ class _CourseListPanelState extends State<CourseListPanel> {
               ),
             ),
           ),
-          // Header row
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
-            child: Row(
-              children: const [
-                SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                Expanded(flex: 2, child: Text('Tên khóa học', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                Expanded(flex: 4, child: Text('Bài test', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
           Expanded(
-            child: courses.isEmpty
-                ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
-                : ListView.separated(
-                    itemCount: (() {
-                      final total = courses.length;
-                      final currentPage = page > 0 ? page : 1;
-                      final start = (currentPage - 1) * pageSize;
-                      if (start >= total) return 0;
-                      final remaining = total - start;
-                      return remaining >= pageSize ? pageSize : remaining;
-                    })(),
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final currentPage = page > 0 ? page : 1;
-                      final start = (currentPage - 1) * pageSize;
-                      final course = courses[start + index];
-                      final tests = (course['tests'] as List<dynamic>?) ?? [];
-
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0B1220),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white10),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                final tableWidth = isMobile ? 800.0 : constraints.maxWidth;
+                
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: isMobile ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
+                      children: [
+                        // Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
+                          child: Row(
+                            children: const [
+                              SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              Expanded(flex: 2, child: Text('Tên khóa học', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              Expanded(flex: 4, child: Text('Bài test', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(width: 48, child: Text('${course['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
-                            Expanded(
-                              flex: 2,
-                              child: Text('${course['name'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                            ),
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: tests.isEmpty
-                                    ? [const Text('Hiện tại chưa có bài test', style: TextStyle(color: Colors.white60))]
-                                    : tests.map<Widget>((t) {
-                                        final title = t['title'] ?? t['name'] ?? '';
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 4),
-                                          child: Text(
-                                            title,
-                                            style: const TextStyle(color: Colors.white70),
+                        const SizedBox(height: 8),
+
+                        // Table Body
+                        Expanded(
+                          child: courses.isEmpty
+                              ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
+                              : ListView.separated(
+                                  itemCount: (() {
+                                    final total = courses.length;
+                                    final currentPage = page > 0 ? page : 1;
+                                    final start = (currentPage - 1) * pageSize;
+                                    if (start >= total) return 0;
+                                    final remaining = total - start;
+                                    return remaining >= pageSize ? pageSize : remaining;
+                                  })(),
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (context, index) {
+                                    final currentPage = page > 0 ? page : 1;
+                                    final start = (currentPage - 1) * pageSize;
+                                    final course = courses[start + index];
+                                    final tests = (course['tests'] as List<dynamic>?) ?? [];
+
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0B1220),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white10),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(width: 48, child: Text('${course['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Text('${course['name'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                                           ),
-                                        );
-                                      }).toList(),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 140,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  AdminActionButton(
-                                    type: AdminActionButtonType.edit,
-                                    onTap: () async {
-                                      final TextEditingController nameCtrl = TextEditingController(text: course['name'] ?? '');
-                                      final result = await showDialog<String?>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Cập nhật khóa học', style: TextStyle(color: Colors.white)),
-                                          content: TextField(
-                                            controller: nameCtrl,
-                                            style: const TextStyle(color: Colors.white),
-                                            decoration: const InputDecoration(
-                                              hintText: 'Tên khóa học mới',
-                                              hintStyle: TextStyle(color: Colors.white38),
+                                          Expanded(
+                                            flex: 4,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: tests.isEmpty
+                                                  ? [const Text('Hiện tại chưa có bài test', style: TextStyle(color: Colors.white60))]
+                                                  : tests.map<Widget>((t) {
+                                                      final title = t['title'] ?? t['name'] ?? '';
+                                                      return Padding(
+                                                        padding: const EdgeInsets.only(bottom: 4),
+                                                        child: Text(
+                                                          title,
+                                                          style: const TextStyle(color: Colors.white70),
+                                                        ),
+                                                      );
+                                                    }).toList(),
                                             ),
                                           ),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')),
-                                            ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Cập nhật')),
-                                          ],
-                                        ),
-                                      );
+                                          SizedBox(
+                                            width: 140,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                AdminActionButton(
+                                                  type: AdminActionButtonType.edit,
+                                                  onTap: () async {
+                                                    final TextEditingController nameCtrl = TextEditingController(text: course['name'] ?? '');
+                                                    final result = await showDialog<String?>(
+                                                      context: context,
+                                                      builder: (ctx) => AlertDialog(
+                                                        backgroundColor: const Color(0xFF1E293B),
+                                                        title: const Text('Cập nhật khóa học', style: TextStyle(color: Colors.white)),
+                                                        content: TextField(
+                                                          controller: nameCtrl,
+                                                          style: const TextStyle(color: Colors.white),
+                                                          decoration: const InputDecoration(
+                                                            hintText: 'Tên khóa học mới',
+                                                            hintStyle: TextStyle(color: Colors.white38),
+                                                          ),
+                                                        ),
+                                                        actions: [
+                                                          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')),
+                                                          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Cập nhật')),
+                                                        ],
+                                                      ),
+                                                    );
 
-                                      if (result != null && result.isNotEmpty && result != course['name']) {
-                                        final updated = await controller.updateCourseName(course['id'], result);
-                                        if (updated != null) {
-                                          Get.snackbar('Thành công', 'Đã cập nhật khóa học');
-                                        }
-                                      }
-                                    },
-                                  ),
-                                  AdminActionButton(
-                                    type: AdminActionButtonType.delete,
-                                    onTap: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Xóa khóa học', style: TextStyle(color: Colors.white)),
-                                          content: const Text('Bạn có chắc muốn xóa khóa học này?', style: TextStyle(color: Colors.white60)),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
-                                            ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa', style: TextStyle(color: Colors.white))),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        final ok = await controller.deleteCourse(course['id']);
-                                        if (ok) Get.snackbar('Thành công', 'Đã xóa khóa học');
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                                                    if (result != null && result.isNotEmpty && result != course['name']) {
+                                                      final updated = await controller.updateCourseName(course['id'], result);
+                                                      if (updated != null) {
+                                                        Get.snackbar('Thành công', 'Đã cập nhật khóa học');
+                                                      }
+                                                    }
+                                                  },
+                                                ),
+                                                AdminActionButton(
+                                                  type: AdminActionButtonType.delete,
+                                                  onTap: () async {
+                                                    final confirm = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (ctx) => AlertDialog(
+                                                        backgroundColor: const Color(0xFF1E293B),
+                                                        title: const Text('Xóa khóa học', style: TextStyle(color: Colors.white)),
+                                                        content: const Text('Bạn có chắc muốn xóa khóa học này?', style: TextStyle(color: Colors.white60)),
+                                                        actions: [
+                                                          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
+                                                          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa', style: TextStyle(color: Colors.white))),
+                                                        ],
+                                                      ),
+                                                    );
+                                                    if (confirm == true) {
+                                                      final ok = await controller.deleteCourse(course['id']);
+                                                      if (ok) Get.snackbar('Thành công', 'Đã xóa khóa học');
+                                                    }
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           // Pagination controls

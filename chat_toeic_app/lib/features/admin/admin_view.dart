@@ -32,27 +32,33 @@ class _AdminViewState extends State<AdminView> {
     final authController = Get.find<AuthController>();
     final user = authController.user.value;
 
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    final collapsed = isSidebarCollapsed;
+
     // Auto trigger fetch if user data is missing
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (authController.user.value == null && !authController.isLoading.value) {
         authController.fetchUserProfile();
       }
     });
-
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // System background
+      backgroundColor: const Color(0xFF0F172A),
+      drawer: isMobile ? Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: _buildSidebar(false, isDrawer: true, isMobile: isMobile),
+      ) : null,
       body: Column(
         children: [
           // Top Navigation Bar
-          _buildTopNav(user),
+          _buildTopNav(user, isMobile: isMobile),
           
           // Main Body
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Left Sidebar
-                _buildSidebar(),
+                // Left Sidebar - Hidden on mobile
+                if (!isMobile) _buildSidebar(collapsed, isMobile: isMobile),
                 
                 // Main Content Area
                 Expanded(
@@ -131,31 +137,40 @@ class _AdminViewState extends State<AdminView> {
     );
   }
 
-  Widget _buildTopNav(Map<String, dynamic>? user) {
+  Widget _buildTopNav(Map<String, dynamic>? user, {bool isMobile = false}) {
     return Container(
       height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
+          if (isMobile) ...[
+            Builder(builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            )),
+            const SizedBox(width: 8),
+          ],
           const Text(
             'Chatbot TOEIC',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(width: 48),
-          // Nav Items
-          _buildTopNavItem('Trang chủ', false, route: '/home'),
-          const SizedBox(width: 12),
-          _buildTopNavItem('Tra từ vựng', false, route: '/vocabulary'),
-          const SizedBox(width: 12),
-          _buildTopNavItem('Chat TOEIC', false, route: '/chatbot'),
+          if (!isMobile) ...[
+            const SizedBox(width: 48),
+            // Nav Items
+            _buildTopNavItem('Trang chủ', false, route: '/home'),
+            const SizedBox(width: 12),
+            _buildTopNavItem('Tra từ vựng', false, route: '/vocabulary'),
+            const SizedBox(width: 12),
+            _buildTopNavItem('Chat TOEIC', false, route: '/chatbot'),
+          ],
           const Spacer(),
           // User Profile Menu
           PopupMenuButton<String>(
@@ -201,12 +216,14 @@ class _AdminViewState extends State<AdminView> {
                   ),
                   child: const Icon(Icons.person, size: 20, color: Colors.white),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  user?['username'] ?? 'phanhung',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                ),
-                const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.white54),
+                if (!isMobile) ...[
+                  const SizedBox(width: 12),
+                  Text(
+                    user?['username'] ?? 'phanhung',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.white54),
+                ],
               ],
             ),
           ),
@@ -258,10 +275,10 @@ class _AdminViewState extends State<AdminView> {
 
 
 
-  Widget _buildSidebar() {
+  Widget _buildSidebar(bool collapsed, {bool isDrawer = false, bool isMobile = false}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      width: isSidebarCollapsed ? 80 : 280,
+      width: collapsed ? 80 : 280,
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05))),
@@ -273,7 +290,7 @@ class _AdminViewState extends State<AdminView> {
             // Sidebar Header (Title + Collapse)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: isSidebarCollapsed 
+              child: collapsed
                 ? IconButton(
                     onPressed: () => setState(() => isSidebarCollapsed = !isSidebarCollapsed),
                     icon: const Icon(Icons.menu, color: Colors.white70),
@@ -293,36 +310,71 @@ class _AdminViewState extends State<AdminView> {
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => setState(() => isSidebarCollapsed = !isSidebarCollapsed),
-                        icon: const Icon(Icons.menu_open, color: Colors.white70),
-                      ),
+                      if (!isDrawer)
+                        IconButton(
+                          onPressed: () => setState(() => isSidebarCollapsed = !isSidebarCollapsed),
+                          icon: const Icon(Icons.menu_open, color: Colors.white70),
+                        ),
                     ],
                   ),
             ),
             const SizedBox(height: 16),
             
             const SizedBox(height: 8),
+            // General Navigation (Only on Mobile Sidebar)
+            if (isMobile) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Divider(color: Colors.white10),
+              ),
+              _buildSidebarItem(
+                Icons.home_outlined, 
+                'Trang chủ', 
+                collapsed: collapsed,
+                onTap: () => Get.toNamed('/home'),
+              ),
+              _buildSidebarItem(
+                Icons.translate_outlined, 
+                'Tra từ vựng', 
+                collapsed: collapsed,
+                onTap: () => Get.toNamed('/vocabulary'),
+              ),
+              _buildSidebarItem(
+                Icons.chat_outlined, 
+                'Chat TOEIC', 
+                collapsed: collapsed,
+                onTap: () => Get.toNamed('/chatbot'),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Divider(color: Colors.white10),
+              ),
+            ],
+
             // Menu Items
             _buildExpandableSidebarItem(
               Icons.people_outline, 
               'Quản lý người dùng', 
-              ['Danh sách', 'Chức năng khác']
+              ['Danh sách', 'Chức năng khác'],
+              collapsed: collapsed,
             ),
             _buildExpandableSidebarItem(
               Icons.quiz_outlined, 
               'Quản lý đề thi', 
-              ['Danh sách đề', 'Thêm đề mới']
+              ['Danh sách đề', 'Thêm đề mới'],
+              collapsed: collapsed,
             ),
             _buildExpandableSidebarItem(
               Icons.import_contacts_outlined, 
               'Quản lý chung', 
-              ['Danh sách khóa học', 'Danh sách part', 'Danh sách type', 'Danh sách skill']
+              ['Danh sách khóa học', 'Danh sách part', 'Danh sách type', 'Danh sách skill'],
+              collapsed: collapsed,
             ),
             _buildSidebarItem(
               Icons.analytics_outlined, 
               'Thống kê nhanh', 
               isSelected: activeAdminContent == 'stats',
+              collapsed: collapsed,
               onTap: () => setState(() => activeAdminContent = 'stats'),
             ),
           ],
@@ -331,12 +383,12 @@ class _AdminViewState extends State<AdminView> {
     );
   }
 
-  Widget _buildExpandableSidebarItem(IconData icon, String title, List<String> subItems) {
+  Widget _buildExpandableSidebarItem(IconData icon, String title, List<String> subItems, {required bool collapsed}) {
     bool isExpanded = expandedItems[title] ?? false;
     bool isAnyChildSelected = subItems.any((item) => _isSubItemSelected(item, title));
 
-    if (isSidebarCollapsed) {
-      return _buildSidebarItem(icon, title, isSelected: isAnyChildSelected);
+    if (collapsed) {
+      return _buildSidebarItem(icon, title, isSelected: isAnyChildSelected, collapsed: collapsed);
     }
 
     return Column(
@@ -347,6 +399,7 @@ class _AdminViewState extends State<AdminView> {
           isSelected: isAnyChildSelected, 
           isExpandable: true, 
           isExpanded: isExpanded,
+          collapsed: collapsed,
           onTap: () {
             setState(() {
               expandedItems[title] = !isExpanded;
@@ -354,12 +407,12 @@ class _AdminViewState extends State<AdminView> {
           }
         ),
         if (isExpanded)
-          ...subItems.map((subItem) => _buildSubItem(subItem, parentTitle: title)),
+          ...subItems.map((subItem) => _buildSubItem(subItem, parentTitle: title, collapsed: collapsed)),
       ],
     );
   }
 
-  Widget _buildSubItem(String title, {required String parentTitle}) {
+  Widget _buildSubItem(String title, {required String parentTitle, required bool collapsed}) {
     bool isSelected = _isSubItemSelected(title, parentTitle);
     return Container(
       margin: const EdgeInsets.only(left: 54, right: 16, bottom: 4),
@@ -417,11 +470,12 @@ class _AdminViewState extends State<AdminView> {
     bool isSelected = false, 
     bool isExpandable = false,
     bool isExpanded = false,
+    required bool collapsed,
     VoidCallback? onTap,
   }) {
     return Container(
       margin: EdgeInsets.symmetric(
-        horizontal: isSidebarCollapsed ? 8 : 16, 
+        horizontal: collapsed ? 8 : 16, 
         vertical: 4
       ),
       child: InkWell(
@@ -429,7 +483,7 @@ class _AdminViewState extends State<AdminView> {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSidebarCollapsed ? 0 : 16, 
+            horizontal: collapsed ? 0 : 16, 
             vertical: 12
           ),
           decoration: BoxDecoration(
@@ -438,14 +492,14 @@ class _AdminViewState extends State<AdminView> {
             border: isSelected ? Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)) : null,
           ),
           child: Row(
-            mainAxisAlignment: isSidebarCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               Icon(
                 icon, 
                 color: isSelected ? const Color(0xFF6366F1) : Colors.white60, 
                 size: 22
               ),
-              if (!isSidebarCollapsed) ...[
+              if (!collapsed) ...[
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(

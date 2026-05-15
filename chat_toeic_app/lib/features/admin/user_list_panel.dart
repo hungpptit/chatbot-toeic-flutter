@@ -83,80 +83,102 @@ class _UserListPanelState extends State<UserListPanel> {
             ),
           ),
 
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
-            child: Row(
-              children: const [
-                SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                Expanded(flex: 3, child: Text('Username', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                Expanded(flex: 3, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                SizedBox(width: 100, child: Text('Role', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
           Expanded(
-            child: usersList.isEmpty
-                ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
-                : ListView.separated(
-                    itemCount: (() {
-                      final total = usersList.length;
-                      final currentPage = page > 0 ? page : 1;
-                      final start = (currentPage - 1) * pageSize;
-                      if (start >= total) return 0;
-                      final remaining = total - start;
-                      return remaining >= pageSize ? pageSize : remaining;
-                    })(),
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, idx) {
-                      final currentPage = page > 0 ? page : 1;
-                      final start = (currentPage - 1) * pageSize;
-                      final u = usersList[start + idx];
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
-                        child: Row(
-                          children: [
-                            SizedBox(width: 48, child: Text('${u['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
-                            Expanded(flex: 3, child: Text('${u['username'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-                            Expanded(flex: 3, child: Text('${u['email'] ?? '-'}', style: const TextStyle(color: Colors.white70))),
-                            SizedBox(width: 100, child: Center(child: Text('${u['roleId'] == 2 ? 'Admin' : 'User'}', style: TextStyle(color: u['roleId'] == 2 ? const Color(0xFF6366F1) : Colors.white60, fontWeight: FontWeight.bold)))),
-                            SizedBox(
-                              width: 140,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  AdminActionButton(type: AdminActionButtonType.view, onTap: () {}),
-                                  AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
-                                  AdminActionButton(
-                                    type: AdminActionButtonType.delete,
-                                    onTap: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Xóa User', style: TextStyle(color: Colors.white)),
-                                          content: const Text('Bạn có chắc muốn xóa người dùng này?', style: TextStyle(color: Colors.white60)),
-                                          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa'))],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        final ok = await controller.deleteUser(u['id']);
-                                        if (ok) Get.snackbar('Thành công', 'Đã xóa User');
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                final tableWidth = isMobile ? 800.0 : constraints.maxWidth;
+                
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: isMobile ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
+                      children: [
+                        // Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
+                          child: Row(
+                            children: const [
+                              SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              Expanded(flex: 3, child: Text('Username', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              Expanded(flex: 3, child: Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              SizedBox(width: 100, child: Text('Role', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                            ],
+                          ),
                         ),
-                      );
-                    },
+                        const SizedBox(height: 8),
+                        
+                        // Table Body
+                        Expanded(
+                          child: usersList.isEmpty
+                              ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
+                              : ListView.separated(
+                                  itemCount: (() {
+                                    final total = usersList.length;
+                                    final currentPage = page > 0 ? page : 1;
+                                    final start = (currentPage - 1) * pageSize;
+                                    if (start >= total) return 0;
+                                    final remaining = total - start;
+                                    return remaining >= pageSize ? pageSize : remaining;
+                                  })(),
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (context, idx) {
+                                    final currentPage = page > 0 ? page : 1;
+                                    final start = (currentPage - 1) * pageSize;
+                                    final u = usersList[start + idx];
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                      decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
+                                      child: Row(
+                                        children: [
+                                          SizedBox(width: 48, child: Text('${u['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
+                                          Expanded(flex: 3, child: Text('${u['username'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                          Expanded(flex: 3, child: Text('${u['email'] ?? '-'}', style: const TextStyle(color: Colors.white70))),
+                                          SizedBox(width: 100, child: Center(child: Text('${u['roleId'] == 2 ? 'Admin' : 'User'}', style: TextStyle(color: u['roleId'] == 2 ? const Color(0xFF6366F1) : Colors.white60, fontWeight: FontWeight.bold)))),
+                                          SizedBox(
+                                            width: 140,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                AdminActionButton(type: AdminActionButtonType.view, onTap: () {}),
+                                                AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
+                                                AdminActionButton(
+                                                  type: AdminActionButtonType.delete,
+                                                  onTap: () async {
+                                                    final confirm = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (ctx) => AlertDialog(
+                                                        backgroundColor: const Color(0xFF1E293B),
+                                                        title: const Text('Xóa User', style: TextStyle(color: Colors.white)),
+                                                        content: const Text('Bạn có chắc muốn xóa người dùng này?', style: TextStyle(color: Colors.white60)),
+                                                        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa'))],
+                                                      ),
+                                                    );
+                                                    if (confirm == true) {
+                                                      final ok = await controller.deleteUser(u['id']);
+                                                      if (ok) Get.snackbar('Thành công', 'Đã xóa User');
+                                                    }
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           // Compact Pagination

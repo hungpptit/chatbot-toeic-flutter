@@ -96,94 +96,117 @@ class _SkillListPanelState extends State<SkillListPanel> {
             ),
           ),
 
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
-            child: Row(
-              children: const [
-                SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                Expanded(flex: 3, child: Text('Tên Skill', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-              ],
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                final tableWidth = isMobile ? 600.0 : constraints.maxWidth;
+                
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: isMobile ? const AlwaysScrollableScrollPhysics() : const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
+                      children: [
+                        // Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
+                          child: Row(
+                            children: const [
+                              SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              Expanded(flex: 3, child: Text('Tên Skill', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                              SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Table Body
+                        Expanded(
+                          child: skills.isEmpty
+                              ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
+                              : ListView.separated(
+                                  itemCount: (() {
+                                    final total = skills.length;
+                                    final currentPage = page > 0 ? page : 1;
+                                    final start = (currentPage - 1) * pageSize;
+                                    if (start >= total) return 0;
+                                    final remaining = total - start;
+                                    return remaining >= pageSize ? pageSize : remaining;
+                                  })(),
+                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  itemBuilder: (context, idx) {
+                                    final currentPage = page > 0 ? page : 1;
+                                    final start = (currentPage - 1) * pageSize;
+                                    final s = skills[start + idx];
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                      decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
+                                      child: Row(
+                                        children: [
+                                          SizedBox(width: 48, child: Text('${s['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
+                                          Expanded(flex: 3, child: Text('${s['name'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                                          SizedBox(
+                                            width: 140,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                AdminActionButton(
+                                                  type: AdminActionButtonType.edit,
+                                                  onTap: () async {
+                                                    final nameCtrl = TextEditingController(text: s['name'] ?? '');
+                                                    final result = await showDialog<String?>(
+                                                      context: context,
+                                                      builder: (ctx) => AlertDialog(
+                                                        backgroundColor: const Color(0xFF1E293B),
+                                                        title: const Text('Sửa Skill', style: TextStyle(color: Colors.white)),
+                                                        content: TextField(controller: nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Tên Skill', hintStyle: TextStyle(color: Colors.white38))),
+                                                        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Lưu'))],
+                                                      ),
+                                                    );
+                                                    if (result != null && result.isNotEmpty) {
+                                                      final updated = await controller.updateSkill(s['id'], result);
+                                                      if (updated != null) Get.snackbar('Thành công', 'Đã cập nhật Skill');
+                                                    }
+                                                  },
+                                                ),
+                                                AdminActionButton(
+                                                  type: AdminActionButtonType.delete,
+                                                  onTap: () async {
+                                                    final confirm = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (ctx) => AlertDialog(
+                                                        backgroundColor: const Color(0xFF1E293B),
+                                                        title: const Text('Xóa Skill', style: TextStyle(color: Colors.white)),
+                                                        content: const Text('Bạn có chắc muốn xóa Skill này?', style: TextStyle(color: Colors.white60)),
+                                                        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa'))],
+                                                      ),
+                                                    );
+                                                    if (confirm == true) {
+                                                      final ok = await controller.deleteSkill(s['id']);
+                                                      if (ok) Get.snackbar('Thành công', 'Đã xóa Skill');
+                                                    }
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
-          const SizedBox(height: 8),
-          Expanded(
-            child: skills.isEmpty
-                ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
-                : ListView.separated(
-                    itemCount: (() {
-                      final total = skills.length;
-                      final currentPage = page > 0 ? page : 1;
-                      final start = (currentPage - 1) * pageSize;
-                      if (start >= total) return 0;
-                      final remaining = total - start;
-                      return remaining >= pageSize ? pageSize : remaining;
-                    })(),
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, idx) {
-                      final currentPage = page > 0 ? page : 1;
-                      final start = (currentPage - 1) * pageSize;
-                      final s = skills[start + idx];
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
-                        child: Row(
-                          children: [
-                            SizedBox(width: 48, child: Text('${s['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
-                            Expanded(flex: 3, child: Text('${s['name'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-                            SizedBox(
-                              width: 140,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  AdminActionButton(
-                                    type: AdminActionButtonType.edit,
-                                    onTap: () async {
-                                      final nameCtrl = TextEditingController(text: s['name'] ?? '');
-                                      final result = await showDialog<String?>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Sửa Skill', style: TextStyle(color: Colors.white)),
-                                          content: TextField(controller: nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Tên Skill', hintStyle: TextStyle(color: Colors.white38))),
-                                          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Lưu'))],
-                                        ),
-                                      );
-                                      if (result != null && result.isNotEmpty) {
-                                        final updated = await controller.updateSkill(s['id'], result);
-                                        if (updated != null) Get.snackbar('Thành công', 'Đã cập nhật Skill');
-                                      }
-                                    },
-                                  ),
-                                  AdminActionButton(
-                                    type: AdminActionButtonType.delete,
-                                    onTap: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Xóa Skill', style: TextStyle(color: Colors.white)),
-                                          content: const Text('Bạn có chắc muốn xóa Skill này?', style: TextStyle(color: Colors.white60)),
-                                          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa'))],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        final ok = await controller.deleteSkill(s['id']);
-                                        if (ok) Get.snackbar('Thành công', 'Đã xóa Skill');
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
           const SizedBox(height: 12),
           // Compact Pagination
           Builder(builder: (ctx) {
