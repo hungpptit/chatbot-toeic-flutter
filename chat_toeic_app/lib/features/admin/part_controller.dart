@@ -8,10 +8,10 @@ class PartController extends GetxController {
 
   List<Map<String, dynamic>> get filteredParts {
     if (searchQuery.value.isEmpty) return parts;
+    final q = searchQuery.value.toLowerCase();
     return parts.where((p) {
       final name = (p['name'] ?? '').toString().toLowerCase();
-      final query = searchQuery.value.toLowerCase();
-      return name.contains(query);
+      return name.contains(q);
     }).toList();
   }
 

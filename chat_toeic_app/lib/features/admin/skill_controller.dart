@@ -8,10 +8,10 @@ class SkillController extends GetxController {
 
   List<Map<String, dynamic>> get filteredSkills {
     if (searchQuery.value.isEmpty) return skills;
+    final q = searchQuery.value.toLowerCase();
     return skills.where((s) {
       final name = (s['name'] ?? '').toString().toLowerCase();
-      final query = searchQuery.value.toLowerCase();
-      return name.contains(query);
+      return name.contains(q);
     }).toList();
   }
 

@@ -8,10 +8,10 @@ class TypeController extends GetxController {
 
   List<Map<String, dynamic>> get filteredTypes {
     if (searchQuery.value.isEmpty) return types;
+    final q = searchQuery.value.toLowerCase();
     return types.where((t) {
       final name = (t['name'] ?? '').toString().toLowerCase();
-      final query = searchQuery.value.toLowerCase();
-      return name.contains(query);
+      return name.contains(q);
     }).toList();
   }
 

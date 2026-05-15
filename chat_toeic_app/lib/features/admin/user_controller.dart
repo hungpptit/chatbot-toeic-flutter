@@ -4,17 +4,6 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 class UserController extends GetxController {
   var isLoading = false.obs;
   var users = <Map<String, dynamic>>[].obs;
-  var searchQuery = ''.obs;
-
-  List<Map<String, dynamic>> get filteredUsers {
-    if (searchQuery.value.isEmpty) return users;
-    return users.where((u) {
-      final name = (u['username'] ?? '').toString().toLowerCase();
-      final email = (u['email'] ?? '').toString().toLowerCase();
-      final query = searchQuery.value.toLowerCase();
-      return name.contains(query) || email.contains(query);
-    }).toList();
-  }
 
   @override
   void onInit() {
