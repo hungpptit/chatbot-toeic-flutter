@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:chat_toeic_app/features/admin/test_controller.dart';
 import 'package:chat_toeic_app/widgets/admin_action_button.dart';
 import 'package:chat_toeic_app/features/admin/test_preview_dialog.dart';
+import 'package:chat_toeic_app/features/admin/test_edit_dialog.dart';
 
 class TestListPanel extends StatefulWidget {
   const TestListPanel({super.key});
@@ -139,7 +140,30 @@ class _TestListPanelState extends State<TestListPanel> {
                             SizedBox(width: 48, child: Text('${test['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
                             Expanded(
                               flex: 3,
-                              child: Text('${test['title'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                              child: Obx(() {
+                                final progress = controller.uploadProgress[test['id']];
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('${test['title'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                    if (progress != null) ...[
+                                      const SizedBox(height: 4),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(2),
+                                        child: LinearProgressIndicator(
+                                          value: progress,
+                                          backgroundColor: Colors.white10,
+                                          color: const Color(0xFF6366F1),
+                                          minHeight: 3,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text('Đang cập nhật ${(progress * 100).toInt()}%', style: const TextStyle(color: Color(0xFF6366F1), fontSize: 10)),
+                                    ],
+                                  ],
+                                );
+                              }),
                             ),
                             Expanded(
                               flex: 2,
@@ -165,7 +189,16 @@ class _TestListPanelState extends State<TestListPanel> {
                                       );
                                     },
                                   ),
-                                  AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
+                                  AdminActionButton(
+                                    type: AdminActionButtonType.edit, 
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false, // Chặn đóng bằng cách click ra ngoài
+                                        builder: (ctx) => TestEditDialog(test: test),
+                                      );
+                                    },
+                                  ),
                                   AdminActionButton(
                                     type: AdminActionButtonType.delete,
                                     onTap: () async {
