@@ -4,6 +4,16 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 class PartController extends GetxController {
   var isLoading = false.obs;
   var parts = <Map<String, dynamic>>[].obs;
+  var searchQuery = ''.obs;
+
+  List<Map<String, dynamic>> get filteredParts {
+    if (searchQuery.value.isEmpty) return parts;
+    return parts.where((p) {
+      final name = (p['name'] ?? '').toString().toLowerCase();
+      final query = searchQuery.value.toLowerCase();
+      return name.contains(query);
+    }).toList();
+  }
 
   @override
   void onInit() {

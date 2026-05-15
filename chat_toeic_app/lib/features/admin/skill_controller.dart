@@ -4,6 +4,16 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 class SkillController extends GetxController {
   var isLoading = false.obs;
   var skills = <Map<String, dynamic>>[].obs;
+  var searchQuery = ''.obs;
+
+  List<Map<String, dynamic>> get filteredSkills {
+    if (searchQuery.value.isEmpty) return skills;
+    return skills.where((s) {
+      final name = (s['name'] ?? '').toString().toLowerCase();
+      final query = searchQuery.value.toLowerCase();
+      return name.contains(query);
+    }).toList();
+  }
 
   @override
   void onInit() {

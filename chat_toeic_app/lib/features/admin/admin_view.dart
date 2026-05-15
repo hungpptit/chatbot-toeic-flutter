@@ -6,6 +6,7 @@ import 'package:chat_toeic_app/features/admin/user_list_panel.dart';
 import 'package:chat_toeic_app/features/admin/part_list_panel.dart';
 import 'package:chat_toeic_app/features/admin/type_list_panel.dart';
 import 'package:chat_toeic_app/features/admin/skill_list_panel.dart';
+import 'package:chat_toeic_app/features/admin/test_list_panel.dart';
 
 class AdminView extends StatefulWidget {
   const AdminView({super.key});
@@ -106,6 +107,11 @@ class _AdminViewState extends State<AdminView> {
                                         padding: const EdgeInsets.all(16.0),
                                         child: SkillListPanel(),
                                       ),
+                                    ] else if (activeAdminContent == 'exams') ...[
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: TestListPanel(),
+                          ),
                                     ] else if (activeAdminContent == 'users') ...[
                           Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -113,20 +119,6 @@ class _AdminViewState extends State<AdminView> {
                           ),
                         ],
 
-                        // Floating Cloud Icon (Bottom Right)
-                        Positioned(
-                          bottom: 24,
-                          right: 24,
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF6366F1).withOpacity(0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)),
-                            ),
-                            child: const Icon(Icons.wb_cloudy_outlined, color: Color(0xFF6366F1), size: 24),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -223,6 +215,22 @@ class _AdminViewState extends State<AdminView> {
     );
   }
 
+  bool _isSubItemSelected(String title, String parentTitle) {
+    if (parentTitle == 'Quản lý người dùng') {
+      if (title == 'Danh sách') return activeAdminContent == 'users';
+      if (title == 'Chức năng khác') return activeAdminContent == 'users_manage';
+    } else if (parentTitle == 'Quản lý chung') {
+      if (title == 'Danh sách khóa học') return activeAdminContent == 'courses';
+      if (title == 'Danh sách part') return activeAdminContent == 'parts';
+      if (title == 'Danh sách type') return activeAdminContent == 'types';
+      if (title == 'Danh sách skill') return activeAdminContent == 'skills';
+    } else if (parentTitle == 'Quản lý đề thi') {
+      if (title == 'Danh sách đề') return activeAdminContent == 'exams';
+      if (title == 'Thêm đề mới') return activeAdminContent == 'exams_add';
+    }
+    return false;
+  }
+
   Widget _buildTopNavItem(String title, bool isActive, {String? route}) {
     return InkWell(
       onTap: () {
@@ -311,7 +319,12 @@ class _AdminViewState extends State<AdminView> {
               'Quản lý chung', 
               ['Danh sách khóa học', 'Danh sách part', 'Danh sách type', 'Danh sách skill']
             ),
-            _buildSidebarItem(Icons.analytics_outlined, 'Thống kê nhanh', isSelected: false),
+            _buildSidebarItem(
+              Icons.analytics_outlined, 
+              'Thống kê nhanh', 
+              isSelected: activeAdminContent == 'stats',
+              onTap: () => setState(() => activeAdminContent = 'stats'),
+            ),
           ],
         ),
       ),
@@ -320,9 +333,10 @@ class _AdminViewState extends State<AdminView> {
 
   Widget _buildExpandableSidebarItem(IconData icon, String title, List<String> subItems) {
     bool isExpanded = expandedItems[title] ?? false;
+    bool isAnyChildSelected = subItems.any((item) => _isSubItemSelected(item, title));
 
     if (isSidebarCollapsed) {
-      return _buildSidebarItem(icon, title);
+      return _buildSidebarItem(icon, title, isSelected: isAnyChildSelected);
     }
 
     return Column(
@@ -330,6 +344,7 @@ class _AdminViewState extends State<AdminView> {
         _buildSidebarItem(
           icon, 
           title, 
+          isSelected: isAnyChildSelected, 
           isExpandable: true, 
           isExpanded: isExpanded,
           onTap: () {
@@ -345,19 +360,17 @@ class _AdminViewState extends State<AdminView> {
   }
 
   Widget _buildSubItem(String title, {required String parentTitle}) {
+    bool isSelected = _isSubItemSelected(title, parentTitle);
     return Container(
       margin: const EdgeInsets.only(left: 54, right: 16, bottom: 4),
       child: InkWell(
         onTap: () {
-          // Hiển thị trực tiếp trong panel phải thay vì chuyển route
           setState(() {
             if (parentTitle == 'Quản lý người dùng') {
               if (title == 'Danh sách') {
                 activeAdminContent = 'users';
               } else if (title == 'Chức năng khác') {
                 activeAdminContent = 'users_manage';
-              } else {
-                activeAdminContent = null;
               }
             } else if (parentTitle == 'Quản lý chung') {
               if (title == 'Danh sách khóa học') {
@@ -368,25 +381,12 @@ class _AdminViewState extends State<AdminView> {
                 activeAdminContent = 'types';
               } else if (title == 'Danh sách skill') {
                 activeAdminContent = 'skills';
-              } else if (title == 'Thêm / Sửa') {
-                activeAdminContent = 'courses_manage';
-              } else {
-                activeAdminContent = null;
               }
-            } else {
-              // fallback mapping based on explicit title
-              if (title == 'Danh sách khóa học') {
-                activeAdminContent = 'courses';
-              } else if (title == 'Danh sách part') {
-                activeAdminContent = 'parts';
-              } else if (title == 'Danh sách type') {
-                activeAdminContent = 'types';
-              } else if (title == 'Danh sách skill') {
-                activeAdminContent = 'skills';
-              } else if (title == 'Thêm / Sửa') {
-                activeAdminContent = 'courses_manage';
-              } else {
-                activeAdminContent = null;
+            } else if (parentTitle == 'Quản lý đề thi') {
+              if (title == 'Danh sách đề') {
+                activeAdminContent = 'exams';
+              } else if (title == 'Thêm đề mới') {
+                activeAdminContent = 'exams_add';
               }
             }
           });
@@ -396,14 +396,16 @@ class _AdminViewState extends State<AdminView> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           width: double.infinity,
           decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF6366F1).withOpacity(0.15) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            // Optional: highlight on hover or selection
+            border: isSelected ? Border.all(color: const Color(0xFF6366F1).withOpacity(0.4)) : null,
           ),
           child: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white60,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.white60,
               fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ),

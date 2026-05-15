@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:chat_toeic_app/features/admin/type_controller.dart';
+import 'package:chat_toeic_app/features/admin/test_controller.dart';
 import 'package:chat_toeic_app/widgets/admin_action_button.dart';
 
-class TypeListPanel extends StatefulWidget {
-  const TypeListPanel({super.key});
+class TestListPanel extends StatefulWidget {
+  const TestListPanel({super.key});
 
   @override
-  State<TypeListPanel> createState() => _TypeListPanelState();
+  State<TestListPanel> createState() => _TestListPanelState();
 }
 
-class _TypeListPanelState extends State<TypeListPanel> {
+class _TestListPanelState extends State<TestListPanel> {
   final int pageSize = 10;
   int page = 1;
   final TextEditingController _searchController = TextEditingController();
@@ -23,51 +23,42 @@ class _TypeListPanelState extends State<TypeListPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(TypeController());
+    final controller = Get.put(TestController());
 
     return Obx(() {
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
       }
 
-      final types = controller.filteredTypes;
+      final tests = controller.filteredTests; // Use filtered list
 
-      if (types.isEmpty && controller.searchQuery.isEmpty) {
-        return const Center(child: Text('Không có Type nào', style: TextStyle(color: Colors.white60)));
+      if (tests.isEmpty && controller.searchQuery.isEmpty) {
+        return const Center(
+          child: Text('Không có đề thi nào', style: TextStyle(color: Colors.white60)),
+        );
       }
 
       return Column(
         children: [
+          // Header
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 6.0),
             child: Row(
               children: [
                 const Expanded(
-                  child: Text('Quản lý Type', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                  child: Text('Quản lý đề thi', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () async {
-                    final TextEditingController nameCtrl = TextEditingController();
-                    final result = await showDialog<String?>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: const Color(0xFF1E293B),
-                        title: const Text('Thêm Type mới', style: TextStyle(color: Colors.white)),
-                        content: TextField(controller: nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Tên Type', hintStyle: TextStyle(color: Colors.white38))),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')),
-                          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Tạo')),
-                        ],
-                      ),
-                    );
-                    if (result != null && result.isNotEmpty) {
-                      final created = await controller.createType(result);
-                      if (created != null) Get.snackbar('Thành công', 'Đã tạo Type');
-                    }
+                  onPressed: () {
+                    Get.snackbar('Thông báo', 'Chức năng thêm đề thi đang được phát triển');
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Thêm Type'),
+                  label: const Text('Thêm đề thi mới'),
                 ),
               ],
             ),
@@ -87,7 +78,7 @@ class _TypeListPanelState extends State<TypeListPanel> {
               },
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm tên Type...',
+                hintText: 'Tìm kiếm tên đề...',
                 hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
                 prefixIcon: const Icon(Icons.search, color: Colors.white24, size: 18),
                 filled: true,
@@ -98,26 +89,30 @@ class _TypeListPanelState extends State<TypeListPanel> {
               ),
             ),
           ),
-
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8)),
             child: Row(
               children: const [
                 SizedBox(width: 48, child: Text('ID', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                Expanded(flex: 3, child: Text('Tên Type', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
-                SizedBox(width: 140, child: Text('Hành động', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                Expanded(flex: 3, child: Text('Tên đề', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                Expanded(flex: 2, child: Text('Khóa học', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                SizedBox(width: 100, child: Text('Thời lượng', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                SizedBox(width: 80, child: Text('Số câu', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                SizedBox(width: 100, child: Text('Số người làm', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
+                SizedBox(width: 140, child: Text('Thao tác', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70))),
               ],
             ),
           ),
-
           const SizedBox(height: 8),
+
+          // Table Rows
           Expanded(
-            child: types.isEmpty
+            child: tests.isEmpty
                 ? const Center(child: Text('Không tìm thấy kết quả', style: TextStyle(color: Colors.white38)))
                 : ListView.separated(
                     itemCount: (() {
-                      final total = types.length;
+                      final total = tests.length;
                       final currentPage = page > 0 ? page : 1;
                       final start = (currentPage - 1) * pageSize;
                       if (start >= total) return 0;
@@ -125,41 +120,43 @@ class _TypeListPanelState extends State<TypeListPanel> {
                       return remaining >= pageSize ? pageSize : remaining;
                     })(),
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, idx) {
+                    itemBuilder: (context, index) {
                       final currentPage = page > 0 ? page : 1;
                       final start = (currentPage - 1) * pageSize;
-                      final t = types[start + idx];
+                      final test = tests[start + index];
+                      final List<dynamic> courses = (test['courses'] as List<dynamic>?) ?? [];
+
                       return Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0B1220),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white10),
+                        ),
                         child: Row(
                           children: [
-                            SizedBox(width: 48, child: Text('${t['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
-                            Expanded(flex: 3, child: Text('${t['name'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                            SizedBox(width: 48, child: Text('${test['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
+                            Expanded(
+                              flex: 3,
+                              child: Text('${test['title'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                courses.isEmpty ? 'Không có' : courses.join(', '),
+                                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                              ),
+                            ),
+                            SizedBox(width: 100, child: Text('${test['duration'] ?? '-'}', style: const TextStyle(color: Colors.white70))),
+                            SizedBox(width: 80, child: Text('${test['questions'] ?? '0'}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70))),
+                            SizedBox(width: 100, child: Text('${test['participants'] ?? '0'}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70))),
                             SizedBox(
                               width: 140,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  AdminActionButton(
-                                    type: AdminActionButtonType.edit,
-                                    onTap: () async {
-                                      final nameCtrl = TextEditingController(text: t['name'] ?? '');
-                                      final result = await showDialog<String?>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Sửa Type', style: TextStyle(color: Colors.white)),
-                                          content: TextField(controller: nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: 'Tên Type', hintStyle: TextStyle(color: Colors.white38))),
-                                          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(nameCtrl.text.trim()), child: const Text('Lưu'))],
-                                        ),
-                                      );
-                                      if (result != null && result.isNotEmpty) {
-                                        final updated = await controller.updateType(t['id'], result);
-                                        if (updated != null) Get.snackbar('Thành công', 'Đã cập nhật Type');
-                                      }
-                                    },
-                                  ),
+                                  AdminActionButton(type: AdminActionButtonType.view, onTap: () {}),
+                                  AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
                                   AdminActionButton(
                                     type: AdminActionButtonType.delete,
                                     onTap: () async {
@@ -167,14 +164,17 @@ class _TypeListPanelState extends State<TypeListPanel> {
                                         context: context,
                                         builder: (ctx) => AlertDialog(
                                           backgroundColor: const Color(0xFF1E293B),
-                                          title: const Text('Xóa Type', style: TextStyle(color: Colors.white)),
-                                          content: const Text('Bạn có chắc muốn xóa Type này?', style: TextStyle(color: Colors.white60)),
-                                          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa'))],
+                                          title: const Text('Xóa đề thi', style: TextStyle(color: Colors.white)),
+                                          content: const Text('Bạn có chắc muốn xóa đề thi này?', style: TextStyle(color: Colors.white60)),
+                                          actions: [
+                                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
+                                            ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Xóa', style: TextStyle(color: Colors.white))),
+                                          ],
                                         ),
                                       );
                                       if (confirm == true) {
-                                        final ok = await controller.deleteType(t['id']);
-                                        if (ok) Get.snackbar('Thành công', 'Đã xóa Type');
+                                        final ok = await controller.deleteTest(test['id']);
+                                        if (ok) Get.snackbar('Thành công', 'Đã xóa đề thi');
                                       }
                                     },
                                   ),
@@ -187,10 +187,12 @@ class _TypeListPanelState extends State<TypeListPanel> {
                     },
                   ),
           ),
+          
           const SizedBox(height: 12),
+
           // Compact Pagination
           Builder(builder: (ctx) {
-            final total = types.length;
+            final total = tests.length;
             final totalPages = total == 0 ? 1 : (total / pageSize).ceil();
             final currentPage = page > totalPages ? totalPages : page;
             return Container(

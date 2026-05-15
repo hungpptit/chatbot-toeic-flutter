@@ -4,6 +4,16 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 class TypeController extends GetxController {
   var isLoading = false.obs;
   var types = <Map<String, dynamic>>[].obs;
+  var searchQuery = ''.obs;
+
+  List<Map<String, dynamic>> get filteredTypes {
+    if (searchQuery.value.isEmpty) return types;
+    return types.where((t) {
+      final name = (t['name'] ?? '').toString().toLowerCase();
+      final query = searchQuery.value.toLowerCase();
+      return name.contains(query);
+    }).toList();
+  }
 
   @override
   void onInit() {

@@ -4,6 +4,16 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 class CourseController extends GetxController {
   var isLoading = false.obs;
   var courses = <Map<String, dynamic>>[].obs;
+  var searchQuery = ''.obs;
+
+  List<Map<String, dynamic>> get filteredCourses {
+    if (searchQuery.value.isEmpty) return courses;
+    return courses.where((course) {
+      final name = (course['name'] ?? '').toString().toLowerCase();
+      final query = searchQuery.value.toLowerCase();
+      return name.contains(query);
+    }).toList();
+  }
 
   @override
   void onInit() {
