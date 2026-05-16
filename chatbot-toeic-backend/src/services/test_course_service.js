@@ -192,6 +192,27 @@ const getTestsByCourseId = async (courseId) => {
   }
 };
 
+const updateTest = async (id, data) => {
+  try {
+    const test = await Test.findByPk(id);
+    if (!test) {
+      throw new Error(`Test with ID ${id} not found`);
+    }
+
+    await test.update({
+      title: data.title,
+      duration: data.duration,
+      // Có thể thêm các trường khác nếu cần
+    });
+
+    console.log(`✅ Test ID ${id} updated: "${test.title}"`);
+    return test;
+  } catch (error) {
+    console.error("❌ Error updating test:", error);
+    throw error;
+  }
+};
+
 export{
     getAllTestsWithCourses,
     getAllCourseNames,
@@ -199,5 +220,6 @@ export{
     getTestsByCourseId,
     updateCourseName,
     deleteCourseById,
-    insertCourse
+    insertCourse,
+    updateTest
 };

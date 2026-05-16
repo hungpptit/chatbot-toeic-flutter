@@ -21,7 +21,7 @@ class DioClient {
     // dio.interceptors.add(LogInterceptor(
     //   requestBody: true,
     //   responseBody: true,
-    //   logPrint: (o) => print(o),
+    //   logPrint: (o) => logger.i(o),
     // ));
   }
 }

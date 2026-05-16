@@ -1,5 +1,6 @@
 import { 
-    getAllTestsWithCourses 
+    getAllTestsWithCourses,
+    updateTest
 } from "../services/test_course_service.js";
 import { 
     RandomQuestionsByTestId,
@@ -210,5 +211,21 @@ export const createQuestionV1 = async (req, res) => {
     } catch (error) {
         console.error("[TEST V1] createQuestionV1 error:", error);
         return sendError(res, 500, "Error creating question", [error.message]);
+    }
+};
+
+/**
+ * PATCH /api/v1/tests/:id
+ * Cập nhật thông tin đề thi
+ */
+export const updateTestV1 = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedData = req.body;
+        const result = await updateTest(id, updatedData);
+        return sendSuccess(res, result, "Test updated successfully");
+    } catch (error) {
+        console.error("[TEST V1] updateTestV1 error:", error);
+        return sendError(res, 500, "Error updating test", [error.message]);
     }
 };

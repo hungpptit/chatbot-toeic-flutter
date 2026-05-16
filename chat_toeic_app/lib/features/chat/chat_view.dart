@@ -13,30 +13,35 @@ class ChatView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(ChatController());
     final authController = Get.find<AuthController>();
+    final isMobile = MediaQuery.of(context).size.width < 800;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
+      drawer: isMobile ? Drawer(
+        backgroundColor: const Color(0xFF0F172A),
+        child: _buildSidebar(controller, authController),
+      ) : null,
       body: Column(
         children: [
           const CustomNavBar(),
           Expanded(
             child: Row(
               children: [
-                // Sidebar (Left) - Hidden on mobile if needed, but here simple responsive
-                _buildSidebar(controller, authController),
+                // Sidebar (Left) - Hidden on mobile
+                if (!isMobile) _buildSidebar(controller, authController),
                 
                 // Main Chat Area (Right)
                 Expanded(
                   child: Column(
                     children: [
                       // Header
-                      _buildChatHeader(controller),
+                      _buildChatHeader(controller, isMobile: isMobile),
                       
                       // Messages
-                      Expanded(child: _buildMessageList(controller)),
+                      Expanded(child: _buildMessageList(controller, isMobile: isMobile)),
                       
                       // Input Area
-                      _buildInputArea(controller),
+                      _buildInputArea(controller, isMobile: isMobile),
                     ],
                   ),
                 ),
@@ -238,15 +243,22 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _buildChatHeader(ChatController controller) {
+  Widget _buildChatHeader(ChatController controller, {bool isMobile = false}) {
     return Container(
       height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
+          if (isMobile) ...[
+            Builder(builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            )),
+            const SizedBox(width: 8),
+          ],
           Obx(() {
             final id = controller.currentConversationId.value;
             final conv = controller.conversations.firstWhereOrNull((c) => c['id'] == id);
@@ -265,7 +277,7 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageList(ChatController controller) {
+  Widget _buildMessageList(ChatController controller, {bool isMobile = false}) {
     return Obx(() {
       if (controller.isLoading.value && controller.messages.isEmpty) {
         return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
@@ -274,10 +286,13 @@ class ChatView extends StatelessWidget {
       if (controller.messages.isEmpty && controller.currentConversationId.value == null) {
         return _buildEmptyState();
       }
+      
+      final horizontalPadding = isMobile ? 16.0 : 100.0;
+      final verticalPadding = isMobile ? 20.0 : 40.0;
 
       return ListView.builder(
         controller: controller.scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 40),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
         itemCount: controller.messages.length + (controller.isSending.value ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == controller.messages.length) {
@@ -431,9 +446,9 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _buildInputArea(ChatController controller) {
+  Widget _buildInputArea(ChatController controller, {bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 12 : 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -446,7 +461,7 @@ class ChatView extends StatelessWidget {
       ),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
           decoration: BoxDecoration(
             color: const Color(0xFF1E293B),
             borderRadius: BorderRadius.circular(28),

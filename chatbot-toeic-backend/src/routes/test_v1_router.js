@@ -9,7 +9,8 @@ import {
     getAttemptResult,
     getTestHistory,
     updateQuestionV1,
-    createQuestionV1
+    createQuestionV1,
+    updateTestV1
 } from '../controllers/test_v1_controller.js';
 import { authMiddleware } from '../Middleware/authMiddleware.js';
 
@@ -242,5 +243,25 @@ router.post('/practice-attempts/submit', authMiddleware, submitPracticeAttempt);
  *         description: Thành công
  */
 router.patch('/questions/:id', authMiddleware, updateQuestionV1);
+
+/**
+ * @swagger
+ * /api/v1/tests/{id}:
+ *   patch:
+ *     summary: Cập nhật thông tin đề thi
+ *     tags: [Test (v1)]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.patch('/:id', authMiddleware, updateTestV1);
 
 export default router;
