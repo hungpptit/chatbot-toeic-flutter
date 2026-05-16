@@ -672,6 +672,23 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E293B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Get.back(),
+          tooltip: 'Quay lại',
+        ),
+        title: const Text(
+          'Chi tiết đáp án',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+        ),
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _reviewFuture,
         builder: (context, snapshot) {

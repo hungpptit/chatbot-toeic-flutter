@@ -5,6 +5,8 @@ import 'package:chat_toeic_app/features/test/test_result_controller.dart';
 class TestResultView extends StatelessWidget {
   const TestResultView({super.key});
 
+  static const double _scoreCircleSize = 270;
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(TestResultController());
@@ -19,28 +21,24 @@ class TestResultView extends StatelessWidget {
 
             // === MAIN CONTENT ===
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 28),
               child: Column(
                 children: [
                   // === CIRCULAR SCORE DISPLAY ===
                   _buildCircularScore(controller),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
                   // === SCORE BREAKDOWN ===
                   _buildScoreBreakdown(controller),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 28),
 
                   // === FEEDBACK MESSAGE ===
                   _buildFeedbackMessage(controller),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
                   // === PRIMARY ACTION BUTTONS (Centered, side by side) ===
                   Center(child: _buildPrimaryActionButtons(controller)),
-                  const SizedBox(height: 12),
-
-                  // === SECONDARY ACTION BUTTON ===
-                  Center(child: _buildSecondaryActionButton(controller)),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -59,7 +57,7 @@ class TestResultView extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onTap: () => Get.back(),
+            onTap: () => controller.goHome(),
             child: const Icon(
               Icons.close,
               color: Colors.white,
@@ -85,48 +83,33 @@ class TestResultView extends StatelessWidget {
     return Obx(
       () {
         final percentage = controller.scorePercentage.value;
-        final score = controller.scorePoints.value;
-        final maxScore = controller.maxScore.value;
 
         return Column(
           children: [
-            // Circular Progress Indicator
             Stack(
               alignment: Alignment.center,
               children: [
                 // Background circle with gradient
                 Container(
-                  width: 220,
-                  height: 220,
+                  width: _scoreCircleSize,
+                  height: _scoreCircleSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF1a2844),
-                        const Color(0xFF111C34),
-                      ],
-                    ),
+                    color: const Color(0xFF111C34),
                     border: Border.all(
                       color: const Color(0xFF24324F),
                       width: 2.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _getScoreColor(percentage).withOpacity(0.2),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
                   ),
                 ),
 
                 // Circular Progress using CustomPaint for smooth animation
                 SizedBox(
-                  width: 220,
-                  height: 220,
+                  width: _scoreCircleSize,
+                  height: _scoreCircleSize,
                   child: CircularProgressIndicator(
                     value: percentage / 100,
-                    strokeWidth: 7,
+                    strokeWidth: 8,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       _getScoreColor(percentage),
                     ),
@@ -143,16 +126,9 @@ class TestResultView extends StatelessWidget {
                         '${controller.scorePercentage.value.toStringAsFixed(1)}%',
                         style: TextStyle(
                           color: _getScoreColor(percentage),
-                          fontSize: 56,
+                          fontSize: 64,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.8,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 14,
-                              color: _getScoreColor(percentage).withOpacity(0.4),
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -186,28 +162,14 @@ class TestResultView extends StatelessWidget {
         final incorrect = total - correct;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF111C34).withOpacity(0.8),
-                const Color(0xFF1a2844).withOpacity(0.6),
-              ],
-            ),
+            color: const Color(0xFF111C34),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: const Color(0xFF60A5FA).withOpacity(0.2),
+              color: const Color(0xFF60A5FA).withOpacity(0.3),
               width: 1.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF60A5FA).withOpacity(0.1),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -280,13 +242,6 @@ class TestResultView extends StatelessWidget {
             fontSize: 28,
             fontWeight: FontWeight.w900,
             letterSpacing: 0.5,
-            shadows: [
-              Shadow(
-                blurRadius: 10,
-                color: color.withOpacity(0.3),
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
         ),
         const SizedBox(height: 6),
@@ -315,26 +270,12 @@ class TestResultView extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                scoreColor.withOpacity(0.12),
-                scoreColor.withOpacity(0.05),
-              ],
-            ),
+            color: const Color(0xFF111C34),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: scoreColor.withOpacity(0.4),
+              color: scoreColor.withOpacity(0.3),
               width: 1.5,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: scoreColor.withOpacity(0.15),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -402,33 +343,34 @@ class TestResultView extends StatelessWidget {
 
   /// PRIMARY ACTION BUTTONS (Centered, side by side)
   Widget _buildPrimaryActionButtons(TestResultController controller) {
+    final double buttonAreaWidth = (Get.width - 32).clamp(360.0, 420.0);
+
     return SizedBox(
-      width: 340,
+      width: buttonAreaWidth,
       child: Row(
         children: [
           // "Xem đáp án chi tiết" Button
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF3B82F6).withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(14),
               ),
               child: ElevatedButton.icon(
                 onPressed: () => controller.viewDetailedAnswers(),
-                icon: const Icon(Icons.description_outlined),
-                label: const Text('Xem đáp án'),
+                icon: const Icon(Icons.description_outlined, size: 22),
+                label: const Text(
+                  'Xem đáp án',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3B82F6),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
                 ),
@@ -441,25 +383,24 @@ class TestResultView extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(14),
               ),
               child: ElevatedButton.icon(
                 onPressed: () => controller.retakeTest(),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Làm lại'),
+                icon: const Icon(Icons.refresh, size: 22),
+                label: const Text(
+                  'Làm lại',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8B5CF6),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
                 ),
@@ -467,43 +408,6 @@ class TestResultView extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// SECONDARY ACTION BUTTON
-  Widget _buildSecondaryActionButton(TestResultController controller) {
-    return SizedBox(
-      width: 340,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ElevatedButton.icon(
-          onPressed: () => controller.goHome(),
-          icon: const Icon(Icons.home_outlined),
-          label: const Text('Về trang chủ'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1E293B),
-            foregroundColor: const Color(0xFF60A5FA),
-            padding: const EdgeInsets.symmetric(vertical: 13),
-            side: const BorderSide(
-              color: Color(0xFF60A5FA),
-              width: 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 0,
-          ),
-        ),
       ),
     );
   }
