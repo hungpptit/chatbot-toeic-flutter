@@ -11,6 +11,7 @@ import {
     GetUserTestDetailById, 
     GetUserTestHistoryByTestId,
     StartUserTest,
+    CancelUserTestAttempt,
     createQuestion 
 } from '../services/question_test_service.js';
 import { triggerMLPredictionAsync } from '../services/mlPredictionService.js';
@@ -58,6 +59,27 @@ export const startTestAttempt = async (req, res) => {
     } catch (error) {
         console.error("[TEST V1] startTestAttempt error:", error);
         return sendError(res, 500, "Error starting test attempt", [error.message]);
+    }
+};
+
+/**
+ * POST /api/v1/tests/:testId/attempts/:attemptId/cancel
+ * Hủy bài thi đang làm dở
+ */
+export const cancelTestAttempt = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { testId, attemptId } = req.params;
+        const result = await CancelUserTestAttempt({ userId, testId, attemptId, status: 'cancelled' });
+
+        if (result.status === 'not_found') {
+            return sendError(res, 404, 'In-progress attempt not found');
+        }
+
+        return sendSuccess(res, result, 'Test attempt cancelled');
+    } catch (error) {
+        console.error('[TEST V1] cancelTestAttempt error:', error);
+        return sendError(res, 500, 'Error cancelling test attempt', [error.message]);
     }
 };
 

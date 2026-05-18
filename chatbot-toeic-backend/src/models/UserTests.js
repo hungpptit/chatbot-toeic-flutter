@@ -49,8 +49,8 @@ export default (sequelize, DataTypes) => {
       allowNull: true,
     },
     status: {
-    type: DataTypes.ENUM('unfinished', 'completed'),
-    defaultValue: 'unfinished',
+      type: DataTypes.STRING,
+      defaultValue: 'in_progress',
     }
   }, {
     sequelize,

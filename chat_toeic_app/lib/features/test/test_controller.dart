@@ -40,6 +40,7 @@ class TestController extends GetxController {
   var testTitle = ''.obs;
   var totalQuestions = 0.obs;
   var attemptId = ''.obs; // ID of current test attempt
+  var isCancelling = false.obs;
 
   @override
   void onInit() {
@@ -65,11 +66,15 @@ class TestController extends GetxController {
     // Auto-initialize test attempt when questions are loaded (for reading tests only)
     // Listening tests will initialize when user clicks START button
     ever(questions, (list) {
+      if (!isTestActive.value || isCancelling.value) {
+        return;
+      }
+
       if (list.isNotEmpty && attemptId.value.isEmpty && testId.value > 0) {
         // Only auto-init for non-listening tests
         // Listening test detection happens after questions load
         Future.delayed(Duration.zero, () {
-          if (!isListeningTest.value) {
+          if (!isListeningTest.value && !isCancelling.value && isTestActive.value) {
             print('📌 Reading test detected, auto-initializing attempt');
             startTestAttempt(testId.value);
           }
@@ -773,8 +778,20 @@ class TestController extends GetxController {
     }
   }
 
-  /// Hủy bỏ bài thi (chưa hoàn thành)
-  void cancelTest() {
+  /// Hủy bỏ bài thi (chưa hoàn thành) và báo backend để lưu status cancelled.
+  Future<void> cancelTest() async {
+    isCancelling.value = true;
+
+    try {
+      if (attemptId.value.isNotEmpty && testId.value > 0) {
+        await DioClient.dio.post(
+          '/v1/tests/${testId.value}/attempts/${attemptId.value}/cancel',
+        );
+      }
+    } catch (e) {
+      print('⚠️ Không thể lưu trạng thái hủy bài lên backend: $e');
+    }
+
     _stopTimer();
     isTestActive.value = false;
     userAnswers.clear();

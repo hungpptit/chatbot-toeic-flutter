@@ -75,10 +75,24 @@ class StatisticsView extends StatelessWidget {
               style: IconButton.styleFrom(backgroundColor: Colors.white10),
             ),
             const SizedBox(width: 16),
-            const Text(
-              'Thống kê học tập',
-              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-            ),
+              const Text(
+                'Thống kê học tập',
+                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Get.defaultDialog(
+                    title: 'Luyện tập',
+                    middleText: 'Tính năng luyện tập sẽ được triển khai ở đây sau.',
+                    textConfirm: 'OK',
+                    onConfirm: () => Get.back(),
+                  );
+                },
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Luyện tập'),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+              ),
           ],
         ),
         const SizedBox(height: 8),
