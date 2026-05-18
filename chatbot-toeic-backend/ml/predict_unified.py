@@ -65,9 +65,10 @@ def predict_unified(userId: int):
     """
     Predict weak skills cho user với unified model
     """
-    # Load model và feature info
-    model_path = os.path.join(os.path.dirname(__file__), "unified_model.pkl")
-    info_path = os.path.join(os.path.dirname(__file__), "unified_model_info.pkl")
+    # Load model và feature info (from model/ directory)
+    model_dir = os.path.join(os.path.dirname(__file__), 'model')
+    model_path = os.path.join(model_dir, "unified_model.pkl")
+    info_path = os.path.join(model_dir, "unified_model_info.pkl")
     
     if not os.path.exists(model_path):
         print("❌ Unified model chưa được train!")
@@ -85,41 +86,46 @@ def predict_unified(userId: int):
     # Query user data
     conn = pyodbc.connect(conn_str)
     
-    # Query giống hệt lúc train
+    # Query optimized for completed results
     query = f"""
-    WITH UserStats AS (
-        SELECT 
-            ur.userId,
-            COUNT(DISTINCT ur.userTestId) AS total_tests,
-            COUNT(*) AS total_questions,
-            CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS overall_accuracy,
-            DATEDIFF(DAY, MIN(ur.answeredAt), GETDATE()) AS days_active
+    WITH CompletedResults AS (
+        SELECT ur.userId, ur.userTestId, ur.questionId, ur.isCorrect, ur.answeredAt
         FROM UserResults ur
+        INNER JOIN UserTests ut ON ur.userTestId = ut.id
         WHERE ur.userId = {userId}
-        GROUP BY ur.userId
+          AND ut.status = 'completed'
+    ),
+    UserStats AS (
+        SELECT userId,
+               COUNT(DISTINCT userTestId) AS total_tests,
+               COUNT(*) AS total_questions,
+               SUM(CASE WHEN isCorrect = 1 THEN 1 ELSE 0 END) AS total_correct,
+               CAST(SUM(CASE WHEN isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS overall_accuracy,
+               DATEDIFF(DAY, MIN(answeredAt), GETDATE()) AS days_active
+        FROM CompletedResults
+        GROUP BY userId
     ),
     SkillStats AS (
-        SELECT 
-            ur.userId,
-            qs.skillId,
-            COUNT(*) AS attempts,
-            SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS correct,
-            CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS skill_accuracy
-        FROM UserResults ur
-        JOIN QuestionSkills qs ON ur.questionId = qs.questionId
-        WHERE ur.userId = {userId}
-        GROUP BY ur.userId, qs.skillId
+        SELECT cr.userId,
+               qs.skillId,
+               COUNT(*) AS attempts,
+               SUM(CASE WHEN cr.isCorrect = 1 THEN 1 ELSE 0 END) AS correct,
+               CAST(SUM(CASE WHEN cr.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS skill_accuracy
+        FROM CompletedResults cr
+        INNER JOIN QuestionSkills qs ON cr.questionId = qs.questionId
+        GROUP BY cr.userId, qs.skillId
     )
     SELECT 
         ss.userId,
         ss.skillId,
-        us.total_tests,
-        us.total_questions,
-        us.overall_accuracy,
-        us.days_active,
         ss.attempts,
         ss.correct,
-        ss.skill_accuracy
+        ss.skill_accuracy,
+        us.total_tests,
+        us.total_questions,
+        us.total_correct,
+        us.overall_accuracy,
+        us.days_active
     FROM SkillStats ss
     JOIN UserStats us ON ss.userId = us.userId
     """
@@ -157,20 +163,27 @@ def predict_unified(userId: int):
     print(f"\n🎯 Weak Skill Detection Results:")
     print("-" * 70)
     
-    for idx, row in df.iterrows():
-        is_weak = predictions[idx]
-        
+    # Use positional indexing to match predictions/probabilities (avoid label-index mismatch)
+    for pos in range(len(df)):
+        row = df.iloc[pos]
+        is_weak = int(predictions[pos])
+
         # Handle edge case: model chỉ học 1 class
         if probabilities.shape[1] == 1:
             weak_prob = 1.0 if is_weak else 0.0
         else:
-            weak_prob = probabilities[idx][1]  # Probability of being weak
-        
+            # find probability for class label 1 (weak). Use model.classes_ order if available.
+            try:
+                class_index = list(model.classes_).index(1)
+            except Exception:
+                class_index = 1
+            weak_prob = float(probabilities[pos][class_index])
+
         status = "❌ WEAK" if is_weak else "✅ STRONG"
         print(f"Skill {row['skillId']}: {status}")
         print(f"   Attempts: {row['attempts']}, Correct: {row['correct']}, Accuracy: {row['skill_accuracy']:.2%}")
         print(f"   Weak Probability: {weak_prob:.2%}")
-        
+
         if is_weak:
             weak_skills.append({
                 'skillId': int(row['skillId']),
@@ -218,8 +231,10 @@ def compare_unified_vs_personal(userId: int):
         SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS correct,
         CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS accuracy
     FROM UserResults ur
+        JOIN UserTests ut ON ur.userTestId = ut.id
     JOIN QuestionSkills qs ON ur.questionId = qs.questionId
     WHERE ur.userId = {userId}
+            AND ut.status = 'completed'
     GROUP BY ur.userId, qs.skillId
     """
     df = pd.read_sql(query, conn)

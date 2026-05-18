@@ -57,33 +57,34 @@ export const getRecommendations = async (req, res) => {
 
         // ✅ 2. Run Python script to generate prediction
         const mlScriptPath = path.join(__dirname, '../../ml/predict_hybrid_unified.py');
-        const outFileName = `result_user_${userId}_${Date.now()}.json`;
-        const outPath = path.join(os.tmpdir(), outFileName);
+        // Use stdout-based protocol: ask Python to write JSON to stdout (script supports --stdout)
+        const pythonArgs = [mlScriptPath, userId.toString(), '--quiet', '--stdout'];
 
-        const pythonArgs = [mlScriptPath, userId.toString(), '--quiet', '--out', outPath];
-        
         const pythonProcess = spawn('python', pythonArgs, {
-            stdio: ['ignore', 'ignore', 'pipe']
+            stdio: ['ignore', 'pipe', 'pipe']
         });
 
-        let errorString = '';
+        let stdoutString = '';
+        let stderrString = '';
+        pythonProcess.stdout.on('data', (data) => {
+            stdoutString += data.toString();
+        });
         pythonProcess.stderr.on('data', (data) => {
-            errorString += data.toString();
+            stderrString += data.toString();
         });
 
         pythonProcess.on('close', async (code) => {
             if (code !== 0) {
-                console.error('Python script error:', errorString);
+                console.error('Python script error:', stderrString);
                 return res.status(500).json({
                     code: 500,
                     message: "Failed to get recommendations",
-                    error: errorString
+                    error: stderrString
                 });
             }
 
             try {
-                const raw = await fs.readFile(outPath, { encoding: 'utf-8' });
-                const result = JSON.parse(raw);
+                const result = JSON.parse(stdoutString || '{}');
 
                 // ✅ 3. Extract question IDs from recommendations
                 const questionIds = [];
@@ -104,13 +105,9 @@ export const getRecommendations = async (req, res) => {
                     confidence: 0.8, // TODO: Calculate from model
                     totalAttempts: 0, // TODO: Query from UserResults
                     overallAccuracy: null
-                    // Don't manually set createdAt/updatedAt - Sequelize handles it
                 });
 
                 console.log(`✅ Saved ML prediction to database for user ${userId}`);
-
-                // Clean up temp file
-                try { await fs.unlink(outPath); } catch (e) { /* ignore */ }
 
                 return res.status(200).json({
                     code: 200,
@@ -123,12 +120,12 @@ export const getRecommendations = async (req, res) => {
                     }
                 });
             } catch (parseError) {
-                console.error('Failed to read/parse Python output file:', parseError);
+                console.error('Failed to parse Python stdout:', parseError, stderrString);
                 return res.status(500).json({
                     code: 500,
-                    message: "Failed to read/parse ML output file",
+                    message: "Failed to parse ML output",
                     error: parseError.message,
-                    stderr: errorString
+                    stderr: stderrString
                 });
             }
         });

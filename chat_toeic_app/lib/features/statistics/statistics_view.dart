@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:chat_toeic_app/core/theme/app_colors.dart';
 import 'package:chat_toeic_app/features/statistics/statistics_controller.dart';
+import 'package:chat_toeic_app/features/auth/auth_controller.dart';
+import 'package:chat_toeic_app/features/test/test_controller.dart';
+import 'package:chat_toeic_app/core/api/dio_client.dart';
 import 'package:chat_toeic_app/widgets/nav_bar.dart';
 
 class StatisticsView extends StatelessWidget {
@@ -81,16 +84,173 @@ class StatisticsView extends StatelessWidget {
               ),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed: () {
-                  Get.defaultDialog(
-                    title: 'Luyện tập',
-                    middleText: 'Tính năng luyện tập sẽ được triển khai ở đây sau.',
-                    textConfirm: 'OK',
-                    onConfirm: () => Get.back(),
-                  );
+                onPressed: () async {
+                  // Fetch recommendations from backend and show dialog
+                  try {
+                    final auth = Get.find<AuthController>();
+                    final user = auth.user.value;
+                    if (user == null || user['id'] == null) {
+                      Get.snackbar('Lỗi', 'Vui lòng đăng nhập để sử dụng tính năng này');
+                      return;
+                    }
+
+                    final userId = user['id'].toString();
+                    final loading = Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+
+                    final resp = await DioClient.dio.get('/ml/recommend/details/$userId');
+                    Get.back(); // close loading
+
+                    if (resp.statusCode == 200 && resp.data != null && resp.data['data'] != null) {
+                      final data = resp.data['data'];
+                      final weakSkills = data['weak_skills'] as List<dynamic>? ?? [];
+                      final questions = data['questions'] as List<dynamic>? ?? [];
+
+                      if (weakSkills.isEmpty && questions.isEmpty) {
+                        _showNoWeakSkillDialog(
+                          title: 'Chúc mừng!',
+                          message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
+                        );
+                        return;
+                      }
+
+                      if (weakSkills.isEmpty) {
+                        _showNoWeakSkillDialog(
+                          title: 'Chúc mừng!',
+                          message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
+                        );
+                        return;
+                      }
+
+                      if (questions.isEmpty) {
+                        _showNoWeakSkillDialog(
+                          title: 'Chúc mừng!',
+                          message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
+                        );
+                        return;
+                      }
+
+                      // Show bottom sheet with recommended questions
+                      Get.bottomSheet(
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0F172A),
+                            borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Kỹ năng yếu', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  children: weakSkills.map((s) => Chip(label: Text(s.toString(), style: const TextStyle(color: Colors.white)))).toList(),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () async {
+                                      // Start practice: preload questions into TestController and navigate
+                                      final practiceTestId = DateTime.now().millisecondsSinceEpoch ~/ 1000; // unique int
+
+                                      // Create a TestController with tag matching TestDetailView expectation
+                                      final tag = 'test_$practiceTestId';
+                                      TestController testController;
+                                      try {
+                                        testController = Get.find<TestController>(tag: tag);
+                                      } catch (e) {
+                                        testController = Get.put(TestController(), tag: tag);
+                                      }
+
+                                      // Preload questions (ensure they are Map<String,dynamic>)
+                                      final List<Map<String, dynamic>> qList = questions.map<Map<String,dynamic>>((e) => Map<String,dynamic>.from(e as Map)).toList();
+                                      testController.questions.assignAll(qList);
+                                      testController.totalQuestions.value = qList.length;
+
+                                      // Mark controller as practice mode and activate test state
+                                      testController.isPracticeMode.value = true;
+                                      testController.isTestActive.value = true;
+                                      testController.testStarted.value = true;
+                                      testController.testId.value = practiceTestId;
+
+                                      // Navigate to test detail with our synthetic testId
+                                      Get.back(); // close bottom sheet
+                                      Get.toNamed('/test-detail', arguments: {'testId': practiceTestId});
+                                    },
+                                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                                    child: const Text('Bắt đầu luyện tập'),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text('Câu hỏi gợi ý', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 8),
+                                ...questions.map((q) {
+                                  final qText = q['question'] ?? q['content'] ?? '';
+                                  final questionTypeName = _extractQuestionTypeName(q);
+                                  final questionTypeDescription = _extractQuestionTypeDescription(q);
+                                  final questionTypeLabel = _extractQuestionTypeLabel(q);
+                                  final partLabel = _extractPartLabel(q);
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF111C34),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: const Color(0xFF24324F)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          qText.toString(),
+                                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600, height: 1.35),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            _buildMetaChip(questionTypeLabel),
+                                            _buildMetaChip(partLabel),
+                                          ],
+                                        ),
+                                        if (questionTypeName != null || questionTypeDescription != null) ...[
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            questionTypeName != null
+                                                ? 'Question Type: $questionTypeName${questionTypeDescription != null ? ' - $questionTypeDescription' : ''}'
+                                                : 'Question Type: Unknown',
+                                            style: const TextStyle(
+                                              color: Color(0xFFCBD5E1),
+                                              fontSize: 13,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        ),
+                        isScrollControlled: true,
+                      );
+                    } else {
+                      Get.snackbar('Lỗi', 'Không nhận được gợi ý. Vui lòng thử lại sau.');
+                    }
+                  } catch (e) {
+                    try { Get.back(); } catch (_) {}
+                    print('Error fetching recommendations: $e');
+                    Get.snackbar('Lỗi', 'Không thể lấy gợi ý luyện tập');
+                  }
                 },
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('Luyện tập'),
+                label: const Text('Dự đoán kỹ năng yếu'),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
               ),
           ],
@@ -164,6 +324,144 @@ class StatisticsView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showNoWeakSkillDialog({
+    required String title,
+    required String message,
+  }) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: const Color(0xFF111C34),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Color(0xFFCBD5E1),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text(
+              'Đã hiểu',
+              style: TextStyle(color: Color(0xFF10B981)),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  Widget _buildMetaChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFFCBD5E1),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  String _extractQuestionTypeLabel(dynamic question) {
+    final dynamic raw = question is Map ? (question['questionType'] ?? question['type'] ?? question['typeId']) : null;
+
+    String? candidate;
+    if (raw is Map) {
+      candidate = (raw['name'] ?? raw['title'] ?? raw['label'] ?? raw['typeName'] ?? raw['questionTypeName'])?.toString();
+    } else if (raw != null) {
+      candidate = raw.toString();
+    }
+
+    final lower = candidate?.toLowerCase() ?? '';
+    if (lower.contains('listen')) return 'Listening';
+    if (lower.contains('read')) return 'Reading';
+
+    final partNumber = _extractPartNumber(question);
+    if (partNumber >= 1 && partNumber <= 4) return 'Listening';
+    if (partNumber >= 5 && partNumber <= 7) return 'Reading';
+
+    return candidate?.isNotEmpty == true ? candidate! : 'Unknown type';
+  }
+
+  String? _extractQuestionTypeName(dynamic question) {
+    if (question is! Map) return null;
+
+    final dynamic raw = question['questionType'] ?? question['type'];
+    if (raw is Map) {
+      final name = raw['name'] ?? raw['title'] ?? raw['label'] ?? raw['typeName'] ?? raw['questionTypeName'];
+      return name?.toString();
+    }
+
+    if (raw != null) {
+      return raw.toString();
+    }
+
+    return null;
+  }
+
+  String? _extractQuestionTypeDescription(dynamic question) {
+    if (question is! Map) return null;
+
+    final dynamic raw = question['questionType'] ?? question['type'];
+    if (raw is Map) {
+      final description = raw['description'] ?? raw['desc'];
+      final text = description?.toString().trim();
+      if (text != null && text.isNotEmpty && text.toLowerCase() != 'null') {
+        return text;
+      }
+    }
+
+    return null;
+  }
+
+  String _extractPartLabel(dynamic question) {
+    final partNumber = _extractPartNumber(question);
+    if (partNumber > 0) {
+      return 'Part $partNumber';
+    }
+
+    final dynamic raw = question is Map ? question['part'] : null;
+    if (raw is Map) {
+      final name = (raw['name'] ?? raw['title'] ?? raw['label'] ?? raw['partName'])?.toString();
+      if (name != null && name.isNotEmpty) return name;
+    } else if (raw != null) {
+      return raw.toString();
+    }
+
+    return 'Part unknown';
+  }
+
+  int _extractPartNumber(dynamic question) {
+    if (question is! Map) return 0;
+
+    final dynamic rawPart = question['part'] ?? question['partId'];
+    if (rawPart is int) return rawPart;
+    if (rawPart is String) return int.tryParse(rawPart) ?? 0;
+    if (rawPart is Map) {
+      final dynamic nested = rawPart['id'] ?? rawPart['partId'] ?? rawPart['number'];
+      if (nested is int) return nested;
+      if (nested is String) return int.tryParse(nested) ?? 0;
+    }
+
+    return 0;
   }
 
   Widget _buildAccuracyChart(StatisticsController controller) {

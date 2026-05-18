@@ -106,15 +106,21 @@ def prepare_unified_features(userId: int, skillId: int, attempts: int, correct: 
     
     📝 NOTE: Features này PHẢI GIỐNG HỆT với lúc train unified model!
     """
-    # Query user stats (tổng quan về user)
+    # Query user stats (tổng quan về user) - optimized with CTE
     query = f"""
+    WITH CompletedResults AS (
+        SELECT ur.userTestId, ur.isCorrect, ur.answeredAt
+        FROM UserResults ur
+        INNER JOIN UserTests ut ON ur.userTestId = ut.id
+        WHERE ur.userId = {userId}
+          AND ut.status = 'completed'
+    )
     SELECT 
         COUNT(DISTINCT userTestId) AS total_tests,
         COUNT(*) AS total_questions,
         CAST(SUM(CASE WHEN isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS overall_accuracy,
         DATEDIFF(DAY, MIN(answeredAt), GETDATE()) AS days_active
-    FROM UserResults
-    WHERE userId = {userId}
+    FROM CompletedResults
     """
     user_stats = pd.read_sql(query, conn).iloc[0]
     
@@ -161,17 +167,23 @@ def predict_hybrid_unified(userId: int):
     """
     conn = pyodbc.connect(conn_str)
     
-    # Query skill stats của user
+    # Query skill stats của user (optimized: prefilter completed results)
     query = f"""
+    WITH CompletedResults AS (
+        SELECT ur.userId, ur.questionId, ur.isCorrect
+        FROM UserResults ur
+        INNER JOIN UserTests ut ON ur.userTestId = ut.id
+        WHERE ur.userId = {userId}
+          AND ut.status = 'completed'
+    )
     SELECT 
         qs.skillId,
         s.name AS skillName,
         COUNT(*) AS attempts,
-        SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS correct
-    FROM UserResults ur
-    JOIN QuestionSkills qs ON ur.questionId = qs.questionId
+        SUM(CASE WHEN cr.isCorrect = 1 THEN 1 ELSE 0 END) AS correct
+    FROM CompletedResults cr
+    JOIN QuestionSkills qs ON cr.questionId = qs.questionId
     JOIN Skills s ON qs.skillId = s.id
-    WHERE ur.userId = {userId}
     GROUP BY qs.skillId, s.name
     """
     df = pd.read_sql(query, conn)
@@ -275,11 +287,54 @@ def recommend_questions(anchor_id: int, k: int = 2):
     Returns:
         str: JSON string chứa recommended questions
     """
-    result = subprocess.run(
-        ["node", FIND_SIMILAR_PATH, str(anchor_id), str(k)],
-        capture_output=True, text=True
-    )
-    return result.stdout.strip() if result.stdout else None
+    # Try Node.js recommender first
+    try:
+        if os.path.exists(FIND_SIMILAR_PATH):
+            result = subprocess.run([
+                "node", FIND_SIMILAR_PATH, str(anchor_id), str(k)
+            ], capture_output=True, text=True, timeout=10)
+            if result and result.stdout:
+                return result.stdout.strip()
+    except Exception:
+        # Fall through to DB fallback
+        pass
+
+    # Fallback: query DB for other questions in the same skill (random)
+    try:
+        conn = pyodbc.connect(conn_str)
+        # Find skill(s) for the anchor question
+        q_skill = f"""
+        SELECT qs.skillId
+        FROM QuestionSkills qs
+        WHERE qs.questionId = {anchor_id}
+        """
+        skills_df = pd.read_sql(q_skill, conn)
+        if skills_df.empty:
+            conn.close()
+            return None
+
+        skill_ids = skills_df['skillId'].tolist()
+        skill_list = ','.join(str(int(s)) for s in skill_ids)
+        q = f"""
+        SELECT TOP {k} q.id, q.question
+        FROM Questions q
+        JOIN QuestionSkills qs ON q.id = qs.questionId
+        WHERE qs.skillId IN ({skill_list})
+          AND q.id != {anchor_id}
+        ORDER BY NEWID()
+        """
+        df = pd.read_sql(q, conn)
+        conn.close()
+        if df.empty:
+            return None
+        # Return JSON string similar to Node output
+        return json.dumps(df.to_dict(orient='records'), ensure_ascii=False)
+    except Exception:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return None
 
 # ============================================================================
 # FULL PIPELINE: Predict + Recommend
@@ -374,6 +429,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Predict weak skills and recommend questions (Hybrid Unified)')
     parser.add_argument('userId', nargs='?', type=int, default=3, help='User ID to predict')
     parser.add_argument('--out', '-o', help='Output JSON file path (default: ml/result_user_<userId>.json)')
+    parser.add_argument('--stdout', action='store_true', help='Write JSON result to stdout instead of a file')
     parser.add_argument('--quiet', action='store_true', help='Suppress verbose console output')
     parser.add_argument('--k', type=int, default=3, help='Number of recommendations per anchor (default 3)')
 
@@ -395,23 +451,35 @@ if __name__ == "__main__":
     # Run full pipeline
     result = full_pipeline(userId, k=args.k)
 
-    # Determine output path
-    default_out = os.path.join(os.path.dirname(__file__), f"result_user_{userId}.json")
-    out_path = args.out if args.out else default_out
-
-    # Write JSON result to file (UTF-8)
-    try:
-        with open(out_path, 'w', encoding='utf-8') as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
-        # Always print a short confirmation to original stdout
+    # If requested, write JSON to stdout (use sys.__stdout__ to bypass --quiet redirection)
+    if args.stdout:
         try:
-            sys.__stdout__.write(f"JSON result written to: {out_path}\n")
-        except Exception:
-            print(f"JSON result written to: {out_path}")
-    except Exception as e:
-        # If writing fails, fallback to printing JSON to original stdout
-        try:
-            sys.__stdout__.write(f"Failed to write file: {e}\n")
-            sys.__stdout__.write(json.dumps(result, ensure_ascii=False))
+            try:
+                sys.__stdout__.write(json.dumps(result, ensure_ascii=False))
+                sys.__stdout__.write('\n')
+            except Exception:
+                # Fallback to normal stdout if sys.__stdout__ is unavailable
+                print(json.dumps(result, ensure_ascii=False))
         except Exception:
             pass
+    else:
+        # Determine output path
+        default_out = os.path.join(os.path.dirname(__file__), f"result_user_{userId}.json")
+        out_path = args.out if args.out else default_out
+
+        # Write JSON result to file (UTF-8)
+        try:
+            with open(out_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, ensure_ascii=False, indent=2)
+            # Always print a short confirmation to original stdout
+            try:
+                sys.__stdout__.write(f"JSON result written to: {out_path}\n")
+            except Exception:
+                print(f"JSON result written to: {out_path}")
+        except Exception as e:
+            # If writing fails, fallback to printing JSON to original stdout
+            try:
+                sys.__stdout__.write(f"Failed to write file: {e}\n")
+                sys.__stdout__.write(json.dumps(result, ensure_ascii=False))
+            except Exception:
+                pass

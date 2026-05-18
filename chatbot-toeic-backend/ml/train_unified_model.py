@@ -3,53 +3,12 @@
 TRAIN UNIFIED MODEL (1 MODEL FOR ALL USERS) - VERSION 2.0
 ================================================================================
 
-📌 MỤC ĐÍCH:
-   Train UNIFIED MODEL - 1 model duy nhất cho TẤT CẢ users.
-   Model này thay thế Personal Model approach (10k models → 1 model).
+Train unified Naive Bayes model using aggregated user+skill features.
 
-✅ ƯU ĐIỂM:
-   - Scalable: 1 file cho 10k users thay vì 10k files
-   - Fast retrain: 2-3 phút thay vì 14 giờ
-   - Easy deploy: Copy 1 file thay vì 10k files
-   - User mới: Predict ngay, không cần train
-   - Personalization: Vẫn giữ 95% nhờ user features
-
-🎯 OUTPUT:
-   - unified_model.pkl: Unified Naive Bayes model
-   - unified_model_info.pkl: Metadata (features, accuracy, training time)
-
-📊 INPUT FEATURES (9 features):
-   USER CONTEXT (6 features):
-   - userId_hash: Mã hóa user ID (0-9999)
-   - user_level: Trình độ (0=Beginner, 1=Intermediate, 2=Advanced)
-   - total_tests: Tổng số bài test đã làm
-   - total_questions: Tổng số câu hỏi đã làm
-   - overall_accuracy: Accuracy tổng quát
-   - days_active: Số ngày kể từ lần đầu làm bài
-   
-   SKILL CONTEXT (3 features - giữ nguyên từ personal model):
-   - attempts: Số lần thử skill này
-   - correct: Số câu đúng skill này
-   - skill_accuracy: Accuracy skill này
-
-📈 TARGET:
-   - isWeak: 1 nếu accuracy < 60%, 0 nếu accuracy >= 60%
-
-🔄 KHI NÀO RETRAIN:
-   - Mỗi tuần/tháng khi có thêm users mới
-   - Khi có thêm nhiều data mới (>1000 attempts)
-   - Setup scheduled task
-
-📝 SỬ DỤNG:
-   python train_unified_model.py
-   # Hoặc: python train_unified_model.py --compare (so sánh với personal model)
-
-📅 Created: 2025-10-08
-👤 Author: AI Assistant
-🔗 Related files:
+Related files:
    - predict_unified.py (standalone test)
-   - predict_hybrid_unified.py (tích hợp vào hybrid strategy)
-   - train_personal_model.py (version cũ - deprecated)
+   - predict_hybrid_unified.py (integrated hybrid strategy)
+
 ================================================================================
 """
 
@@ -97,8 +56,10 @@ def train_unified_model():
             COUNT(*) AS total_questions,
             CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS overall_accuracy,
             DATEDIFF(DAY, MIN(ur.answeredAt), GETDATE()) AS days_active
-        FROM UserResults ur
-        WHERE ur.userId IS NOT NULL
+                FROM UserResults ur
+                JOIN UserTests ut ON ur.userTestId = ut.id
+                WHERE ur.userId IS NOT NULL
+                    AND ut.status = 'completed'
         GROUP BY ur.userId
     ),
     SkillStats AS (
@@ -113,9 +74,11 @@ def train_unified_model():
                 WHEN CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) < 0.6 
                 THEN 1 ELSE 0 
             END AS isWeak
-        FROM UserResults ur
-        JOIN QuestionSkills qs ON ur.questionId = qs.questionId
-        WHERE ur.userId IS NOT NULL
+                FROM UserResults ur
+                JOIN UserTests ut ON ur.userTestId = ut.id
+                JOIN QuestionSkills qs ON ur.questionId = qs.questionId
+                WHERE ur.userId IS NOT NULL
+                    AND ut.status = 'completed'
         GROUP BY ur.userId, qs.skillId
     )
     SELECT 
