@@ -39,6 +39,11 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Chatbot TOEIC',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return SafeArea(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),
