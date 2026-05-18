@@ -2,6 +2,7 @@ import 'package:chat_toeic_app/core/api/dio_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:just_audio/just_audio.dart';
 
 class TestAnswerDetailsView extends StatefulWidget {
   const TestAnswerDetailsView({super.key});
@@ -15,6 +16,39 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
   late final String attemptId;
   late final Future<Map<String, dynamic>> _reviewFuture;
   int _currentIndex = 0;
+  int _lastAutoPlayedIndex = -1;
+
+  // Audio playback variables
+  late final AudioPlayer _audioPlayer;
+  bool _isPlaying = false;
+  double _currentPosition = 0.0;
+  double _duration = 0.0;
+  String? _loadedAudioUrl;
+  double _activeStartSecond = 0.0;
+  double _activeEndSecond = 0.0;
+
+  Map<String, dynamic>? _extractAudioMapping(Map<String, dynamic> question) {
+    if (question['mediaMappings'] is! List) return null;
+
+    final mappings = question['mediaMappings'] as List;
+    for (final mapping in mappings) {
+      if (mapping is! Map || mapping['media'] == null) continue;
+
+      final media = _safeMap(mapping['media']);
+      final String type = _safeExtractString(media['type'] ?? media['mediaType']).toLowerCase();
+      final String url = _safeExtractString(media['url'] ?? media['mediaUrl']);
+
+      if (type == 'audio' && url.isNotEmpty) {
+        return {
+          'url': url,
+          'startSecond': _safeExtractDouble(mapping['startSecond']),
+          'endSecond': _safeExtractDouble(mapping['endSecond']),
+        };
+      }
+    }
+
+    return null;
+  }
 
   Map<String, dynamic> _safeMap(dynamic value) {
     if (value == null) return {};
@@ -100,6 +134,59 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
     }
   }
 
+  double _safeExtractDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  String _formatDuration(double seconds) {
+    final duration = Duration(milliseconds: (seconds * 1000).toInt());
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final secs = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$secs';
+  }
+
+  Future<void> _playQuestion(Map<String, dynamic> question) async {
+    try {
+      final audioMapping = _extractAudioMapping(question);
+      final audioUrl = audioMapping?['url']?.toString() ?? '';
+      if (audioUrl.isEmpty) {
+        return;
+      }
+
+      final startSecond = _safeExtractDouble(audioMapping?['startSecond']);
+      final endSecond = _safeExtractDouble(audioMapping?['endSecond']);
+
+      // Load audio only when URL changes
+      if (_loadedAudioUrl != audioUrl) {
+        await _audioPlayer.setUrl(audioUrl);
+        _loadedAudioUrl = audioUrl;
+      }
+
+      _activeStartSecond = startSecond;
+      _activeEndSecond = endSecond > startSecond ? endSecond : 0.0;
+
+      // Seek to start position and play
+      await _audioPlayer.seek(Duration(milliseconds: (startSecond * 1000).toInt()));
+      await _audioPlayer.play();
+    } catch (e) {
+    }
+  }
+
+  void _autoPlayCurrentQuestion(Map<String, dynamic> question) {
+    if (_lastAutoPlayedIndex == _currentIndex) return;
+    _lastAutoPlayedIndex = _currentIndex;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _lastAutoPlayedIndex != _currentIndex) return;
+      _playQuestion(question);
+    });
+  }
+
   Future<Map<String, dynamic>> _fetchReviewData() async {
     final attempt = await _fetchAttemptDetail(attemptId);
     final attemptDetails = _safeDetailsList(attempt['details']);
@@ -156,6 +243,9 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
+    _setupAudioListeners();
+    
     final args = _safeMap(Get.arguments);
     testId = _safeExtractInt(args['testId'] ?? args['result'] ?? args);
     attemptId = _safeExtractString(
@@ -166,6 +256,145 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
           '',
     );
     _reviewFuture = _fetchReviewData();
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  void _setupAudioListeners() {
+    _audioPlayer.playerStateStream.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state.playing;
+        });
+      }
+    });
+
+    _audioPlayer.positionStream.listen((position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position.inMilliseconds / 1000.0;
+        });
+
+        if (_isPlaying && _activeEndSecond > _activeStartSecond && _currentPosition >= _activeEndSecond) {
+          _audioPlayer.pause();
+          _audioPlayer.seek(Duration(milliseconds: (_activeEndSecond * 1000).toInt()));
+        }
+      }
+    });
+
+    _audioPlayer.durationStream.listen((duration) {
+      if (mounted) {
+        setState(() {
+          _duration = (duration?.inMilliseconds ?? 0) / 1000.0;
+        });
+      }
+    });
+  }
+
+  Widget _buildQuestionAudioPlayer(Map<String, dynamic> question) {
+    final audioMapping = _extractAudioMapping(question);
+    final audioUrl = audioMapping?['url']?.toString() ?? '';
+    if (audioUrl.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    final startSecond = _safeExtractDouble(audioMapping?['startSecond']);
+    final endSecond = _safeExtractDouble(audioMapping?['endSecond']);
+
+    final segmentDuration = endSecond - startSecond;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF6366F1), width: 1.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  if (_isPlaying) {
+                    _audioPlayer.pause();
+                  } else {
+                    _playQuestion(question);
+                  }
+                },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _isPlaying ? Colors.red : Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF334155),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: FractionallySizedBox(
+                        widthFactor: segmentDuration > 0
+                            ? (_currentPosition - startSecond).clamp(0.0, segmentDuration) / segmentDuration
+                            : 0.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDuration(
+                            (_currentPosition - startSecond).clamp(0.0, segmentDuration),
+                          ),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(segmentDuration),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   String _extractCorrectAnswer(Map<String, dynamic> question) {
@@ -380,10 +609,6 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
     }
     
     // Debug logging
-    print('🔍 Question Detail Debug - Index: $index');
-    print('   Question Text: ${questionText.substring(0, questionText.length > 50 ? 50 : questionText.length)}...');
-    print('   Detail Keys: ${detail.keys.toList()}');
-    
     final optionA = _extractOptionText(detail, 'A');
     final optionB = _extractOptionText(detail, 'B');
     final optionC = _extractOptionText(detail, 'C');
@@ -393,17 +618,14 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
     final status = detail['isCorrect'] == true ? 'Đúng' : (selectedOption.isEmpty ? 'Chưa làm' : 'Sai');
     final imageUrl = _extractImageUrl(detail);
     final explanation = detail['explanation']?.toString() ?? '';
-    
-    print('✅ Extracted Options:');
-    print('   A: ${optionA.isEmpty ? "(empty)" : optionA.substring(0, optionA.length > 30 ? 30 : optionA.length)}');
-    print('   B: ${optionB.isEmpty ? "(empty)" : optionB.substring(0, optionB.length > 30 ? 30 : optionB.length)}');
-    print('   C: ${optionC.isEmpty ? "(empty)" : optionC.substring(0, optionC.length > 30 ? 30 : optionC.length)}');
-    print('   D: ${optionD.isEmpty ? "(empty)" : optionD.substring(0, optionD.length > 30 ? 30 : optionD.length)}');
 
     // Build options column (reusable)
     final optionsColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // === AUDIO PLAYER (for listening questions) ===
+        _buildQuestionAudioPlayer(detail),
+        
         Text(
           'Câu ${index + 1} / $totalQuestions',
           style: const TextStyle(
@@ -557,6 +779,14 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
     if (_hasNext(total)) {
       setState(() => _currentIndex++);
     }
+  }
+
+  void _playAudioForCurrentQuestion(Map<String, dynamic> question) {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _playQuestion(question);
+      }
+    });
   }
 
   Future<void> _showQuestionMenu(BuildContext context, List<Map<String, dynamic>> details) {
@@ -744,6 +974,10 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
           if (_currentIndex >= details.length) {
             _currentIndex = 0;
           }
+
+          // Auto-play audio once when the current question changes
+          final currentQuestion = details[_currentIndex];
+          _autoPlayCurrentQuestion(currentQuestion);
 
           return Column(
             children: [
