@@ -23,12 +23,25 @@ class TestDetailView extends StatelessWidget {
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: Obx(
-        () {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldExit = await _showExitConfirmation(context, testController);
+        if (shouldExit && context.mounted) {
+          Get.back();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        body: Obx(
+          () {
           // Fetch questions once if not loading and not fetched yet
-          if (testController.questions.isEmpty && !testController.isLoading.value && !testController.testStarted.value) {
+          if (testController.questions.isEmpty &&
+              !testController.isLoading.value &&
+              !testController.testStarted.value &&
+              testController.isTestActive.value &&
+              !testController.isCancelling.value) {
             print('📥 Pre-loading questions to detect test type...');
             testController.fetchQuestions(testId);
           }
@@ -58,21 +71,22 @@ class TestDetailView extends StatelessWidget {
           
           print('✅ Rendering ${testController.questions.length} questions');
 
-          return Column(
-            children: [
-              // === HEADER: Timer + Progress + Submit ===
-              _buildHeader(testController, context),
+            return Column(
+              children: [
+                // === HEADER: Timer + Progress + Submit ===
+                _buildHeader(testController, context),
 
-              // === MAIN CONTENT: Split-Screen (Image + Question+Answers) ===
-              Expanded(
-                child: _buildSplitScreenContent(testController),
-              ),
+                // === MAIN CONTENT: Split-Screen (Image + Question+Answers) ===
+                Expanded(
+                  child: _buildSplitScreenContent(testController),
+                ),
 
-              // === FOOTER: Navigation Buttons ===
-              _buildFooter(testController, context),
-            ],
-          );
-        },
+                // === FOOTER: Navigation Buttons ===
+                _buildFooter(testController, context),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -376,8 +390,11 @@ class TestDetailView extends StatelessWidget {
         children: [
           // Back Button
           GestureDetector(
-            onTap: () {
-              Get.back();
+            onTap: () async {
+              final shouldExit = await _showExitConfirmation(context, controller);
+              if (shouldExit && context.mounted) {
+                Get.back();
+              }
             },
             child: const Icon(
               Icons.arrow_back,
@@ -1062,9 +1079,11 @@ class TestDetailView extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () {
-                controller.cancelTest();
-                Navigator.pop(context, true);
+              onPressed: () async {
+                await controller.cancelTest();
+                if (context.mounted) {
+                  Navigator.pop(context, true);
+                }
               },
               child: const Text(
                 'Thoát',

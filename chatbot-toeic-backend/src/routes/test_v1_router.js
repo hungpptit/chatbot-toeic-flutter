@@ -5,6 +5,7 @@ import {
     startTestAttempt,
     submitTestAttempt,
     submitPracticeAttempt,
+    cancelTestAttempt,
     checkLatestAttempt,
     getAttemptResult,
     getTestHistory,
@@ -100,6 +101,31 @@ router.post('/:testId/questions', authMiddleware, createQuestionV1);
  *         description: Thành công
  */
 router.post('/:testId/attempts', authMiddleware, startTestAttempt);
+
+/**
+ * @swagger
+ * /api/v1/tests/{testId}/attempts/{attemptId}/cancel:
+ *   post:
+ *     summary: Hủy bài thi đang làm dở
+ *     tags: [Test (v1)]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: testId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: attemptId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.post('/:testId/attempts/:attemptId/cancel', authMiddleware, cancelTestAttempt);
 
 /**
  * @swagger

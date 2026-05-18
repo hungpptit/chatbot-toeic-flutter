@@ -64,6 +64,7 @@ class _TestHistoryViewState extends State<TestHistoryView> {
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .map((item) {
+            final status = _safeExtractString(item['status']);
             final rawScore = _safeExtractString(item['score']);
             int correct = 0;
             if (rawScore.contains('/')) {
@@ -76,6 +77,13 @@ class _TestHistoryViewState extends State<TestHistoryView> {
             return {
               ...item,
               'displayScore': '$correct/$totalQuestions',
+              'displayStatus': status == 'cancelled'
+                  ? 'Đã hủy'
+                  : status == 'canceled'
+                    ? 'Đã hủy'
+                      : status == 'completed'
+                          ? 'Đã hoàn thành'
+                          : 'Đang làm',
             };
           })
           .toList();
@@ -102,6 +110,18 @@ class _TestHistoryViewState extends State<TestHistoryView> {
   }
 
   void _openReview(Map<String, dynamic> item) {
+    final status = _safeExtractString(item['status']);
+    if (status != 'completed') {
+      Get.snackbar(
+        'Không thể xem chi tiết',
+        'Bài này đang ở trạng thái ${_safeExtractString(item['displayStatus'])}.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF1E293B),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     final attemptId = _safeExtractString(item['userTestId']);
     if (attemptId.isEmpty) return;
 
@@ -180,16 +200,18 @@ class _TestHistoryViewState extends State<TestHistoryView> {
                             final score = displayScore.isNotEmpty ? displayScore : _safeExtractString(item['score']);
                             final date = _safeExtractString(item['date']);
                             final duration = _formatDuration(_safeExtractString(item['duration']));
+                            final status = _safeExtractString(item['status']);
+                            final displayStatus = _safeExtractString(item['displayStatus']);
 
                             return InkWell(
-                              onTap: () => _openReview(item),
+                              onTap: status == 'completed' ? () => _openReview(item) : null,
                               borderRadius: BorderRadius.circular(16),
                               child: Container(
                                 padding: const EdgeInsets.all(18),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1E293B),
+                                  color: status == 'completed' ? const Color(0xFF1E293B) : const Color(0xFF162033),
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                  border: Border.all(color: status == 'completed' ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.03)),
                                 ),
                                 child: Row(
                                   children: [
@@ -197,10 +219,15 @@ class _TestHistoryViewState extends State<TestHistoryView> {
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF6366F1).withOpacity(0.12),
+                                        color: status == 'completed'
+                                            ? const Color(0xFF6366F1).withOpacity(0.12)
+                                            : Colors.white.withOpacity(0.06),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: const Icon(Icons.history, color: Color(0xFF6366F1)),
+                                      child: Icon(
+                                        status == 'completed' ? Icons.history : Icons.cancel_outlined,
+                                        color: status == 'completed' ? const Color(0xFF6366F1) : const Color(0xFF94A3B8),
+                                      ),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
@@ -208,7 +235,9 @@ class _TestHistoryViewState extends State<TestHistoryView> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Lần làm #${history.length - index}',
+                                            status == 'completed'
+                                                ? 'Lần làm #${history.length - index}'
+                                                : 'Lần làm #${history.length - index} · $displayStatus',
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 16,
@@ -230,9 +259,9 @@ class _TestHistoryViewState extends State<TestHistoryView> {
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          score,
-                                          style: const TextStyle(
-                                            color: Color(0xFF10B981),
+                                          status == 'completed' ? score : displayStatus,
+                                          style: TextStyle(
+                                            color: status == 'completed' ? const Color(0xFF10B981) : const Color(0xFF94A3B8),
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                           ),

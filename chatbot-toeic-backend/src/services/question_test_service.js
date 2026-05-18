@@ -558,6 +558,42 @@ export const StartUserTest = async ({ userId, testId }) => {
   });
 };
 
+export const CancelUserTestAttempt = async ({ userId, testId, attemptId, status = 'cancelled' }) => {
+  return await db.sequelize.transaction(async (transaction) => {
+    const userTest = await db.UserTest.findOne({
+      where: {
+        id: attemptId,
+        userId,
+        testId,
+        status: 'in_progress',
+      },
+      transaction,
+    });
+
+    if (!userTest) {
+      return {
+        userTestId: attemptId,
+        status: 'not_found',
+        message: 'In-progress attempt not found or already finished.',
+      };
+    }
+
+    await userTest.update(
+      {
+        status,
+        completedAt: new Date(),
+      },
+      { transaction }
+    );
+
+    return {
+      userTestId: userTest.id,
+      status: userTest.status,
+      message: 'Test attempt cancelled successfully',
+    };
+  });
+};
+
 export const CheckUserHasDoneTestDetailed = async ({ userId, testId }) => {
   try {
     const userTestRecord = await db.UserTest.findOne({
@@ -580,7 +616,9 @@ export const CheckUserHasDoneTestDetailed = async ({ userId, testId }) => {
       score: userTestRecord.score,
       message: userTestRecord.status === 'completed'
         ? 'User has completed this test.'
-        : 'User has started but not completed this test.'
+        : userTestRecord.status === 'cancelled' || userTestRecord.status === 'canceled'
+          ? 'User has cancelled this test.'
+          : 'User has started but not completed this test.'
     };
   } catch (error) {
     console.error('Error checking user test:', error);
@@ -706,7 +744,7 @@ export const GetUserTestHistoryByTestId = async ({ userId, testId }) => {
   try {
     const userTests = await db.UserTest.findAll({
       where: { userId, testId },
-      attributes: ['id', 'startedAt', 'completedAt'],
+      attributes: ['id', 'startedAt', 'completedAt', 'status'],
       order: [['startedAt', 'DESC']]
     });
 
@@ -750,7 +788,8 @@ export const GetUserTestHistoryByTestId = async ({ userId, testId }) => {
         date: started.format('DD/MM/YYYY'),
         score: `${correctCount}/${totalQuestions}`,
         duration: formattedDuration,
-        userTestId: test.id
+        userTestId: test.id,
+        status: test.status,
       });
     }
 
