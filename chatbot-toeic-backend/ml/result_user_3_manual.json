@@ -1,0 +1,129 @@
+{
+  "weak_skills": [
+    "Listening"
+  ],
+  "recommendations": {
+    "Listening": [
+      {
+        "id": 959,
+        "question": "Look at the picture. What are the men doing?"
+      },
+      {
+        "id": 936,
+        "question": "Look at the picture. What are the people doing?"
+      },
+      {
+        "id": 934,
+        "question": "Look at the picture. What is the man doing?"
+      },
+      {
+        "id": 960,
+        "question": "Look at the picture. What are the passengers doing?"
+      },
+      {
+        "id": 985,
+        "question": "In this scenario, look at the picture. What are the passengers doing?"
+      },
+      {
+        "id": 1077,
+        "question": "Look at the picture. What are the passengers doing? (Select the correct response.)"
+      },
+      {
+        "id": 967,
+        "question": "Look at the picture. What are the athletes doing?"
+      },
+      {
+        "id": 992,
+        "question": "In this scenario, look at the picture. What are the athletes doing?"
+      },
+      {
+        "id": 1081,
+        "question": "What are the athletes doing?"
+      },
+      {
+        "id": 1484,
+        "question": "Look at the picture."
+      },
+      {
+        "id": 1485,
+        "question": "Based on the situation, look at the picture."
+      },
+      {
+        "id": 1486,
+        "question": "[Question 1] Based on the situation, look at the picture."
+      },
+      {
+        "id": 1039,
+        "question": "What time does the office open?"
+      },
+      {
+        "id": 1547,
+        "question": "What time does the meeting start?"
+      },
+      {
+        "id": 436,
+        "question": "The store is open _____ 9 a.m. and   4 p.m. on weekdays."
+      },
+      {
+        "id": 1279,
+        "question": "What is the deadline mentioned?"
+      },
+      {
+        "id": 1373,
+        "question": "Item 1: What is the deadline mentioned?"
+      },
+      {
+        "id": 1482,
+        "question": "In the workplace, what is the deadline mentioned?"
+      },
+      {
+        "id": 1278,
+        "question": "What change will take effect next week?"
+      },
+      {
+        "id": 1372,
+        "question": "What change will take effect next week? (Choose the best option.)"
+      },
+      {
+        "id": 1476,
+        "question": "In the workplace, what change will take effect next week?"
+      },
+      {
+        "id": 1034,
+        "question": "Why did the meeting get canceled?"
+      },
+      {
+        "id": 1247,
+        "question": "Why is the meeting postponed?"
+      },
+      {
+        "id": 1338,
+        "question": "Based on the situation, why is the meeting postponed?"
+      },
+      {
+        "id": 1274,
+        "question": "What will take place at noon?"
+      },
+      {
+        "id": 1383,
+        "question": "According to company policy, what will take place at noon?"
+      },
+      {
+        "id": 1474,
+        "question": "What will take place at noon? (Pick the most suitable choice.)"
+      },
+      {
+        "id": 1552,
+        "question": "How do I get to the post office?"
+      },
+      {
+        "id": 1105,
+        "question": "Please make sure the invoice is ____ before mailing it."
+      },
+      {
+        "id": 1204,
+        "question": "In the workplace, please make sure the invoice is ____ before mailing it."
+      }
+    ]
+  }
+}

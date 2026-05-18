@@ -65,6 +65,9 @@ except Exception:
         pass
 import argparse
 
+# Rule-based fallback: nếu accuracy skill thấp hơn ngưỡng này thì coi là weak
+WEAK_SKILL_ACCURACY_THRESHOLD = 0.50
+
 # Load .env từ parent directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
@@ -221,6 +224,7 @@ def predict_hybrid_unified(userId: int):
         attempts = row['attempts']
         correct = row['correct']
         accuracy = correct / attempts if attempts > 0 else 0
+        rule_based_weak = accuracy < WEAK_SKILL_ACCURACY_THRESHOLD
 
         print(f"\n🔍 Skill: {skillName}")
         print(f"   📈 Dữ liệu thực tế:")
@@ -239,10 +243,13 @@ def predict_hybrid_unified(userId: int):
             print(f"   📊 Xác suất dự đoán:")
             print(f"      - P(Strong) = {y_proba[0]:.2%}")
             print(f"      - P(Weak) = {y_proba[1]:.2%}")
-            print(f"   ✅ Kết luận: {'WEAK' if y_pred == 1 else 'STRONG'}")
+            final_is_weak = (y_pred == 1) or rule_based_weak
+            if rule_based_weak and y_pred != 1:
+                print(f"   ⚠️ Rule fallback: accuracy < {WEAK_SKILL_ACCURACY_THRESHOLD:.0%} nên override sang WEAK")
+            print(f"   ✅ Kết luận: {'WEAK' if final_is_weak else 'STRONG'}")
             print(f"   💡 Lý do: Ít data, dùng pattern chung từ tất cả users")
             
-            results[skillName] = "Weak (global)" if y_pred == 1 else "Strong (global)"
+            results[skillName] = "Weak (global+rule)" if final_is_weak else "Strong (global)"
         
         # STRATEGY 2: Dùng Unified Model (đủ data)
         else:
@@ -264,10 +271,13 @@ def predict_hybrid_unified(userId: int):
             else:
                 print(f"      - Model chỉ thấy 1 class = 100%")
             
-            print(f"   ✅ Kết luận: {'WEAK' if y_pred == 1 else 'STRONG'}")
+            final_is_weak = (y_pred == 1) or rule_based_weak
+            if rule_based_weak and y_pred != 1:
+                print(f"   ⚠️ Rule fallback: accuracy < {WEAK_SKILL_ACCURACY_THRESHOLD:.0%} nên override sang WEAK")
+            print(f"   ✅ Kết luận: {'WEAK' if final_is_weak else 'STRONG'}")
             print(f"   💡 Lý do: Model học từ context của user này + pattern chung")
             
-            results[skillName] = "Weak (unified)" if y_pred == 1 else "Strong (unified)"
+            results[skillName] = "Weak (unified+rule)" if final_is_weak else "Strong (unified)"
     
     print("\n" + "="*80)
     conn.close()

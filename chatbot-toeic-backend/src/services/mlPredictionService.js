@@ -80,16 +80,26 @@ async function runPythonPrediction(userId) {
           });
         });
 
-        // Save to MLPredictions (upsert - update existing or create new)
-        await db.MLPrediction.upsert({
+        // Save to MLPredictions without Sequelize MSSQL upsert (avoids date conversion issues)
+        const existingPrediction = await db.MLPrediction.findOne({ where: { userId } });
+        const payload = {
           userId: userId,
           weakSkills: result.weak_skills || [],
           questionIds: questionIds,
           confidence: 0.8,
           totalAttempts: 0,
           overallAccuracy: null,
-          updatedAt: db.sequelize.fn('GETDATE') // Use SQL Server GETDATE()
-        });
+          updatedAt: db.sequelize.literal('GETDATE()')
+        };
+
+        if (existingPrediction) {
+          await existingPrediction.update(payload);
+        } else {
+          await db.MLPrediction.create({
+            ...payload,
+            createdAt: db.sequelize.literal('GETDATE()')
+          });
+        }
 
         // Save to MLPredictionHistory (always insert new record)
         await db.MLPredictionHistory.create({

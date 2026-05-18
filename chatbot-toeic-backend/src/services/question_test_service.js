@@ -310,6 +310,9 @@ export const SubmitTestResult = async ({ userId, testId, answers }) => {
 
     const validQuestionIds = validQuestions.map(q => q.questionId);
     const filteredAnswers = answers.filter(a => validQuestionIds.includes(a.questionId));
+    const answerMap = new Map(
+      filteredAnswers.map(({ questionId, selectedAnswer }) => [questionId, selectedAnswer ?? null])
+    );
 
     console.log(`📊 SubmitTestResult Debug:`, {
       testId,
@@ -319,20 +322,21 @@ export const SubmitTestResult = async ({ userId, testId, answers }) => {
       skippedAnswers: validQuestionIds.length - filteredAnswers.length
     });
 
-    // 3. Xử lý từng câu trả lời
+    // 3. Xử lý từng câu hỏi trong đề, kể cả câu chưa trả lời
     const resultsToSave = [];
 
-    for (const { questionId, selectedAnswer } of filteredAnswers) {
+    for (const questionId of validQuestionIds) {
+      const selectedAnswer = answerMap.has(questionId) ? answerMap.get(questionId) : null;
       const question = await db.Question.findByPk(questionId, { transaction });
       if (!question) continue;
 
-      const isCorrect = question.correctAnswer === selectedAnswer;
+      const isCorrect = selectedAnswer !== null && question.correctAnswer === selectedAnswer;
 
       resultsToSave.push({
         userId,
         userTestId: userTest.id,
         questionId,
-        selectedOption: selectedAnswer || null,
+        selectedOption: selectedAnswer,
         isCorrect,
         answeredAt: new Date(),
       });
@@ -355,7 +359,7 @@ export const SubmitTestResult = async ({ userId, testId, answers }) => {
     }
 
     // 5. Tính score thang điểm 10
-    // ✅ Dùng tổng số câu hỏi trong test, không phải số câu được trả lời
+    // ✅ Dùng tổng số câu hỏi trong test; câu bỏ trống đã được tính là sai ở trên
     const totalQuestions = validQuestionIds.length || 1;
     const score = Math.round((correctCount / totalQuestions) * 10 * 10) / 10;
 
@@ -392,16 +396,32 @@ export const SubmitTestResult = async ({ userId, testId, answers }) => {
         VALUES (src.questionId, src.attempts, src.correct);
     `, { transaction });
 
-    // ✅ Trigger ML update (async, non-blocking)
-    setImmediate(async () => {
-      const shouldUpdate = await needsMLUpdate(userId);
-      if (shouldUpdate) {
-        console.log(`🎯 Triggering ML update for user ${userId} after exam`);
-        await triggerMLUpdate(userId);
-      } else {
-        console.log(`⏭️ Skipping ML update for user ${userId} (not enough new data)`);
-      }
-    });
+    // ✅ Trigger ML update (async, non-blocking) AFTER transaction commit
+    // Use transaction.afterCommit so the ML checker sees committed UserResults
+    if (transaction && typeof transaction.afterCommit === 'function') {
+      transaction.afterCommit(() => {
+        (async () => {
+          const shouldUpdate = await needsMLUpdate(userId);
+          if (shouldUpdate) {
+            console.log(`🎯 Triggering ML update for user ${userId} after exam`);
+            await triggerMLUpdate(userId);
+          } else {
+            console.log(`⏭️ Skipping ML update for user ${userId} (not enough new data)`);
+          }
+        })();
+      });
+    } else {
+      // Fallback to setImmediate if transaction.afterCommit unavailable
+      setImmediate(async () => {
+        const shouldUpdate = await needsMLUpdate(userId);
+        if (shouldUpdate) {
+          console.log(`🎯 Triggering ML update for user ${userId} after exam`);
+          await triggerMLUpdate(userId);
+        } else {
+          console.log(`⏭️ Skipping ML update for user ${userId} (not enough new data)`);
+        }
+      });
+    }
 
     return {
       userTestId: userTest.id,
@@ -452,7 +472,7 @@ export const SubmitPracticeResult = async ({ userId, answers }) => {
       const question = questionMap.get(questionId);
       if (!question) continue;
 
-      const isCorrect = question.correctAnswer === selectedAnswer;
+      const isCorrect = selectedAnswer !== null && question.correctAnswer === selectedAnswer;
 
       // Prepare UserResult record
       resultsToSave.push({
@@ -511,16 +531,30 @@ export const SubmitPracticeResult = async ({ userId, answers }) => {
       score 
     });
 
-    // ✅ Trigger ML update (async, non-blocking)
-    setImmediate(async () => {
-      const shouldUpdate = await needsMLUpdate(userId);
-      if (shouldUpdate) {
-        console.log(`🎯 Triggering ML update for user ${userId} after practice`);
-        await triggerMLUpdate(userId);
-      } else {
-        console.log(`⏭️ Skipping ML update for user ${userId} (not enough new data)`);
-      }
-    });
+    // ✅ Trigger ML update (async, non-blocking) AFTER transaction commit
+    if (transaction && typeof transaction.afterCommit === 'function') {
+      transaction.afterCommit(() => {
+        (async () => {
+          const shouldUpdate = await needsMLUpdate(userId);
+          if (shouldUpdate) {
+            console.log(`🎯 Triggering ML update for user ${userId} after practice`);
+            await triggerMLUpdate(userId);
+          } else {
+            console.log(`⏭️ Skipping ML update for user ${userId} (not enough new data)`);
+          }
+        })();
+      });
+    } else {
+      setImmediate(async () => {
+        const shouldUpdate = await needsMLUpdate(userId);
+        if (shouldUpdate) {
+          console.log(`🎯 Triggering ML update for user ${userId} after practice`);
+          await triggerMLUpdate(userId);
+        } else {
+          console.log(`⏭️ Skipping ML update for user ${userId} (not enough new data)`);
+        }
+      });
+    }
 
     return {
       userTestId: userTest.id, // ✅ Return userTestId để frontend có thể dùng

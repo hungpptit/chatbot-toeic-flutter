@@ -72,16 +72,29 @@ export const triggerMLUpdate = async (userId) => {
 
                 const stats = userStats[0] || { totalAttempts: 0, overallAccuracy: 0 };
 
-                // Upsert to database
-                await db.MLPrediction.upsert({
+                // Upsert-like flow without Sequelize MSSQL upsert (avoids date conversion issues)
+                const payload = {
                     userId: userId,
                     weakSkills: result.weak_skills || [],
                     questionIds: questionIds,
                     confidence: 0.8, // TODO: Calculate from model probabilities
                     totalAttempts: parseInt(stats.totalAttempts) || 0,
                     overallAccuracy: parseFloat(stats.overallAccuracy) || null,
-                    updatedAt: new Date()
+                    updatedAt: db.sequelize.literal('GETDATE()')
+                };
+
+                const existingPrediction = await db.MLPrediction.findOne({
+                    where: { userId }
                 });
+
+                if (existingPrediction) {
+                    await existingPrediction.update(payload);
+                } else {
+                    await db.MLPrediction.create({
+                        ...payload,
+                        createdAt: db.sequelize.literal('GETDATE()')
+                    });
+                }
 
                 console.log(`✅ ML prediction updated for user ${userId}`);
 
@@ -118,18 +131,43 @@ export const needsMLUpdate = async (userId) => {
             return true; // No prediction exists
         }
 
-        // Check if user has new attempts since last prediction
-        const recentAttempts = await db.sequelize.query(`
-            SELECT COUNT(*) AS newAttempts
-            FROM UserResults
-            WHERE userId = ${userId}
-            AND answeredAt > '${prediction.updatedAt.toISOString()}'
+        // Prefer comparing counts (robust to timezone/precision issues):
+        // If prediction.totalAttempts is available, compare current totalAttempts - previousTotal >= threshold
+        const totalRow = await db.sequelize.query(`
+            SELECT COUNT(*) AS totalAttempts FROM UserResults WHERE userId = ${userId}
         `, { type: db.sequelize.QueryTypes.SELECT });
 
-        const newAttempts = recentAttempts[0]?.newAttempts || 0;
+        const currentTotal = parseInt(totalRow[0]?.totalAttempts || 0, 10);
+        const prevTotal = parseInt(prediction.totalAttempts || 0, 10);
 
-        // Update if user answered at least 5 new questions
-        return newAttempts >= 5;
+        const newAttempts = currentTotal - prevTotal;
+
+        // If prevTotal is 0 (missing/stale), but currentTotal already exceeds threshold,
+        // we should update (covers cases where prediction.totalAttempts wasn't populated).
+        const threshold = 5;
+        if (prevTotal === 0) {
+            if (currentTotal >= threshold) {
+                return true;
+            }
+
+            // If currentTotal is still small, fall back to timestamp-based check for safety
+            try {
+                const recentAttempts = await db.sequelize.query(`
+                    SELECT COUNT(*) AS newAttempts
+                    FROM UserResults
+                    WHERE userId = ${userId}
+                    AND answeredAt > '${prediction.updatedAt.toISOString()}'
+                `, { type: db.sequelize.QueryTypes.SELECT });
+                const recent = recentAttempts[0]?.newAttempts || 0;
+                return recent >= threshold;
+            } catch (e) {
+                console.error('Fallback timestamp check failed:', e);
+                return false;
+            }
+        }
+
+        // Update if user answered at least `threshold` new questions since last recorded total
+        return newAttempts >= threshold;
 
     } catch (error) {
         console.error('Error checking ML update need:', error);

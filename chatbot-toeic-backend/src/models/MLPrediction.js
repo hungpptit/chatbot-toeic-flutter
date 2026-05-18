@@ -65,9 +65,7 @@ export default (sequelize) => {
     },
     {
       tableName: 'MLPredictions',
-      timestamps: true, // Let Sequelize handle timestamps automatically
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
+      timestamps: false, // Use SQL Server defaults / explicit values to avoid date conversion issues
     }
   );
 
