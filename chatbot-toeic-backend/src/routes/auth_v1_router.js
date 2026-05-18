@@ -8,6 +8,7 @@ import express from 'express';
 import {
   registerController,
   loginController,
+  googleLoginController,
   refreshController,
   logoutController,
   getMeController,
@@ -149,6 +150,21 @@ authV1Router.post('/register', registerController);
  *         $ref: '#/components/responses/BadRequestError'
  */
 authV1Router.post('/login', loginController);
+
+/**
+ * @swagger
+ * /api/v1/auth/google:
+ *   post:
+ *     summary: Đăng nhập hoặc đăng ký bằng Google
+ *     tags:
+ *       - Auth (v1)
+ *     requestBody:
+ *       required: true
+ *     responses:
+ *       200:
+ *         description: Đăng nhập Google thành công
+ */
+authV1Router.post('/google', googleLoginController);
 
 /**
  * @swagger

@@ -130,11 +130,32 @@ class TestResultController extends GetxController {
 
   /// Navigate to detailed answers view
   void viewDetailedAnswers() {
+    String _resolveAttemptId() {
+      final id = attemptId.value.trim();
+      if (int.tryParse(id) != null) {
+        return id;
+      }
+
+      final dynamic rawResult = resultData;
+      if (rawResult is Map) {
+        final dynamic data = rawResult['data'];
+        if (data is Map) {
+          final dynamic practiceId = data['userTestId'] ?? data['attemptId'] ?? data['id'];
+          if (practiceId != null) return practiceId.toString();
+        }
+
+        final dynamic directPracticeId = rawResult['userTestId'] ?? rawResult['attemptId'] ?? rawResult['id'];
+        if (directPracticeId != null) return directPracticeId.toString();
+      }
+
+      return id;
+    }
+
     Get.toNamed(
       '/test-answer-details',
       arguments: {
         'testId': testId.value,
-        'attemptId': attemptId.value,
+        'attemptId': _resolveAttemptId(),
         // Pass parsed result data (plain Map) so the details view can render answers
         'result': Map<String, dynamic>.from(resultData),
       },

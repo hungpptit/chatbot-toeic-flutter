@@ -11,6 +11,8 @@
 import db from '../models/index.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import axios from 'axios';
 import nodemailer from 'nodemailer';
 import { OAuth2Client } from 'google-auth-library';
 
@@ -19,9 +21,94 @@ const JWT_SECRET = process.env.JWT_SECRET_KEY;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET_KEY;
 const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '7d';
 const REFRESH_EXPIRATION = process.env.JWT_REFRESH_EXPIRATION || '30d';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 // Store refresh tokens (trong production nên dùng Redis)
 const refreshTokenStore = new Map();
+
+function buildAuthResponse(user) {
+  const accessToken = createAccessToken(user);
+  const refreshToken = createRefreshToken(user);
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role_id: user.role_id,
+    },
+  };
+}
+
+function sanitizeUsernameSeed(value) {
+  const base = (value || 'user')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9._-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+
+  return base || 'user';
+}
+
+async function createUniqueUsername(seed) {
+  const base = sanitizeUsernameSeed(seed);
+  let candidate = base;
+  let suffix = 0;
+
+  while (await User.findOne({ where: { username: candidate } })) {
+    suffix += 1;
+    candidate = `${base}_${suffix}`.slice(0, 100);
+  }
+
+  return candidate;
+}
+
+async function getGoogleProfile({ idToken, accessToken }) {
+  if (idToken && googleClient) {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new Error('Invalid Google ID token payload');
+    }
+
+    return {
+      email: payload.email,
+      emailVerified: payload.email_verified,
+      name: payload.name,
+      picture: payload.picture,
+      sub: payload.sub,
+    };
+  }
+
+  if (accessToken) {
+    const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    return {
+      email: response.data.email,
+      emailVerified: response.data.email_verified,
+      name: response.data.name,
+      picture: response.data.picture,
+      sub: response.data.sub,
+    };
+  }
+
+  throw new Error('Google authentication token is required');
+}
 
 /**
  * Tạo JWT Access Token
@@ -163,29 +250,93 @@ export const login = async (data) => {
       };
     }
 
-    // Tạo tokens
-    const accessToken = createAccessToken(user);
-    const refreshToken = createRefreshToken(user);
+    const authPayload = buildAuthResponse(user);
 
     return {
       code: 200,
       message: 'Login successful',
-      data: {
-        accessToken,
-        refreshToken,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role_id: user.role_id,
-        },
-      },
+      data: authPayload,
     };
   } catch (error) {
     console.error('[AUTH_SERVICE] login error:', error);
     return {
       code: 500,
       message: 'Login failed',
+      details: [error.message],
+    };
+  }
+};
+
+/**
+ * Đăng nhập/đăng ký bằng Google
+ */
+export const googleLogin = async (data) => {
+  try {
+    const { idToken, accessToken } = data;
+
+    if (!idToken && !accessToken) {
+      return {
+        code: 400,
+        message: 'Missing Google token',
+        details: ['idToken or accessToken is required'],
+      };
+    }
+
+    const profile = await getGoogleProfile({ idToken, accessToken });
+
+    if (!profile.email) {
+      return {
+        code: 400,
+        message: 'Google account does not provide email',
+        details: ['email is required from Google profile'],
+      };
+    }
+
+    if (profile.emailVerified === false) {
+      return {
+        code: 401,
+        message: 'Google email is not verified',
+        details: ['Please verify your Google email first'],
+      };
+    }
+
+    let user = await User.findOne({ where: { email: profile.email } });
+    const isNewUser = !user;
+
+    if (user && user.status === false) {
+      return {
+        code: 403,
+        message: 'Account is locked',
+        details: ['Please contact administrator'],
+      };
+    }
+
+    if (!user) {
+      const usernameSeed = profile.name || profile.email.split('@')[0];
+      const username = await createUniqueUsername(usernameSeed);
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await User.create({
+        username,
+        email: profile.email,
+        password: hashedPassword,
+        role_id: 1,
+      });
+    }
+
+    const authPayload = buildAuthResponse(user);
+
+    return {
+      code: 200,
+      message: isNewUser ? 'Google account created and logged in' : 'Google login successful',
+      data: authPayload,
+    };
+  } catch (error) {
+    console.error('[AUTH_SERVICE] googleLogin error:', error);
+    return {
+      code: 500,
+      message: 'Google login failed',
       details: [error.message],
     };
   }
@@ -325,6 +476,7 @@ export const getMe = async (user) => {
 export default {
   register,
   login,
+  googleLogin,
   refresh,
   logout,
   getMe,

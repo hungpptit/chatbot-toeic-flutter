@@ -39,7 +39,7 @@ Backend: triggerMLPredictionAsync(userId) → Background process
   ↓
 Spawn Python: predict_hybrid_unified.py {userId}
   ↓
-Python: Query all UserResults → Hybrid strategy → Output JSON
+Python: Query UserResults + UserTests.status='completed' → Hybrid strategy → Output JSON
   ↓
 Node.js: Parse JSON → Extract questionIds
   ↓
@@ -55,6 +55,9 @@ mlRetrainCron.js → Train models với data mới
   ↓
 Models updated → Ready cho predictions tiếp theo
 ```
+
+> Lưu ý: pipeline ML hiện chỉ lấy các attempt có `UserTests.status = 'completed'`.
+> Các attempt `in_progress` và `cancelled` bị loại khỏi train/predict để tránh làm bẩn dữ liệu.
 
 ---
 
@@ -130,6 +133,10 @@ python predict_hybrid_unified.py 3  # Với userId=3
 - Weak skills detection
 - Question recommendations (filtered by ID)
 
+**Lưu ý dữ liệu đầu vào:**
+- Chỉ dùng attempt đã hoàn thành (`UserTests.status = 'completed'`)
+- Không dùng attempt `in_progress` hoặc `cancelled`
+
 ---
 
 ### ⭐ `train_unified_model.py` [NEW - RECOMMENDED]
@@ -138,6 +145,10 @@ python predict_hybrid_unified.py 3  # Với userId=3
 
 **Features:**
 - 9 features: `[userId_hash, user_level, total_tests, total_questions, overall_accuracy, days_active, attempts, correct, skill_accuracy]`
+
+**Nguồn dữ liệu:**
+- `UserResults` JOIN `UserTests`
+- Chỉ lấy rows có `UserTests.status = 'completed'`
 
 **Sử dụng:**
 ```bash
@@ -162,6 +173,10 @@ python train_unified_model.py --compare  # So sánh với personal model
 
 **Features:**
 - 3 features: `[attempts, correct, accuracy]`
+
+**Nguồn dữ liệu:**
+- `UserResults` JOIN `UserTests`
+- Chỉ lấy rows có `UserTests.status = 'completed'`
 
 **Sử dụng:**
 ```bash
@@ -216,6 +231,10 @@ python predict_unified.py 3 --compare  # So sánh với personal model
 - Compare với personal model
 
 **Production:** Dùng `predict_hybrid_unified.py` thay thế!
+
+**Lưu ý dữ liệu đầu vào:**
+- Chỉ dùng attempt đã hoàn thành (`UserTests.status = 'completed'`)
+- Không dùng attempt `in_progress` hoặc `cancelled`
 
 ---
 

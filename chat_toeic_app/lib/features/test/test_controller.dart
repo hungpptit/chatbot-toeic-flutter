@@ -34,6 +34,7 @@ class TestController extends GetxController {
   var hasReadingQuestions = false.obs;
   var testStarted = false.obs; // Track if user clicked START button
   var audioPath = ''.obs; // Full audio file path for listening test
+  var isPracticeMode = false.obs; // true when preloaded practice questions (no server testId)
 
   // === Test Metadata ===
   var testId = 0.obs;
@@ -652,11 +653,14 @@ class TestController extends GetxController {
 
   /// Nộp bài thi - with confirmation dialog and API submission
   Future<void> submitTest(BuildContext context) async {
-    // Validate attemptId first
-    if (attemptId.value.isEmpty) {
-      print('❌ Cannot submit: attemptId is empty!');
-      print('Bài thi chưa được khởi tạo. Vui lòng nhấn BẮT ĐẦU trước.');
-      return;
+    // If practice mode, allow submission without attemptId
+    if (!isPracticeMode.value) {
+      // Validate attemptId first
+      if (attemptId.value.isEmpty) {
+        print('❌ Cannot submit: attemptId is empty!');
+        print('Bài thi chưa được khởi tạo. Vui lòng nhấn BẮT ĐẦU trước.');
+        return;
+      }
     }
     
     _stopTimer();
@@ -674,8 +678,66 @@ class TestController extends GetxController {
       return;
     }
     
-    // Send answers to API
-    await _submitAnswersToAPI(unansweredCount);
+    // Send answers to appropriate API
+    if (isPracticeMode.value) {
+      await _submitPracticeAnswersToAPI(unansweredCount);
+    } else {
+      await _submitAnswersToAPI(unansweredCount);
+    }
+  }
+
+  /// Submit answers for practice mode (no testId/attemptId on server)
+  Future<void> _submitPracticeAnswersToAPI(int unansweredCount) async {
+    try {
+      // Build answers array [{questionId, selectedAnswer}, ...]
+      final answersArray = <Map<String, dynamic>>[];
+      for (int i = 0; i < questions.length; i++) {
+        final question = questions[i];
+        final questionId = question['id'];
+        final answerIndex = userAnswers[i];
+        final answerLetter = answerIndex != null ? ['A', 'B', 'C', 'D'][answerIndex] : null;
+
+        // Send every question so the backend can score unanswered items as skipped/wrong.
+        answersArray.add({
+          'questionId': questionId,
+          'selectedAnswer': answerLetter,
+        });
+      }
+
+      final requestData = {
+        'answers': answersArray,
+        'timeSpent': 2700 - timeRemaining.value,
+      };
+
+      final url = '/v1/tests/practice-attempts/submit';
+      print('📤 Submitting practice answers to $url with ${answersArray.length} answers');
+      final response = await DioClient.dio.post(url, data: requestData);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final result = response.data;
+        print('✅ Practice submitted');
+
+        final dynamic dataWrapper = result is Map ? result['data'] : null;
+        final practiceAttemptId = dataWrapper is Map
+            ? (dataWrapper['userTestId'] ?? dataWrapper['attemptId'] ?? dataWrapper['id'])
+            : null;
+
+        // Navigate to result screen with result data
+        await Future.delayed(const Duration(seconds: 1));
+        Get.offNamed(
+          '/test-result',
+          arguments: {
+            'testId': 0,
+            'attemptId': practiceAttemptId?.toString() ?? '',
+            'result': result,
+          },
+        );
+      } else {
+        print('Không thể nộp bài luyện tập (${response.statusCode})');
+      }
+    } catch (e) {
+      print('Không thể nộp bài luyện tập: ${e.toString()}');
+    }
   }
 
   /// Show confirmation dialog before submitting (with warning if unanswered questions)

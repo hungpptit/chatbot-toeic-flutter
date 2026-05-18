@@ -57,7 +57,8 @@ except Exception:
         pass
 
 # Load biến môi trường từ file .env (ở thư mục gốc backend)
-load_dotenv(dotenv_path="./.env")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 # Lấy biến môi trường
 DB_HOST = os.getenv("DB_HOST")
@@ -77,22 +78,28 @@ conn_str = (
 
 conn = pyodbc.connect(conn_str)
 
-# Query dữ liệu
+# Query dữ liệu (optimized):
+# - Pre-filter completed attempts once in a derived table, then aggregate.
 query = """
-SELECT 
-    ur.userId,
-    qs.skillId,
-    COUNT(*) AS attempts,
-    SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS correct,
-    CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS accuracy,
-    CASE 
-        WHEN CAST(SUM(CASE WHEN ur.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) < 0.6 
-        THEN 1 ELSE 0 
-    END AS isWeak
-FROM UserResults ur
-JOIN QuestionSkills qs ON ur.questionId = qs.questionId
-WHERE ur.userId IS NOT NULL
-GROUP BY ur.userId, qs.skillId
+SELECT
+   cr.userId,
+   qs.skillId,
+   COUNT(*) AS attempts,
+   SUM(CASE WHEN cr.isCorrect = 1 THEN 1 ELSE 0 END) AS correct,
+   CAST(SUM(CASE WHEN cr.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS accuracy,
+   CASE
+      WHEN CAST(SUM(CASE WHEN cr.isCorrect = 1 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) < 0.6
+      THEN 1 ELSE 0
+   END AS isWeak
+FROM (
+   SELECT ur.userId, ur.questionId, ur.isCorrect
+   FROM UserResults ur
+   INNER JOIN UserTests ut ON ur.userTestId = ut.id
+   WHERE ur.userId IS NOT NULL
+     AND ut.status = 'completed'
+) cr
+INNER JOIN QuestionSkills qs ON cr.questionId = qs.questionId
+GROUP BY cr.userId, qs.skillId
 """
 df = pd.read_sql(query, conn)
 print("✅ Dữ liệu từ DB:")
