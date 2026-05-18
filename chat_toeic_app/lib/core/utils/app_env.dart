@@ -9,6 +9,8 @@ class AppEnv {
         nativeFallback: 'http://10.0.2.2:8080/api',
       );
 
+  static String get googleClientId => dotenv.env['GOOGLE_CLIENT_ID']?.trim() ?? '';
+
   static String get swaggerJsonUrl => _resolveUrl(
         envKey: 'SWAGGER_JSON_URL',
         webFallback: 'http://localhost:8080/api/docs-json',

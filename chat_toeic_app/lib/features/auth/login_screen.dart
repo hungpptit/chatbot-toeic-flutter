@@ -148,6 +148,64 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       ),
                               )),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    child: Text(
+                                      'hoặc',
+                                      style: TextStyle(color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                  Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Obx(() => OutlinedButton.icon(
+                                onPressed: _authController.isLoading.value
+                                    ? null
+                                    : _handleGoogleLogin,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: BorderSide(color: Colors.white.withOpacity(0.16)),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    'G',
+                                    style: TextStyle(
+                                      color: Color(0xFF111827),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                label: _authController.isLoading.value
+                                    ? const SizedBox(
+                                        height: 18,
+                                        width: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : const Text(
+                                        'Tiếp tục với Google',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                              )),
                             ],
                           ),
                         ),
@@ -275,6 +333,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final success = await _authController.login(email, password);
+    if (success) {
+      Get.offAllNamed('/home');
+    }
+  }
+
+  void _handleGoogleLogin() async {
+    final success = await _authController.loginWithGoogle();
     if (success) {
       Get.offAllNamed('/home');
     }

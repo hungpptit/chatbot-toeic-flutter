@@ -6,6 +6,7 @@
 import {
   register,
   login,
+  googleLogin,
   refresh,
   logout,
   getMe,
@@ -56,6 +57,25 @@ export const loginController = async (req, res) => {
     return sendSuccess(res, result.data, result.message, 200);
   } catch (error) {
     console.error('[CONTROLLER] loginController error:', error);
+    return sendError(res, 500, 'Server error', [error.message]);
+  }
+};
+
+/**
+ * POST /api/v1/auth/google
+ */
+export const googleLoginController = async (req, res) => {
+  try {
+    const { idToken, accessToken } = req.body;
+    const result = await googleLogin({ idToken, accessToken });
+
+    if (result.code !== 200) {
+      return sendError(res, result.code, result.message, result.details);
+    }
+
+    return sendSuccess(res, result.data, result.message, 200);
+  } catch (error) {
+    console.error('[CONTROLLER] googleLoginController error:', error);
     return sendError(res, 500, 'Server error', [error.message]);
   }
 };
@@ -140,6 +160,7 @@ export const getMeController = async (req, res) => {
 export default {
   registerController,
   loginController,
+  googleLoginController,
   refreshController,
   logoutController,
   getMeController,
