@@ -4,6 +4,7 @@ import 'package:chat_toeic_app/features/admin/test_controller.dart';
 import 'package:chat_toeic_app/widgets/admin_action_button.dart';
 import 'package:chat_toeic_app/features/admin/test_preview_dialog.dart';
 import 'package:chat_toeic_app/features/admin/test_edit_dialog.dart';
+import 'package:chat_toeic_app/features/admin/test_upload_dialog.dart';
 
 class TestListPanel extends StatefulWidget {
   const TestListPanel({super.key});
@@ -52,7 +53,11 @@ class _TestListPanelState extends State<TestListPanel> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    Get.snackbar('Thông báo', 'Chức năng thêm đề thi đang được phát triển');
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => const TestUploadDialog(),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6366F1),
@@ -135,7 +140,7 @@ class _TestListPanelState extends State<TestListPanel> {
                                     final remaining = total - start;
                                     return remaining >= pageSize ? pageSize : remaining;
                                   })(),
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                  separatorBuilder: (context, index) => const SizedBox(height: 8),
                                   itemBuilder: (context, index) {
                                     final currentPage = page > 0 ? page : 1;
                                     final start = (currentPage - 1) * pageSize;

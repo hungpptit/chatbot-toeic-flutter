@@ -163,25 +163,37 @@ const updateQuestionType = async (typeId, newName, newDescription = null) => {
 
 const createNewTest = async (testData) => {
   try {
-    const { title, courseId, questions: flatQuestions, listeningQuestions, readingQuestions } = testData;
+    const { title, courseId, questions: flatQuestions, listeningQuestions, readingQuestions, partId } = testData;
+    const defaultPartId = partId || null;
 
     // 1. Chuẩn bị danh sách câu hỏi tổng hợp
     let finalQuestions = [];
 
     if (Array.isArray(flatQuestions) && flatQuestions.length > 0) {
-      finalQuestions = [...flatQuestions];
+      finalQuestions = flatQuestions.map(q => ({
+        ...q,
+        partId: q.partId || defaultPartId || 1
+      }));
     } else {
       // ✅ Cập nhật ID chuẩn theo DB của bạn: Listening = 6, Reading = 4
       if (Array.isArray(listeningQuestions)) {
         finalQuestions = [
           ...finalQuestions,
-          ...listeningQuestions.map(q => ({ ...q, skillId: q.skillId || 6 }))
+          ...listeningQuestions.map(q => ({
+            ...q,
+            skillId: q.skillId || 6,
+            partId: q.partId || defaultPartId || 1
+          }))
         ];
       }
       if (Array.isArray(readingQuestions)) {
         finalQuestions = [
           ...finalQuestions,
-          ...readingQuestions.map(q => ({ ...q, skillId: q.skillId || 4 }))
+          ...readingQuestions.map(q => ({
+            ...q,
+            skillId: q.skillId || 4,
+            partId: q.partId || defaultPartId || 5
+          }))
         ];
       }
     }
@@ -232,7 +244,7 @@ const createNewTest = async (testData) => {
         correctAnswer: q.correctAnswer || null,
         explanation: q.explanation || null,
         typeId: q.typeId || 1,
-        partId: q.partId || null,
+        partId: q.partId || defaultPartId || 1,
       });
       
       // ✅ Xử lý gán Skill ID (Hỗ trợ cả mảng skillIds hoặc 1 skillId đơn lẻ)

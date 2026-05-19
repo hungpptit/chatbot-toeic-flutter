@@ -2,11 +2,11 @@
   "title": "TOEIC Listening Part 1 - Photographs (With Audio Timing Demo)",
   "courseId": 1,
   "partId": 1,
-  "audioPath": "D:\\web_html\\gop\\cnpm\\Final\\grapfity\\backend\\src\\public\\assets\\track_audio\\audio-1747581053096-787515233.mp3",
+  "audioPath": "D:\\Downloads\\Kỵ Sĩ Và Ánh Sao.mp3",
   "questions": [
     {
       "question": "Look at the picture. What is the man doing?",
-      "imagePath": "D:\\Downloads\\download (5).jpg",
+      "imagePath": "D:\\Downloads\\1743981473833_300.jpg",
       "startSecond": 0.0,
       "endSecond": 15.5,
       "optionA": "He is walking on the street",
@@ -20,7 +20,7 @@
     },
     {
       "question": "Look at the picture. Where are the people?",
-      "imagePath": "D:\\Downloads\\download (5).jpg",
+      "imagePath": "D:\\Downloads\\1743981473833_300.jpg",
       "startSecond": 20.0,
       "endSecond": 38.3,
       "optionA": "In a restaurant",
@@ -34,7 +34,7 @@
     },
     {
       "question": "Look at the picture. What can you see?",
-      "imagePath": "D:\\Downloads\\download (5).jpg",
+      "imagePath": "D:\\Downloads\\1743981473833_300.jpg",
       "startSecond": 40,
       "endSecond": 57.2,
       "optionA": "A car on the road",

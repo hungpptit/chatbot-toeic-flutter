@@ -98,7 +98,30 @@ router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeControlle
  *         description: Dữ liệu không hợp lệ
  */
 router.post('/createTestNew', authMiddleware, createNewTestController);
-// Xóa bài test theo ID
+/**
+ * @swagger
+ * /api/adminTest/deleteTest/{testId}:
+ *   delete:
+ *     summary: Xóa bài thi theo ID
+ *     description: Xóa đề thi cùng với các liên kết khóa học, lịch sử làm bài (UserTest) và liên kết câu hỏi liên quan.
+ *     tags: [Admin Test]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: testId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của bài thi cần xóa
+ *     responses:
+ *       200:
+ *         description: Xóa đề thi thành công
+ *       404:
+ *         description: Không tìm thấy đề thi
+ *       500:
+ *         description: Lỗi hệ thống
+ */
 router.delete('/deleteTest/:testId', authMiddleware, deleteTestByIdController);
 
 

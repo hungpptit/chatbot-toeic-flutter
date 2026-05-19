@@ -1,7 +1,7 @@
 {
   "title": "Mixed Test Sample - Reading + Listening",
   "courseId": 1,
-  "audioPath": "D:/Chatbot_Toeic/test_images/SongGio.mp3",
+  "audioPath": "D:\\Downloads\\Kỵ Sĩ Và Ánh Sao.mp3",
   "readingQuestions": [
     {
       "question": "The company announced that it _____ a new office in downtown next month.",
@@ -40,7 +40,7 @@
       "typeId": 3,
       "skillId": 1,
       "partId": 3,
-      "imagePath": "D:/Chatbot_Toeic/test_images/question2.jpg",
+      "imagePath": "D:\\Downloads\\1743981473833_300.jpg",
       "startSecond": 0,
       "endSecond": 15
     },
@@ -55,7 +55,7 @@
       "typeId": 4,
       "skillId": 1,
       "partId": 4,
-      "imagePath": "D:/Chatbot_Toeic/test_images/question2.jpg",
+      "imagePath": "D:\\Downloads\\1743981473833_300.jpg",
       "startSecond": 15,
       "endSecond": 30
     }

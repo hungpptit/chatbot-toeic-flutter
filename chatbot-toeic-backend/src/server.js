@@ -3,6 +3,7 @@ dotenv.config(); // Load biến môi trường từ .env
 import express, { json, urlencoded } from 'express'; // Import express và middleware
 import path from 'path'; // <-- THÊM IMPORT NÀY
 import { fileURLToPath } from 'url'; // <-- THÊM IMPORT NÀY (nếu dùng ES Modules)
+import fs from 'fs';
 import router from './routes/api.js'; // Import router từ file api.js
 import db from './models/index.js'; // Import db từ file index.js trong thư mục models
 import cookieParser from 'cookie-parser';
@@ -71,6 +72,32 @@ app.get('/api/docs-json', (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 // Giờ đây, yêu cầu GET /assets/track_image/ten_anh.jpg sẽ được phục vụ từ thư mục public/assets/track_image
 // --------------------------------------------
+
+// === ENDPOINT PREVIEW LOCAL FILE (FOR LOCAL DEV PREVIEW) ===
+app.get('/api/admin/preview-local-file', (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) {
+    return res.status(400).json({ message: 'Path is required' });
+  }
+
+  // Security check: only allow files if exists
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'File not found' });
+  }
+
+  // Determine mime type based on extension
+  const ext = path.extname(filePath).toLowerCase();
+  let contentType = 'application/octet-stream';
+  if (['.jpg', '.jpeg'].includes(ext)) contentType = 'image/jpeg';
+  else if ('.png' === ext) contentType = 'image/png';
+  else if ('.gif' === ext) contentType = 'image/gif';
+  else if ('.webp' === ext) contentType = 'image/webp';
+  else if ('.mp3' === ext) contentType = 'audio/mpeg';
+  else if ('.wav' === ext) contentType = 'audio/wav';
+
+  res.setHeader('Content-Type', contentType);
+  fs.createReadStream(filePath).pipe(res);
+});
 
 app.use('/api', router); // Định nghĩa các route API SAU middleware static
 

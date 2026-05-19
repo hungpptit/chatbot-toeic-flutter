@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:chat_toeic_app/core/api/dio_client.dart';
 import 'package:chat_toeic_app/core/api/upload_service.dart';
@@ -8,6 +10,8 @@ class TestController extends GetxController {
   var tests = <Map<String, dynamic>>[].obs;
   var uploadProgress = <int, double>{}.obs; // testId -> progress (0.0 to 1.0)
   var searchQuery = ''.obs;
+
+  static Future<void> _creationQueueTail = Future<void>.value();
 
   List<Map<String, dynamic>> get filteredTests {
     if (searchQuery.value.isEmpty) return tests;
@@ -55,7 +59,7 @@ class TestController extends GetxController {
 
   Future<bool> deleteTest(int id) async {
     try {
-      final response = await DioClient.dio.delete('/v1/tests/$id');
+      final response = await DioClient.dio.delete('/adminTest/deleteTest/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
         tests.removeWhere((t) => t['id'] == id);
         return true;
@@ -86,9 +90,54 @@ class TestController extends GetxController {
         return true;
       }
     } catch (e) {
-      print("Update question error: $e");
+      Get.log("Update question error: $e");
     }
     return false;
+  }
+
+  Map<String, dynamic>? _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(key.toString(), val));
+    }
+    return null;
+  }
+
+  Future<T> _runSerialized<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+
+    _creationQueueTail = _creationQueueTail
+        .catchError((_) {})
+        .then((_) async {
+          try {
+            final result = await action();
+            completer.complete(result);
+          } catch (error, stackTrace) {
+            completer.completeError(error, stackTrace);
+          } finally {
+            await Future.delayed(const Duration(milliseconds: 400));
+          }
+        });
+
+    return completer.future;
+  }
+
+  Future<Map<String, dynamic>?> createNewTest(Map<String, dynamic> payload) {
+    return _runSerialized<Map<String, dynamic>?>(() async {
+      try {
+        final response = await DioClient.dio.post('/adminTest/createTestNew', data: payload);
+
+        if (response.statusCode == 201 || response.statusCode == 200) {
+          await fetchTests();
+          return _asMap(response.data['data'] ?? response.data);
+        }
+
+        throw Exception('Unexpected status code: ${response.statusCode}');
+      } catch (e) {
+        Get.snackbar('Lỗi', 'Không thể tạo đề thi mới: $e');
+        return null;
+      }
+    });
   }
 
   // New Background Update Logic

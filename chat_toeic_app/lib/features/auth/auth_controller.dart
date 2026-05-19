@@ -71,6 +71,7 @@ class AuthController extends GetxController {
           refresh: data['refreshToken'],
         );
         isLoggedIn.value = true;
+        await fetchUserProfile();
         return true;
       }
     } catch (e) {
@@ -107,8 +108,8 @@ class AuthController extends GetxController {
           access: data['accessToken'],
           refresh: data['refreshToken'],
         );
-        user.value = Map<String, dynamic>.from(data['user'] ?? {});
         isLoggedIn.value = true;
+        await fetchUserProfile();
         return true;
       }
     } on DioException catch (e) {
