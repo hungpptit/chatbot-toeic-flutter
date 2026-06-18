@@ -2,11 +2,12 @@
 
 Hệ thống web application hỗ trợ học và luyện thi TOEIC với tích hợp AI Chatbot, Machine Learning dự đoán điểm số, và quản lý bài thi.
 
-## � Hướng Dẫn Cài Đặt và Chạy
+## 🚀 Hướng Dẫn Cài Đặt và Chạy
 
 ### Yêu Cầu Hệ Thống
 - **Node.js** 20 trở lên
 - **SQL Server** 2019 trở lên
+- **Flutter SDK** (cho môi trường chạy ứng dụng di động/web)
 - **RAM**: Tối thiểu 4GB (khuyến nghị 8GB)
 
 ### Cài Đặt
@@ -23,10 +24,10 @@ cd chatbot-toeic-backend
 npm install
 ```
 
-#### 3. Cài Đặt Frontend
+#### 3. Cài Đặt Frontend (Flutter)
 ```bash
-cd chatbot-toeic-frontend
-npm install
+cd chat_toeic_app
+flutter pub get
 ```
 
 ### Chạy Ứng Dụng
@@ -34,18 +35,18 @@ npm install
 #### Backend
 ```bash
 cd chatbot-toeic-backend
-npm run dev        # Development mode
+npm run dev        # Development mode (tự động reload)
 # hoặc
 npm start          # Production mode
 ```
 Backend chạy tại: **http://localhost:8080**
 
-#### Frontend
+#### Frontend (Flutter)
+Đảm bảo bạn đã kết nối thiết bị thật (qua USB Debugging) hoặc khởi chạy máy ảo (Emulator/Simulator), hoặc chạy trực tiếp trên Chrome:
 ```bash
-cd chatbot-toeic-frontend
-npm run dev
+cd chat_toeic_app
+flutter run
 ```
-Frontend chạy tại: **http://localhost:5173**
 
 
 
@@ -75,14 +76,13 @@ Chatbot TOEIC là một hệ thống học tập thông minh giúp người dùn
 
 ## 🛠 Công Nghệ Sử Dụng
 
-### Frontend
-- **React 19** + **TypeScript** - UI Framework
-- **Vite** - Build tool & Dev server
-- **React Router v7** - Routing
-- **Axios** - HTTP Client
-- **Chart.js** - Data visualization
-- **React Icons** - Icon library
-- **SweetAlert2** - Beautiful alerts
+### Frontend (Mobile & Web)
+- **Flutter** + **Dart** - Multi-platform UI Framework
+- **GetX** - State management & routing
+- **Dio** - HTTP Client
+- **just_audio** - Audio player for Listening test
+- **fl_chart** - Data visualization
+- **flutter_secure_storage** - Local storage security
 
 ### Backend
 - **Node.js 20** + **Express 5** - Server framework
@@ -125,15 +125,17 @@ chatbot-toeic/
 │   │
 │   └── package.json
 │
-├── chatbot-toeic-frontend/         # Frontend React/TypeScript
-│   ├── src/
-│   │   ├── components/             # Reusable components
-│   │   ├── pages/                  # Page components
-│   │   ├── services/               # API services
-│   │   ├── App.tsx                 # Root component
-│   │   └── main.tsx                # Entry point
+├── chat_toeic_app/                 # Frontend Flutter App
+│   ├── lib/                        # Mã nguồn Dart chính
+│   │   ├── controllers/            # GetX Controllers
+│   │   ├── models/                 # Data models
+│   │   ├── views/                  # UI Screens & Widgets
+│   │   ├── services/               # API & Local storage services
+│   │   └── main.dart               # Entry point ứng dụng
 │   │
-│   └── package.json
+│   ├── assets/                     # Hình ảnh, fonts, config (.env)
+│   ├── pubspec.yaml                # Cấu hình dependencies Flutter
+│   └── build.yaml
 │
 └── README.md                       # This file
 ```
@@ -335,12 +337,12 @@ MIT License - Tự do sử dụng cho mục đích học tập và nghiên cứu
 1. ✅ **Full-stack Application** - Frontend + Backend + Database
 2. ✅ **AI Integration** - Google Gemini API cho Chatbot
 3. ✅ **Machine Learning** - Dự đoán điểm TOEIC
-4. ✅ **Modern Tech Stack** - React 19 + TypeScript + Node.js 20
+4. ✅ **Modern Tech Stack** - Flutter + Dart + Node.js 20
 5. ✅ **RESTful API** - Express.js best practices
 6. ✅ **Database Design** - SQL Server + Sequelize ORM
 7. ✅ **Authentication** - JWT + Role-based authorization
 8. ✅ **Cloud Storage** - Cloudinary integration
-9. ✅ **Responsive UI** - Mobile-friendly design
+9. ✅ **Cross-platform UI** - Chạy mượt mà trên Mobile & Web
 10. ✅ **Real-time Features** - Interactive learning experience
 
 ---
