@@ -88,6 +88,55 @@ class AuthController extends GetxController {
     return false;
   }
 
+  Future<bool> register(String username, String email, String password) async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.post('/v1/auth/register', data: {
+        'username': username,
+        'email': email,
+        'password': password,
+      });
+
+      if (response.statusCode == 201) {
+        Get.snackbar(
+          'Đăng ký thành công',
+          'Đang tự động đăng nhập...',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.8),
+          colorText: Colors.white,
+        );
+        return true;
+      }
+    } on DioException catch (e) {
+      final dynamic data = e.response?.data;
+      final message = data is Map
+          ? (data['message'] ?? data['error'] ?? e.message)
+          : e.message;
+      final details = data is Map && data['details'] is List
+          ? (data['details'] as List).join('\n')
+          : '';
+
+      Get.snackbar(
+        'Đăng ký thất bại',
+        [message, details].where((s) => s != null && s.toString().trim().isNotEmpty).join('\n'),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Đăng ký thất bại',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+    return false;
+  }
+
   Future<bool> loginWithGoogle() async {
     isLoading.value = true;
     try {

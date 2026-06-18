@@ -4,18 +4,30 @@ import 'package:get/get.dart';
 import 'package:chat_toeic_app/core/theme/app_colors.dart';
 import 'package:chat_toeic_app/features/auth/auth_controller.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _authController = Get.find<AuthController>();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +55,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // Back button to login
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Get.back(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     // Logo/Header
                     const Icon(
                       Icons.auto_awesome,
@@ -60,15 +81,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const Text(
-                      'Chinh phục TOEIC cùng AI',
+                      'Tạo tài khoản mới',
                       style: TextStyle(
                         fontSize: 16,
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
-                    // Login Card (Glassmorphism)
+                    // Register Card (Glassmorphism)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: BackdropFilter(
@@ -86,6 +107,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              _buildTextField(
+                                controller: _usernameController,
+                                label: 'Tên người dùng',
+                                icon: Icons.person_outline,
+                              ),
+                              const SizedBox(height: 20),
                               _buildTextField(
                                 controller: _emailController,
                                 label: 'Email',
@@ -105,23 +132,25 @@ class _LoginScreenState extends State<LoginScreen> {
                                   });
                                 },
                               ),
-                              const SizedBox(height: 12),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Quên mật khẩu?',
-                                    style: TextStyle(color: AppColors.accent),
-                                  ),
-                                ),
+                              const SizedBox(height: 20),
+                              _buildTextField(
+                                controller: _confirmPasswordController,
+                                label: 'Xác nhận mật khẩu',
+                                icon: Icons.lock_outline,
+                                isPassword: true,
+                                obscureText: _obscureConfirmPassword,
+                                onToggleVisibility: () {
+                                  setState(() {
+                                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  });
+                                },
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 32),
                               
                               Obx(() => ElevatedButton(
                                 onPressed: _authController.isLoading.value
                                     ? null
-                                    : _handleLogin,
+                                    : _handleRegister,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -141,68 +170,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ),
                                       )
                                     : const Text(
-                                        'ĐĂNG NHẬP',
+                                        'ĐĂNG KÝ',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                              )),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12),
-                                    child: Text(
-                                      'hoặc',
-                                      style: TextStyle(color: AppColors.textSecondary),
-                                    ),
-                                  ),
-                                  Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Obx(() => OutlinedButton.icon(
-                                onPressed: _authController.isLoading.value
-                                    ? null
-                                    : _handleGoogleLogin,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: BorderSide(color: Colors.white.withOpacity(0.16)),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                icon: Container(
-                                  width: 22,
-                                  height: 22,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Text(
-                                    'G',
-                                    style: TextStyle(
-                                      color: Color(0xFF111827),
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                label: _authController.isLoading.value
-                                    ? const SizedBox(
-                                        height: 18,
-                                        width: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                      )
-                                    : const Text(
-                                        'Tiếp tục với Google',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                               )),
@@ -217,13 +188,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'Chưa có tài khoản? ',
+                          'Đã có tài khoản? ',
                           style: TextStyle(color: AppColors.textSecondary),
                         ),
                         TextButton(
-                          onPressed: () => Get.toNamed('/register'),
+                          onPressed: () => Get.back(),
                           child: const Text(
-                            'Đăng ký ngay',
+                            'Đăng nhập',
                             style: TextStyle(
                               color: AppColors.accent,
                               fontWeight: FontWeight.bold,
@@ -317,14 +288,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin() async {
+  void _handleRegister() async {
+    final username = _usernameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (username.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       Get.snackbar(
         'Thông báo',
-        'Vui lòng nhập đầy đủ email và mật khẩu',
+        'Vui lòng điền đầy đủ các thông tin',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orangeAccent.withOpacity(0.8),
         colorText: Colors.white,
@@ -332,16 +305,25 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final success = await _authController.login(email, password);
-    if (success) {
-      Get.offAllNamed('/home');
+    if (password != confirmPassword) {
+      Get.snackbar(
+        'Thông báo',
+        'Mật khẩu xác nhận không khớp',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orangeAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+      return;
     }
-  }
 
-  void _handleGoogleLogin() async {
-    final success = await _authController.loginWithGoogle();
+    final success = await _authController.register(username, email, password);
     if (success) {
-      Get.offAllNamed('/home');
+      final loginSuccess = await _authController.login(email, password);
+      if (loginSuccess) {
+        Get.offAllNamed('/home');
+      } else {
+        Get.offAllNamed('/login');
+      }
     }
   }
 }

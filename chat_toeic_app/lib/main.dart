@@ -5,6 +5,7 @@ import 'package:chat_toeic_app/core/utils/app_env.dart';
 import 'package:chat_toeic_app/core/utils/storage_service.dart';
 import 'package:chat_toeic_app/features/auth/auth_controller.dart';
 import 'package:chat_toeic_app/features/auth/login_screen.dart';
+import 'package:chat_toeic_app/features/auth/register_screen.dart';
 import 'package:chat_toeic_app/features/home/home_view.dart';
 import 'package:chat_toeic_app/features/vocabulary/vocabulary_view.dart';
 import 'package:chat_toeic_app/features/chat/chat_view.dart';
@@ -94,6 +95,10 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/login',
           page: () => const LoginScreen(),
+        ),
+        GetPage(
+          name: '/register',
+          page: () => const RegisterScreen(),
         ),
         GetPage(
           name: '/home',
