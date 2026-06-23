@@ -4,7 +4,7 @@ import {   getAllUserController,
   deleteUserController,
   lockUserController,
   updateUserController } from '../controllers/AdminUser_controller.js';
-import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/User'
  */
-router.get('/all', authMiddleware, getAllUserController);
+router.get('/all', authMiddleware, adminMiddleware, getAllUserController);
 
 /**
  * @swagger
@@ -58,7 +58,7 @@ router.get('/all', authMiddleware, getAllUserController);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/role', authMiddleware, updateUserRoleController);
+router.put('/role', authMiddleware, adminMiddleware, updateUserRoleController);
 
 /**
  * @swagger
@@ -81,7 +81,7 @@ router.put('/role', authMiddleware, updateUserRoleController);
  *       200:
  *         description: Xoá thành công
  */
-router.delete('/', authMiddleware, deleteUserController);
+router.delete('/', authMiddleware, adminMiddleware, deleteUserController);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.delete('/', authMiddleware, deleteUserController);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/lock', authMiddleware, lockUserController);
+router.put('/lock', authMiddleware, adminMiddleware, lockUserController);
 
 /**
  * @swagger
@@ -137,6 +137,6 @@ router.put('/lock', authMiddleware, lockUserController);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/update', authMiddleware, updateUserController);
+router.put('/update', authMiddleware, adminMiddleware, updateUserController);
 
 export default router;

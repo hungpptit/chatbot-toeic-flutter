@@ -181,6 +181,12 @@ export const getAttemptResult = async (req, res) => {
     try {
         const { attemptId } = req.params;
         const result = await GetUserTestDetailById(attemptId);
+
+        // Chống IDOR: Chỉ cho phép người làm bài thi hoặc Admin xem chi tiết kết quả
+        if (result && result.userId && result.userId !== req.user.id && req.user.role_id !== 2) {
+            return sendError(res, 403, "Forbidden: You are not authorized to view this test attempt result");
+        }
+
         return sendSuccess(res, result, "Fetched attempt result successfully");
     } catch (error) {
         console.error("[TEST V1] getAttemptResult error:", error);

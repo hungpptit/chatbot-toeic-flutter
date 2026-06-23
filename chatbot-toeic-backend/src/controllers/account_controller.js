@@ -4,9 +4,15 @@ import accountService from '../services/account_service.js';
 const { getUserById, updateUser, verifyEmailUpdateOtp } = accountService;
 
 
-// Controller: Lấy thông tin user theo ID (chỉ cho role_id = 1)
+// Controller: Lấy thông tin user theo ID (chỉ cho role_id = 1 hoặc Admin)
 const getUserByIdController = async (req, res) => {
   const { id } = req.params;
+  
+  // Chống IDOR: Chỉ được xem tài khoản của chính mình hoặc phải là Admin
+  if (parseInt(id) !== req.user.id && req.user.role_id !== 2) {
+    return res.status(403).json({ message: 'Forbidden: You are not authorized to view this account detail.' });
+  }
+
   try {
     const user = await getUserById(id);
     if (!user) {
@@ -19,10 +25,15 @@ const getUserByIdController = async (req, res) => {
   }
 };
 
-// Controller: Cập nhật thông tin user theo ID (chỉ cho role_id = 1)
+// Controller: Cập nhật thông tin user theo ID
 const updateUserController = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
+
+  // Chống IDOR: Chỉ được cập nhật tài khoản của chính mình hoặc phải là Admin
+  if (parseInt(id) !== req.user.id && req.user.role_id !== 2) {
+    return res.status(403).json({ message: 'Forbidden: You are not authorized to update this account.' });
+  }
 
   try {
     const user = await updateUser(id, data);
@@ -49,6 +60,11 @@ const updateUserController = async (req, res) => {
 
 const verifyEmailOtpController = async (req, res) => {
   const { userId, email, otp } = req.body;
+
+  // Chống IDOR: Chỉ được xác nhận OTP cho tài khoản của chính mình hoặc phải là Admin
+  if (parseInt(userId) !== req.user.id && req.user.role_id !== 2) {
+    return res.status(403).json({ message: 'Forbidden: You are not authorized to verify this OTP.' });
+  }
 
   try {
     const result = await verifyEmailUpdateOtp(userId, email, otp);

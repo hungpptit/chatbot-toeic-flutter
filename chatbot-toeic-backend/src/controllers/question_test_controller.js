@@ -181,7 +181,6 @@ const checkUserTestDetailed = async (req, res) => {
 
 const getUserTestDetailId = async (req, res) => {
   try {
-    // const userId = req.user.id;
     const { userTestId } = req.params;
     console.log("test userTestId: ", userTestId);
     if (!userTestId) {
@@ -189,6 +188,11 @@ const getUserTestDetailId = async (req, res) => {
     }
 
     const result = await GetUserTestDetailById( userTestId );
+
+    // Chống IDOR: Chỉ cho phép người làm bài thi hoặc Admin xem chi tiết
+    if (result && result.userId && result.userId !== req.user.id && req.user.role_id !== 2) {
+      return res.status(403).json({ message: 'Forbidden: You are not authorized to view this test attempt result.' });
+    }
 
     return res.status(200).json({
       message: 'Fetched test details successfully',

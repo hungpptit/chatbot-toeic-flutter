@@ -68,3 +68,20 @@ export const authMiddleware = (req, res, next) => {
     );
   }
 };
+
+/**
+ * Middleware phân quyền Admin
+ */
+export const adminMiddleware = (req, res, next) => {
+  if (!req.user || req.user.role_id !== 2) {
+    return sendError(
+      res,
+      403,
+      'Không có quyền truy cập',
+      ['Bạn không có quyền thực hiện hành động này (Yêu cầu quyền Admin)'],
+      'FORBIDDEN'
+    );
+  }
+  next();
+};
+

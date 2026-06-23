@@ -19,9 +19,12 @@ import {
   deleteSkillController,
 } from '../controllers/AdminTest_controller.js';
 
-import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Tất cả các API trong router này yêu cầu đăng nhập và có quyền Admin
+router.use(authMiddleware, adminMiddleware);
 
 // Lấy tất cả bài test kèm thông tin khóa học
 router.get('/', authMiddleware, getTestList);

@@ -4,9 +4,12 @@ import {
     getAllTypes, createType, updateType, deleteType,
     getAllSkills, createSkill, updateSkill, deleteSkill
 } from '../controllers/AdminMetadata_controller.js';
-import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Tất cả các API trong router này yêu cầu đăng nhập và có quyền Admin
+router.use(authMiddleware, adminMiddleware);
 
 /**
  * @swagger

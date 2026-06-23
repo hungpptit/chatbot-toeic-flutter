@@ -1235,8 +1235,8 @@ Module hỗ trợ quản lý phân quyền và kiểm soát tài khoản ngườ
     {
       "status": "success",
       "data": [
-        { "id": 1, "username": "admin", "email": "admin@toeic.com", "role_id": 1 },
-        { "id": 15, "username": "tuanhung", "email": "hung@example.com", "role_id": 2 }
+        { "id": 1, "username": "admin", "email": "admin@toeic.com", "role_id": 2 },
+        { "id": 15, "username": "tuanhung", "email": "hung@example.com", "role_id": 1 }
       ]
     }
     ```
@@ -1249,7 +1249,7 @@ Module hỗ trợ quản lý phân quyền và kiểm soát tài khoản ngườ
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
     | `userId` | Integer | Có | ID của người dùng cần thay đổi quyền |
-    | `newRoleId` | Integer | Có | ID vai trò mới (1: Admin, 2: Student/User) |
+    | `newRoleId` | Integer | Có | ID vai trò mới (1: Student/User, 2: Admin) |
 *   **Phản hồi thành công (200 OK):**
     ```json
     {
@@ -1402,4 +1402,29 @@ Cung cấp các API phục vụ tích hợp cổng thanh toán (ZaloPay, MoMo) �
       "return_message": "success"
     }
     ```
+
+---
+
+# 5. Đặc Tả Cơ Chế Phân Quyền & Bảo Mật Hệ Thống (Authorization & Security)
+
+Hệ thống chatbot TOEIC áp dụng các tiêu chuẩn bảo mật hiện đại nhằm ngăn chặn các lỗ hổng bảo mật nghiêm trọng thường gặp (OWASP Top 10):
+
+## 5.1 Cơ chế Xác thực (Authentication)
+*   Sử dụng **JWT (JSON Web Token) Access Token** đính kèm qua tiêu đề HTTP `Authorization: Bearer <token>` hoặc lưu trữ qua `HTTP-only Cookie` để bảo mật tối đa.
+*   Thời gian hết hạn của Access Token ngắn giúp giảm thiểu rủi ro khi token bị đánh cắp.
+
+## 5.2 Cơ chế Phân quyền vai trò (Role-based Access Control - RBAC)
+*   Hệ thống xác định vai trò thông qua trường dữ liệu `role_id` từ Token đã xác thực:
+    *   `role_id: 1` — **Student/User** (Người dùng thông thường): Có quyền làm đề thi, xem thống kê bản thân, trò chuyện với Chatbot, thanh toán VIP.
+    *   `role_id: 2` — **Admin** (Quản trị viên): Toàn quyền quản trị hệ thống, quản lý người dùng, quản lý đề thi/câu hỏi/khóa học và huấn luyện mô hình AI.
+*   **Vá lỗ hổng Phân quyền theo chức năng (Broken Function Level Authorization - BFLA):**
+    *   Tất cả các API chỉnh sửa dữ liệu liên quan tới quản trị đề thi, khóa học, dữ liệu cấu trúc đề (Part, Skill, Type) và API kích hoạt train lại mô hình AI (`POST /api/ml/retrain`) đều được bảo vệ nghiêm ngặt bằng lớp middleware kép `authMiddleware` và `adminMiddleware`.
+    *   Học sinh thường gửi gói tin giả mạo quyền Admin lên các route này sẽ nhận về mã lỗi **`403 Forbidden`**.
+
+## 5.3 Ngăn chặn lỗ hổng Truy cập Đối tượng Trực tiếp (Broken Object Level Authorization - IDOR)
+Hệ thống thực hiện kiểm tra quyền sở hữu đối tượng ở cấp ứng dụng nhằm ngăn chặn việc người dùng này sửa hoặc đọc thông tin của người dùng khác:
+1.  **Thông tin cá nhân (Profile detail & Update):** API `/api/account/detail/:id` và `/api/account/update/:id` đối chiếu `id` trong URL với `req.user.id` từ Token. Người dùng chỉ có quyền đọc/ghi dữ liệu của chính mình (hoặc Admin).
+2.  **Lịch sử hội thoại (Chat History & Chatbot ask):** Tất cả các API đọc tin nhắn, gửi tin nhắn, hoặc truy vấn lịch sử hội thoại của Chatbot đều thực hiện kiểm tra quyền sở hữu: chỉ có chủ nhân của `conversationId` mới được tương tác với cuộc trò chuyện đó.
+3.  **Kết quả bài thi (Test Attempt Result detail):** Khi người dùng gọi API lấy kết quả chi tiết của lượt làm bài thi (`/api/v1/test-attempts/:attemptId/result` hoặc `/api/questionTest/DetailResult/:userTestId`), hệ thống sẽ kiểm tra xem `userId` trong bản ghi bài thi có khớp với `req.user.id` của người gửi yêu cầu hay không. Nếu không khớp và không phải Admin, yêu cầu sẽ bị từ chối với lỗi **`403 Forbidden`**.
+
 

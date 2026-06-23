@@ -103,6 +103,13 @@ export const getMessages = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { format } = req.query;
+        const userId = req.user.id;
+
+        // Chống IDOR: Xác minh cuộc trò chuyện thuộc sở hữu của người dùng hiện tại
+        const checkResult = await getConversationById(conversationId, userId);
+        if (checkResult.code !== 200) {
+            return sendError(res, checkResult.code, checkResult.message);
+        }
         
         let result;
         if (format === 'gemini') {
@@ -125,6 +132,13 @@ export const createMessageV1 = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { role, content } = req.body;
+        const userId = req.user.id;
+
+        // Chống IDOR: Xác minh cuộc trò chuyện thuộc sở hữu của người dùng hiện tại
+        const checkResult = await getConversationById(conversationId, userId);
+        if (checkResult.code !== 200) {
+            return sendError(res, checkResult.code, checkResult.message);
+        }
 
         if (!role || !content) {
             return sendError(res, 400, "Role and content are required");
@@ -145,6 +159,13 @@ export const askChatbot = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { rawText } = req.body;
+        const userId = req.user.id;
+
+        // Chống IDOR: Xác minh cuộc trò chuyện thuộc sở hữu của người dùng hiện tại
+        const checkResult = await getConversationById(conversationId, userId);
+        if (checkResult.code !== 200) {
+            return sendError(res, checkResult.code, checkResult.message);
+        }
 
         if (!rawText?.trim()) {
             return sendError(res, 400, "rawText is required");

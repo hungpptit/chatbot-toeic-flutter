@@ -6,7 +6,7 @@ import {
     updateCourse, 
     deleteCourse 
 } from '../controllers/course_v1_controller.js';
-import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -89,7 +89,7 @@ router.get('/', authMiddleware, getCourses);
  *             schema:
  *               $ref: '#/components/responses/SuccessResponse'
  */
-router.post('/', authMiddleware, createCourse);
+router.post('/', authMiddleware, adminMiddleware, createCourse);
 
 /**
  * @swagger
@@ -118,7 +118,7 @@ router.post('/', authMiddleware, createCourse);
  *       200:
  *         description: Thành công
  */
-router.patch('/:id', authMiddleware, updateCourse);
+router.patch('/:id', authMiddleware, adminMiddleware, updateCourse);
 
 /**
  * @swagger
@@ -138,6 +138,6 @@ router.patch('/:id', authMiddleware, updateCourse);
  *       200:
  *         description: Thành công
  */
-router.delete('/:id', authMiddleware, deleteCourse);
+router.delete('/:id', authMiddleware, adminMiddleware, deleteCourse);
 
 export default router;

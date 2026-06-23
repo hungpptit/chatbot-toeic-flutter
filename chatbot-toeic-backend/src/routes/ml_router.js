@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
 import { getRecommendations, retrainModels } from '../controllers/ml_recommendation_controller.js';
 import { getRecommendationDetails } from '../controllers/ml_recommendation_detail_controller.js';
 
@@ -21,7 +21,7 @@ router.get('/recommend/details/:userId', authMiddleware, getRecommendationDetail
  * @route POST /api/ml/retrain
  * @desc Retrain model (admin)
  */
-router.post('/retrain', authMiddleware, retrainModels);
+router.post('/retrain', authMiddleware, adminMiddleware, retrainModels);
 
 export default router;
  

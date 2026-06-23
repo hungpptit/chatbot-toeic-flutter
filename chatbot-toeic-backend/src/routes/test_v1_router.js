@@ -13,7 +13,7 @@ import {
     createQuestionV1,
     updateTestV1
 } from '../controllers/test_v1_controller.js';
-import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -80,7 +80,7 @@ router.get('/:testId/questions', authMiddleware, getTestQuestions);
  *       201:
  *         description: Thành công
  */
-router.post('/:testId/questions', authMiddleware, createQuestionV1);
+router.post('/:testId/questions', authMiddleware, adminMiddleware, createQuestionV1);
 
 /**
  * @swagger
@@ -268,7 +268,7 @@ router.post('/practice-attempts/submit', authMiddleware, submitPracticeAttempt);
  *       200:
  *         description: Thành công
  */
-router.patch('/questions/:id', authMiddleware, updateQuestionV1);
+router.patch('/questions/:id', authMiddleware, adminMiddleware, updateQuestionV1);
 
 /**
  * @swagger
@@ -288,6 +288,6 @@ router.patch('/questions/:id', authMiddleware, updateQuestionV1);
  *       200:
  *         description: Thành công
  */
-router.patch('/:id', authMiddleware, updateTestV1);
+router.patch('/:id', authMiddleware, adminMiddleware, updateTestV1);
 
 export default router;
