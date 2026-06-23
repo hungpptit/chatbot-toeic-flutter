@@ -56,11 +56,11 @@ router.get('/vip-status', authMiddleware, getVipStatusController);
  *                 example: 1
  *               paymentGateway:
  *                 type: string
- *                 enum: [zalopay, momo, mock]
- *                 example: mock
+ *                 enum: [zalopay, momo]
+ *                 example: zalopay
  *               returnUrl:
  *                 type: string
- *                 example: http://localhost:8080/api/v1/payments/mock-success
+ *                 example: https://your-website.com/payment-result
  *     responses:
  *       200:
  *         description: Thành công
