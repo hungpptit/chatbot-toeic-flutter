@@ -709,7 +709,7 @@ class TestController extends GetxController {
         'timeSpent': 2700 - timeRemaining.value,
       };
 
-      final url = '/v1/tests/practice-attempts/submit';
+      final url = '/v1/tests/practice-attempts';
       print('📤 Submitting practice answers to $url with ${answersArray.length} answers');
       final response = await DioClient.dio.post(url, data: requestData);
 

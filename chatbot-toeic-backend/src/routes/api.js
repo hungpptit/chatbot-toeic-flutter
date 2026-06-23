@@ -1,7 +1,7 @@
 import express from 'express';
-import vocabularyRouter from './vocabulary_route.js';
+import vocabulariesRouter from './vocabularies_router.js';
 import loginRouter from './login_signup_router.js';
-import questionRouter from './question_route.js';
+import questionsRouter from './questions_router.js';
 import conversationRouter from './conversation_router.js';
 import messageRouter from './message_routes.js';
 import authRouter from './auth_router.js';
@@ -16,11 +16,11 @@ import paymentV1Router from './payment_v1_router.js';
 import coursesRouter from './course_router.js';
 import testcourseRouter from './test_course_router.js';
 import questiontestRouter from './question_test_router.js';
-import AdminUserRouter from './AdminUser_router.js';
-import AminTestRouter from  './AdminTest_router.js';
-import AdminMetadataRouter from './AdminMetadata_router.js';
+import adminUsersRouter from './admin-users_router.js';
+import adminTestsRouter from  './admin-tests_router.js';
+import adminMetadataRouter from './admin-metadata_router.js';
 import accountRouter from './account_router.js';
-import statisticalRouter from './statistical_router.js';
+import statisticsRouter from './statistics_router.js';
 import uploadRouter from './upload.js';
 import mlRouter from './ml_router.js';
 // import userRouter from './user.route.js';
@@ -43,11 +43,11 @@ router.use('/v1', chatbotV1Router); // Handles /v1/users/me/conversations and /v
  * Sunset Timeline: TBD (Expected Q3 2026)
  */
 // Gắn các router con (Cả định dạng cũ và định dạng chuẩn RESTful mới để đảm bảo tương thích ngược)
-router.use('/vocabulary', vocabularyRouter);
-router.use('/vocabularies', vocabularyRouter); // RESTful Alias
+router.use('/vocabulary', vocabulariesRouter);
+router.use('/vocabularies', vocabulariesRouter); // RESTful Alias
 
-router.use('/question', questionRouter);
-router.use('/questions', questionRouter); // RESTful Alias
+router.use('/question', questionsRouter);
+router.use('/questions', questionsRouter); // RESTful Alias
 
 router.use('/auth', loginRouter);
 router.use('/conversations', conversationRouter);
@@ -61,19 +61,19 @@ router.use('/test-courses', testcourseRouter); // RESTful Alias
 router.use('/questionTest', questiontestRouter);
 router.use('/question-tests', questiontestRouter); // RESTful Alias
 
-router.use('/adminUser', AdminUserRouter);
-router.use('/admin-users', AdminUserRouter); // RESTful Alias
+router.use('/adminUser', adminUsersRouter);
+router.use('/admin-users', adminUsersRouter); // RESTful Alias
 
-router.use('/adminTest', AminTestRouter); 
-router.use('/admin-tests', AminTestRouter); // RESTful Alias
+router.use('/adminTest', adminTestsRouter); 
+router.use('/admin-tests', adminTestsRouter); // RESTful Alias
 
-router.use('/adminMetadata', AdminMetadataRouter);
-router.use('/admin-metadata', AdminMetadataRouter); // RESTful Alias
+router.use('/adminMetadata', adminMetadataRouter);
+router.use('/admin-metadata', adminMetadataRouter); // RESTful Alias
 
 router.use('/account', accountRouter);
 
-router.use('/statistical', statisticalRouter);
-router.use('/statistics', statisticalRouter); // RESTful Alias
+router.use('/statistical', statisticsRouter);
+router.use('/statistics', statisticsRouter); // RESTful Alias
 
 router.use('/', uploadRouter);
 router.use('/ml', mlRouter); 

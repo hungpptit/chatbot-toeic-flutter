@@ -25,7 +25,7 @@ class UserController extends GetxController {
   Future<void> fetchUsers() async {
     isLoading.value = true;
     try {
-      final response = await DioClient.dio.get('/admin-users/all');
+      final response = await DioClient.dio.get('/admin-users');
       if (response.statusCode == 200) {
         final resp = response.data;
         List<dynamic> dataList = [];
@@ -69,10 +69,8 @@ class UserController extends GetxController {
 
   Future<Map<String, dynamic>?> updateUser(dynamic id, Map<String, dynamic> payload) async {
     try {
-      // Admin route expects body with userId and fields
       final userId = id is String ? int.tryParse(id) ?? id : id;
-      final body = {'userId': userId, ...payload};
-      final response = await DioClient.dio.put('/admin-users/update', data: body);
+      final response = await DioClient.dio.patch('/admin-users/$userId', data: payload);
       if (response.statusCode == 200) {
         final updated = response.data['data'] ?? response.data;
         final idx = users.indexWhere((u) => u['id'] == id);
@@ -90,9 +88,8 @@ class UserController extends GetxController {
 
   Future<bool> deleteUser(dynamic id) async {
     try {
-      // Admin delete expects JSON body { userId }
       final userId = id is String ? int.tryParse(id) ?? id : id;
-      final response = await DioClient.dio.delete('/admin-users', data: {'userId': userId});
+      final response = await DioClient.dio.delete('/admin-users/$userId');
       if (response.statusCode == 200 || response.statusCode == 204) {
         users.removeWhere((u) => u['id'] == id);
         users.refresh();
@@ -108,7 +105,7 @@ class UserController extends GetxController {
   Future<bool> updateUserRole(dynamic userId, int newRoleId) async {
     try {
       final uid = userId is String ? int.tryParse(userId) ?? userId : userId;
-      final response = await DioClient.dio.put('/admin-users/role', data: {'userId': uid, 'newRoleId': newRoleId});
+      final response = await DioClient.dio.patch('/admin-users/$uid', data: {'role_id': newRoleId});
       if (response.statusCode == 200) {
         await fetchUsers();
         return true;
@@ -123,7 +120,7 @@ class UserController extends GetxController {
   Future<bool> lockUser(dynamic userId, bool newStatus) async {
     try {
       final uid = userId is String ? int.tryParse(userId) ?? userId : userId;
-      final response = await DioClient.dio.put('/admin-users/lock', data: {'userId': uid, 'newStatus': newStatus});
+      final response = await DioClient.dio.patch('/admin-users/$uid', data: {'status': newStatus});
       if (response.statusCode == 200) {
         await fetchUsers();
         return true;

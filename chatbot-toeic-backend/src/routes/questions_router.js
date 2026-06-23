@@ -1,4 +1,4 @@
-// routes/question_route.js
+// routes/questions_router.js
 import express from 'express';
 import { handleQuestionRequest } from '../controllers/question_controller.js';
 

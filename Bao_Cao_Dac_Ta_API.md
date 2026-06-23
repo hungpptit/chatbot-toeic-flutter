@@ -587,13 +587,13 @@ Hỗ trợ quản lý khóa học luyện thi TOEIC, ngân hàng câu hỏi, th�
 
 #### 4.3.2.15 API Nộp bài thi luyện tập tự do (Submit Practice Attempt)
 *   **HTTP Method:** `POST`
-*   **Endpoint:** `/api/v1/practice-attempts/submit`
-*   **Mô tả:** Nộp câu trả lời cho bài luyện tập tự do theo từng câu đơn lẻ.
+*   **Endpoint:** `/api/v1/tests/practice-attempts`
+*   **Mô tả:** Nộp câu trả lời cho bài luyện tập tự do theo từng câu hoặc danh sách câu hỏi để tạo lượt luyện tập mới.
 *   **Tham số yêu cầu:**
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
-    | `questionId` | Integer | Có | ID của câu hỏi luyện tập |
-    | `selectedAnswer`| String | Có | Đáp án lựa chọn của người học ('A', 'B', 'C', 'D') |
+    | `answers` | Array | Có | Mảng đáp án lựa chọn của người học (chứa `questionId` và `selectedAnswer`) |
+    | `timeSpent` | Integer | Có | Thời gian làm bài (giây) |
 *   **Phản hồi thành công (200 OK):**
     ```json
     {
@@ -772,48 +772,41 @@ Phụ trách quản lý lịch sử hội thoại và tương tác trực tiếp
     }
     ```
 
-#### 4.3.3.7 API Gửi tin nhắn mới (Send Message)
+#### 4.3.3.7 API Gửi tin nhắn và Hỏi Chatbot AI (Send Message / Ask Chatbot)
 *   **HTTP Method:** `POST`
 *   **Endpoint:** `/api/v1/conversations/:conversationId/messages`
-*   **Mô tả:** Ghi nhận một tin nhắn mới từ người dùng hoặc mô hình vào cơ sở dữ liệu (chỉ mang tính lưu trữ).
+*   **Mô tả:** Gửi tin nhắn vào cuộc hội thoại. API này hỗ trợ 2 cơ chế:
+    1. **Hỏi AI (Chatbot):** Gửi `rawText` để chatbot AI phân tích, giải thích và trả về câu trả lời.
+    2. **Lưu tin nhắn thủ công:** Gửi `role` và `content` để lưu trữ trực tiếp tin nhắn vào cơ sở dữ liệu.
 *   **Tham số yêu cầu:**
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
-    | `conversationId`| Integer | Có | Path Param - ID cuộc trò chuyện |
-    | `role` | String | Có | Vai trò người gửi ('user' hoặc 'model') |
-    | `content` | String | Có | Nội dung văn bản tin nhắn |
-*   **Phản hồi thành công (201 Created):**
-    ```json
-    {
-      "status": "success",
-      "data": {
-        "id": 1504,
-        "role": "user",
-        "content": "Phân biệt giúp mình 'affect' và 'effect' với!",
-        "timestamp": "2026-06-22T20:52:00.000Z"
-      }
-    }
-    ```
-
-#### 4.3.3.8 API Gửi câu hỏi cho Chatbot AI hỗ trợ giải thích (Ask Chatbot AI)
-*   **HTTP Method:** `POST`
-*   **Endpoint:** `/api/v1/conversations/:conversationId/ask`
-*   **Mô tả:** Gửi tin nhắn của người dùng đến mô hình AI để xử lý. API này tích hợp xử lý thông minh và gọi dịch vụ Gemini AI ở phía backend để trả về câu trả lời phân tích tiếng Anh trực tiếp cho Client.
-*   **Tham số yêu cầu:**
-    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
-    | :--- | :--- | :--- | :--- |
-    | `conversationId`| Integer | Có | Path Param - ID cuộc trò chuyện |
-    | `rawText` | String | Có | Câu hỏi/Nội dung văn bản yêu cầu giải thích |
-*   **Phản hồi thành công (200 OK):**
-    ```json
-    {
-      "status": "success",
-      "data": {
-        "response": "Chào bạn! Đây là cách phân biệt:\n1. 'Affect' (Động từ): Gây ảnh hưởng (Ví dụ: The weather affects my mood).\n2. 'Effect' (Danh từ): Sự ảnh hưởng/Tác động (Ví dụ: The drug has no side effects).",
-        "suggestions": ["Ví dụ thêm về 'affect'", "Bài tập phân biệt 'affect' & 'effect'"]
-      }
-    }
-    ```
+    | `rawText` | String | Không | Nội dung câu hỏi gửi tới AI (Nếu gửi trường này, hệ thống sẽ tự động kích hoạt chatbot) |
+    | `role` | String | Không | Vai trò người gửi ('user' hoặc 'model') khi lưu tin nhắn thủ công |
+    | `content` | String | Không | Nội dung tin nhắn khi lưu tin nhắn thủ công |
+*   **Phản hồi thành công (201 Created / 200 OK):**
+    *   **Trường hợp Hỏi AI (Chatbot):**
+        ```json
+        {
+          "status": "success",
+          "data": {
+            "response": "Chào bạn! Đây là cách phân biệt:\n1. 'Affect' (Động từ): Gây ảnh hưởng...\n2. 'Effect' (Danh từ): Sự ảnh hưởng...",
+            "suggestions": ["Ví dụ thêm về 'affect'", "Bài tập phân biệt 'affect' & 'effect'"]
+          }
+        }
+        ```
+    *   **Trường hợp lưu tin nhắn thủ công:**
+        ```json
+        {
+          "status": "success",
+          "data": {
+            "id": 1504,
+            "role": "user",
+            "content": "Phân biệt giúp mình 'affect' và 'effect' với!",
+            "timestamp": "2026-06-22T20:52:00.000Z"
+          }
+        }
+        ```
 
 ---
 
@@ -1224,12 +1217,9 @@ Module hỗ trợ quản lý phân quyền và kiểm soát tài khoản ngườ
 
 #### 4.3.9.1 API Lấy danh sách tất cả người dùng (Get All Users)
 *   **HTTP Method:** `GET`
-*   **Endpoint:** `/api/adminUser/all`
+*   **Endpoint:** `/api/admin-users`
 *   **Mô tả:** Lấy danh sách toàn bộ các tài khoản người dùng trong hệ thống.
-*   **Tham số yêu cầu:**
-    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
-    | :--- | :--- | :--- | :--- |
-    | Không có | - | - | - |
+*   **Tham số yêu cầu:** Không có.
 *   **Phản hồi thành công (200 OK):**
     ```json
     {
@@ -1241,45 +1231,37 @@ Module hỗ trợ quản lý phân quyền và kiểm soát tài khoản ngườ
     }
     ```
 
-#### 4.3.9.2 API Thay đổi vai trò người dùng (Update User Role)
-*   **HTTP Method:** `PUT`
-*   **Endpoint:** `/api/adminUser/role`
-*   **Mô tả:** Thay đổi phân quyền thành viên (Admin <-> User).
+#### 4.3.9.2 API Cập nhật/Chỉnh sửa thông tin người dùng (Update User - Role/Lock/General Info)
+*   **HTTP Method:** `PATCH`
+*   **Endpoint:** `/api/admin-users/{userId}`
+*   **Mô tả:** Cập nhật thông tin chi tiết của người dùng theo ID, bao gồm thay đổi vai trò (role), khóa/mở khóa tài khoản (lock status), hoặc thay đổi thông tin chung (username, email).
 *   **Tham số yêu cầu:**
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
-    | `userId` | Integer | Có | ID của người dùng cần thay đổi quyền |
-    | `newRoleId` | Integer | Có | ID vai trò mới (1: Student/User, 2: Admin) |
+    | `username` | String | Không | Tên tài khoản mới |
+    | `email` | String | Không | Địa chỉ email mới |
+    | `role_id` | Integer | Không | ID vai trò mới (1: Student/User, 2: Admin) |
+    | `status` | Boolean | Không | Trạng thái hoạt động tài khoản (`true` để kích hoạt, `false` để khóa) |
 *   **Phản hồi thành công (200 OK):**
     ```json
     {
       "status": "success",
-      "message": "User role updated successfully"
+      "message": "Cập nhật thông tin người dùng thành công",
+      "user": {
+        "id": 15,
+        "username": "tuanhung",
+        "email": "hung@example.com",
+        "role_id": 1,
+        "status": true
+      }
     }
     ```
 
-#### 4.3.9.3 API Khóa/Mở khóa tài khoản (Lock/Unlock User)
-*   **HTTP Method:** `PUT`
-*   **Endpoint:** `/api/adminUser/lock`
-*   **Mô tả:** Khóa hoặc kích hoạt lại tài khoản người dùng chỉ định.
-*   **Tham số yêu cầu:**
-    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
-    | :--- | :--- | :--- | :--- |
-    | `userId` | Integer | Có | ID của người dùng cần thay đổi trạng thái khóa |
-    | `newStatus` | Boolean | Có | Trạng thái khóa tài khoản (`true` để khóa, `false` để mở khóa) |
-*   **Phản hồi thành công (200 OK):**
-    ```json
-    {
-      "status": "success",
-      "message": "User lock status updated successfully"
-    }
-    ```
-
-#### 4.3.9.4 API Xóa tài khoản người dùng (Delete User)
+#### 4.3.9.3 API Xóa tài khoản người dùng (Delete User)
 *   **HTTP Method:** `DELETE`
-*   **Endpoint:** `/api/adminUser`
-*   **Mô tả:** Xóa vĩnh viễn tài khoản người dùng khỏi hệ thống.
-*   **Tham số yêu cầu:**
+*   **Endpoint:** `/api/admin-users/{userId}`
+*   **Mô tả:** Xóa vĩnh viễn tài khoản người dùng chỉ định ra khỏi hệ thống.
+*   **Tham số yêu cầu (Path Parameter):**
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
     | `userId` | Integer | Có | ID của người dùng cần xóa bỏ |
@@ -1287,27 +1269,7 @@ Module hỗ trợ quản lý phân quyền và kiểm soát tài khoản ngườ
     ```json
     {
       "status": "success",
-      "message": "User deleted successfully"
-    }
-    ```
-
-#### 4.3.9.5 API Cập nhật thông tin tài khoản người dùng (Update User)
-*   **HTTP Method:** `PUT`
-*   **Endpoint:** `/api/adminUser/update`
-*   **Mô tả:** Sửa đổi thông tin tài khoản tổng quát từ giao diện Admin.
-*   **Tham số yêu cầu:**
-    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
-    | :--- | :--- | :--- | :--- |
-    | `userId` | Integer | Có | ID của người dùng cần chỉnh sửa |
-    | `username` | String | Không | Tên tài khoản mới |
-    | `email` | String | Không | Địa chỉ email mới |
-    | `role_id` | Integer | Không | ID phân quyền mới |
-    | `status` | Boolean | Không | Trạng thái hoạt động (`true`/`false`) |
-*   **Phản hồi thành công (200 OK):**
-    ```json
-    {
-      "status": "success",
-      "message": "User profile updated successfully"
+      "message": "Xoá người dùng thành công"
     }
     ```
 

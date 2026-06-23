@@ -307,17 +307,31 @@ router.get('/test-attempts/:attemptId/result', authMiddleware, getAttemptResult)
 
 /**
  * @swagger
- * /api/v1/practice-attempts/submit:
+ * /api/v1/practice-attempts:
  *   post:
- *     summary: Nộp bài luyện tập
+ *     summary: Nộp bài luyện tập (Tạo lượt luyện tập)
  *     tags: [Test (v1)]
  *     security:
  *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [questionId, selectedAnswer]
+ *             properties:
+ *               questionId:
+ *                 type: integer
+ *               selectedAnswer:
+ *                 type: string
+ *                 enum: [A, B, C, D]
  *     responses:
  *       200:
  *         description: Thành công
  */
-router.post('/practice-attempts/submit', authMiddleware, submitPracticeAttempt);
+router.post('/practice-attempts', authMiddleware, submitPracticeAttempt);
+router.post('/practice-attempts/submit', authMiddleware, submitPracticeAttempt); // Legacy compatibility
 
 /**
  * @swagger

@@ -33,8 +33,10 @@ router.get('/', authMiddleware, getTestList);
 router.get('/question-types', authMiddleware, getQuestionTypes);
 router.get('/parts', authMiddleware, getParts);
 // Cập nhật tên Part và Question Type
-router.put('/parts/update', authMiddleware, updatePartNameController);
-router.put('/question-types/update', authMiddleware, updateQuestionTypeController);
+router.patch('/parts/:id', authMiddleware, updatePartNameController);
+router.patch('/question-types/:id', authMiddleware, updateQuestionTypeController);
+router.put('/parts/update', authMiddleware, updatePartNameController); // Legacy compatibility
+router.put('/question-types/update', authMiddleware, updateQuestionTypeController); // Legacy compatibility
 
 // Tạo / Xóa Part
 router.post('/parts', authMiddleware, createPartController);
@@ -45,7 +47,7 @@ router.post('/question-types', authMiddleware, createQuestionTypeController);
 router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeController);
 /**
  * @swagger
- * /api/admin-tests/createTestNew:
+ * /api/admin-tests:
  *   post:
  *     summary: Tạo bài thi mới (Hỗ trợ định dạng Flat và Mixed)
  *     description: |
@@ -100,10 +102,12 @@ router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeControlle
  *       400:
  *         description: Dữ liệu không hợp lệ
  */
-router.post('/createTestNew', authMiddleware, createNewTestController);
+router.post('/', authMiddleware, createNewTestController);
+router.post('/createTestNew', authMiddleware, createNewTestController); // Legacy compatibility
+
 /**
  * @swagger
- * /api/admin-tests/deleteTest/{testId}:
+ * /api/admin-tests/{testId}:
  *   delete:
  *     summary: Xóa bài thi theo ID
  *     description: Xóa đề thi cùng với các liên kết khóa học, lịch sử làm bài (UserTest) và liên kết câu hỏi liên quan.
@@ -125,7 +129,8 @@ router.post('/createTestNew', authMiddleware, createNewTestController);
  *       500:
  *         description: Lỗi hệ thống
  */
-router.delete('/deleteTest/:testId', authMiddleware, deleteTestByIdController);
+router.delete('/:testId', authMiddleware, deleteTestByIdController);
+router.delete('/deleteTest/:testId', authMiddleware, deleteTestByIdController); // Legacy compatibility
 
 
 router.post('/tests/generate-missing-embeddings', generateMissingEmbeddingsController);

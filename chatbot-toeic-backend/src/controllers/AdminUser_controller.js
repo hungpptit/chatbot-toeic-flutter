@@ -22,7 +22,8 @@ const getAllUserController = async (req, res) =>{
 const updateUserRoleController = async (req, res) => {
   try {
     const callerId = req.user?.id;
-    const { userId, newRoleId } = req.body;
+    const userId = req.params.userId || req.body.userId;
+    const { newRoleId } = req.body;
 
     if (!callerId) {
       return res.status(401).json({ message: "Unauthorized: Missing user id" });
@@ -50,7 +51,7 @@ const updateUserRoleController = async (req, res) => {
 const deleteUserController = async (req, res) => {
   try {
     const callerId = req.user?.id;
-    const { userId } = req.body;
+    const userId = req.params.userId || req.body.userId;
 
     if (!callerId) {
       return res.status(401).json({ message: "Unauthorized: Missing user id" });
@@ -78,7 +79,8 @@ const deleteUserController = async (req, res) => {
 const lockUserController = async (req, res) => {
   try {
     const callerId = req.user?.id;
-    const { userId, newStatus } = req.body;
+    const userId = req.params.userId || req.body.userId;
+    const { newStatus } = req.body;
 
     if (!callerId) {
       return res.status(401).json({ message: "Unauthorized: Missing user id" });
@@ -105,7 +107,8 @@ const lockUserController = async (req, res) => {
 const updateUserController = async (req, res) => {
   try {
     const callerId = req.user?.id;
-    const { userId, username, email, role_id, status } = req.body;
+    const userId = req.params.userId || req.body.userId;
+    const { username, email, role_id, status } = req.body;
 
     if (!callerId) {
       return res.status(401).json({ message: "Unauthorized: Missing user id" });

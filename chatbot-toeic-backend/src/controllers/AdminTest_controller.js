@@ -203,7 +203,8 @@ const deleteTestByIdController = async (req, res) => {
 
 const updatePartNameController = async (req, res) => {
   try {
-    const { partId, name } = req.body;
+    const partId = req.params.id || req.body.partId;
+    const { name } = req.body;
 
     if (!name || typeof name !== "string") {
       return res.status(400).json({ message: "Tên khóa học không hợp lệ." });
@@ -225,7 +226,8 @@ const updatePartNameController = async (req, res) => {
 };
 const updateQuestionTypeController = async (req, res) => {
   try {
-    const { typeId, name, description } = req.body;
+    const typeId = req.params.id || req.body.typeId;
+    const { name, description } = req.body;
 
     if (!name || typeof name !== "string") {
       return res.status(400).json({ message: "Tên loại câu hỏi không hợp lệ." });
