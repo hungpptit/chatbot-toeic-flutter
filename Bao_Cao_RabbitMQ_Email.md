@@ -53,7 +53,7 @@ SMTP --> User : Người dùng nhận Email OTP
 ### 3.1 Cấu hình Biến Môi trường (`.env`)
 Thêm tham số kết nối bảo mật đến máy chủ CloudAMQP:
 ```ini
-RABBITMQ_URL=amqps://zyexyaoy:568Qwgve90HyzeOp652YlfqvnjAeDUlA@armadillo.rmq.cloudamqp.com/zyexyaoy
+RABBITMQ_URL=amqps://zyexyaoy:***@armadillo.rmq.cloudamqp.com/zyexyaoy
 ```
 
 ### 3.2 Lớp dịch vụ RabbitMQ (`src/services/rabbitmq_service.js`)
