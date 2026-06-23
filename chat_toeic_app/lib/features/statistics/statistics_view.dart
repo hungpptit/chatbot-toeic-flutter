@@ -7,6 +7,7 @@ import 'package:chat_toeic_app/features/auth/auth_controller.dart';
 import 'package:chat_toeic_app/features/test/test_controller.dart';
 import 'package:chat_toeic_app/core/api/dio_client.dart';
 import 'package:chat_toeic_app/widgets/nav_bar.dart';
+import 'package:dio/dio.dart';
 
 class StatisticsView extends StatelessWidget {
   const StatisticsView({super.key});
@@ -97,7 +98,13 @@ class StatisticsView extends StatelessWidget {
                     final userId = user['id'].toString();
                     final loading = Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-                    final resp = await DioClient.dio.get('/ml/recommend/details/$userId');
+                    final resp = await DioClient.dio.get(
+                      '/ml/recommend/details/$userId',
+                      options: Options(
+                        connectTimeout: const Duration(seconds: 90),
+                        receiveTimeout: const Duration(seconds: 90),
+                      ),
+                    );
                     Get.back(); // close loading
 
                     if (resp.statusCode == 200 && resp.data != null && resp.data['data'] != null) {

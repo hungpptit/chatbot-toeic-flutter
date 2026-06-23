@@ -8,6 +8,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import axios from 'axios';
 import db from '../models/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,97 +44,150 @@ export async function triggerMLPredictionAsync(userId) {
  * @returns {Promise<object>} Prediction result
  */
 async function runPythonPrediction(userId) {
-  const mlScriptPath = path.join(__dirname, '../../ml/predict_hybrid_unified.py');
-  const outFileName = `result_user_${userId}_${Date.now()}.json`;
-  const outPath = path.join(os.tmpdir(), outFileName);
-
-  const pythonArgs = [mlScriptPath, userId.toString(), '--quiet', '--out', outPath];
+  const mlPort = process.env.ML_PORT || 5000;
+  const mlUrl = `http://localhost:${mlPort}/predict/${userId}`;
   
-  return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('python', pythonArgs, {
-      stdio: ['ignore', 'ignore', 'pipe']
+  try {
+    console.log(`🤖 [Background HTTP] Triggering ML prediction for user ${userId} via ${mlUrl}`);
+    const response = await axios.get(mlUrl, { timeout: 10000 });
+    const result = response.data;
+    
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    
+    const questionIds = [];
+    const recommendations = result.recommendations || {};
+    Object.values(recommendations).forEach(questions => {
+      questions.forEach(q => {
+        if (q.id && !questionIds.includes(q.id)) {
+          questionIds.push(q.id);
+        }
+      });
     });
 
-    let errorString = '';
-    pythonProcess.stderr.on('data', (data) => {
-      errorString += data.toString();
+    const existingPrediction = await db.MLPrediction.findOne({ where: { userId } });
+    const payload = {
+      userId: userId,
+      weakSkills: result.weak_skills || [],
+      questionIds: questionIds,
+      confidence: 0.8,
+      totalAttempts: 0,
+      overallAccuracy: null,
+      updatedAt: db.sequelize.literal('GETDATE()')
+    };
+
+    if (existingPrediction) {
+      await existingPrediction.update(payload);
+    } else {
+      await db.MLPrediction.create({
+        ...payload,
+        createdAt: db.sequelize.literal('GETDATE()')
+      });
+    }
+
+    await db.MLPredictionHistory.create({
+      userId: userId,
+      weakSkills: result.weak_skills || [],
+      questionIds: questionIds,
+      confidence: 0.8
     });
 
-    pythonProcess.on('close', async (code) => {
-      if (code !== 0) {
-        console.error('Python prediction error:', errorString);
-        return reject(new Error(`Python script exited with code ${code}`));
-      }
+    console.log(`✅ [Background HTTP] Saved ML prediction to database for user ${userId}`);
+    return {
+      userId,
+      weakSkills: result.weak_skills || [],
+      questionIds: questionIds,
+      confidence: 0.8
+    };
+  } catch (httpError) {
+    console.warn(`⚠️ [Background HTTP] ML HTTP service failed or unavailable (${httpError.message}). Falling back to CLI spawn...`);
+    
+    const mlScriptPath = path.join(__dirname, '../../ml/predict_hybrid_unified.py');
+    const outFileName = `result_user_${userId}_${Date.now()}.json`;
+    const outPath = path.join(os.tmpdir(), outFileName);
 
-      try {
-        const raw = await fs.readFile(outPath, { encoding: 'utf-8' });
-        const result = JSON.parse(raw);
+    const pythonArgs = [mlScriptPath, userId.toString(), '--quiet', '--out', outPath];
+    
+    return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python', pythonArgs, {
+        stdio: ['ignore', 'ignore', 'pipe']
+      });
 
-        // Extract question IDs from recommendations
-        const questionIds = [];
-        const recommendations = result.recommendations || {};
-        Object.values(recommendations).forEach(questions => {
-          questions.forEach(q => {
-            if (q.id && !questionIds.includes(q.id)) {
-              questionIds.push(q.id);
-            }
-          });
-        });
+      let errorString = '';
+      pythonProcess.stderr.on('data', (data) => {
+        errorString += data.toString();
+      });
 
-        // Save to MLPredictions without Sequelize MSSQL upsert (avoids date conversion issues)
-        const existingPrediction = await db.MLPrediction.findOne({ where: { userId } });
-        const payload = {
-          userId: userId,
-          weakSkills: result.weak_skills || [],
-          questionIds: questionIds,
-          confidence: 0.8,
-          totalAttempts: 0,
-          overallAccuracy: null,
-          updatedAt: db.sequelize.literal('GETDATE()')
-        };
-
-        if (existingPrediction) {
-          await existingPrediction.update(payload);
-        } else {
-          await db.MLPrediction.create({
-            ...payload,
-            createdAt: db.sequelize.literal('GETDATE()')
-          });
+      pythonProcess.on('close', async (code) => {
+        if (code !== 0) {
+          console.error('Python prediction error:', errorString);
+          return reject(new Error(`Python script exited with code ${code}`));
         }
 
-        // Save to MLPredictionHistory (always insert new record)
-        await db.MLPredictionHistory.create({
-          userId: userId,
-          weakSkills: result.weak_skills || [],
-          questionIds: questionIds,
-          confidence: 0.8
-          // Do NOT set createdAt - let SQL Server default (getdate()) handle it
-        });
+        try {
+          const raw = await fs.readFile(outPath, { encoding: 'utf-8' });
+          const result = JSON.parse(raw);
 
-        console.log(`✅ Saved ML prediction to database for user ${userId}`);
+          const questionIds = [];
+          const recommendations = result.recommendations || {};
+          Object.values(recommendations).forEach(questions => {
+            questions.forEach(q => {
+              if (q.id && !questionIds.includes(q.id)) {
+                questionIds.push(q.id);
+              }
+            });
+          });
 
-        // Clean up temp file
-        try { 
-          await fs.unlink(outPath); 
-        } catch (e) { 
-          // Ignore cleanup errors
+          const existingPrediction = await db.MLPrediction.findOne({ where: { userId } });
+          const payload = {
+            userId: userId,
+            weakSkills: result.weak_skills || [],
+            questionIds: questionIds,
+            confidence: 0.8,
+            totalAttempts: 0,
+            overallAccuracy: null,
+            updatedAt: db.sequelize.literal('GETDATE()')
+          };
+
+          if (existingPrediction) {
+            await existingPrediction.update(payload);
+          } else {
+            await db.MLPrediction.create({
+              ...payload,
+              createdAt: db.sequelize.literal('GETDATE()')
+            });
+          }
+
+          await db.MLPredictionHistory.create({
+            userId: userId,
+            weakSkills: result.weak_skills || [],
+            questionIds: questionIds,
+            confidence: 0.8
+          });
+
+          console.log(`✅ Saved ML prediction to database for user ${userId}`);
+
+          try { 
+            await fs.unlink(outPath); 
+          } catch (e) {}
+
+          resolve({
+            userId,
+            weakSkills: result.weak_skills || [],
+            questionIds: questionIds,
+            confidence: 0.8
+          });
+        } catch (parseError) {
+          console.error('Failed to read/parse Python output:', parseError);
+          reject(parseError);
         }
+      });
 
-        resolve({
-          userId,
-          weakSkills: result.weak_skills || [],
-          questionIds: questionIds,
-          confidence: 0.8
-        });
-      } catch (parseError) {
-        console.error('Failed to read/parse Python output:', parseError);
-        reject(parseError);
-      }
+      pythonProcess.on('error', (error) => {
+        console.error('Failed to spawn Python process:', error);
+        reject(error);
+      });
     });
-
-    pythonProcess.on('error', (error) => {
-      console.error('Failed to spawn Python process:', error);
-      reject(error);
-    });
-  });
+  }
 }

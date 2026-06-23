@@ -12,6 +12,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import { errorHandler } from './utils/response.js';
 import { initRabbitMQ } from './services/rabbitmq_service.js';
+import { startMLService } from './services/mlServiceManager.js';
 
 
 const app = express();
@@ -119,4 +120,5 @@ import "./cronJobs/mlRetrainCron.js"; // ✅ Auto-retrain ML models every 6 hour
 app.listen(port || 8080, '0.0.0.0', () => {
   console.log(`✅ Backend server listening on http://0.0.0.0:${port || 8080}`);
   console.log(`📚 Swagger API Docs: http://localhost:${port || 8080}/api/docs`);
+  startMLService(); // Start Python ML Microservice
 });

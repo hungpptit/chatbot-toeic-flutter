@@ -395,34 +395,21 @@ def full_pipeline(userId: int, k: int = 3):
             print(f"   ⚠️ Không tìm thấy câu hỏi cho skill {skill}")
             continue
         
-        # Recommend similar questions
-        all_suggestions = {}  # Key: question ID
-        seen_content = set()  # Track unique content
-        
-        for _, q in questions_df.head(20).iterrows():  # Tăng lên 20 anchor để đảm bảo đủ 30 unique
-            similar_json = recommend_questions(q['id'], k=k)
-            if similar_json:
-                try:
-                    similar = json.loads(similar_json)
-                    for s in similar:
-                        # ✅ DEDUPLICATE: Skip nếu content đã tồn tại
-                        content_normalized = s['question'].strip() if s.get('question') else ''
-                        if content_normalized and content_normalized not in seen_content:
-                            all_suggestions[s['id']] = {
-                                "id": s['id'],
-                                "question": s['question']
-                            }
-                            seen_content.add(content_normalized)
-                except Exception as e:
-                    print(f"⚠️ Parse error: {e}")
-                    pass
-            
-            # Early exit nếu đã đủ 30 unique questions
+        # Recommend questions - Optimized: Select unique questions directly from the database query pool
+        all_suggestions = {}
+        seen_content = set()
+        for _, q in questions_df.iterrows():
+            content_normalized = q['question'].strip() if q.get('question') else ''
+            if content_normalized and content_normalized not in seen_content:
+                all_suggestions[q['id']] = {
+                    "id": int(q['id']),
+                    "question": q['question']
+                }
+                seen_content.add(content_normalized)
             if len(all_suggestions) >= 30:
                 break
-
         
-        recommendations[skill] = list(all_suggestions.values())[:30]  # Top 30 questions
+        recommendations[skill] = list(all_suggestions.values())
         print(f"   ✅ Tìm được {len(recommendations[skill])} câu hỏi unique (deduplicated)")
     
     conn.close()
