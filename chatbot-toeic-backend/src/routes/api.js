@@ -11,6 +11,7 @@ import testV1Router from './test_v1_router.js';
 import chatbotV1Router from './chatbot_v1_router.js';
 import statsV1Router from './stats_v1_router.js';
 import uploadV1Router from './upload_v1_router.js';
+import paymentV1Router from './payment_v1_router.js';
 
 import coursesRouter from './course_router.js';
 import testcourseRouter from './test_course_router.js';
@@ -33,6 +34,7 @@ router.use('/v1/courses', courseV1Router);
 router.use('/v1/tests', testV1Router);
 router.use('/v1/statistics', statsV1Router);
 router.use('/v1/uploads', uploadV1Router);
+router.use('/v1/payments', paymentV1Router);
 router.use('/v1', chatbotV1Router); // Handles /v1/users/me/conversations and /v1/conversations
 
 // === Legacy API (Backward Compatibility) ===

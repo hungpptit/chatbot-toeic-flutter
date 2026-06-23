@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:chat_toeic_app/core/api/dio_client.dart';
 
 class ChatController extends GetxController {
@@ -8,6 +9,19 @@ class ChatController extends GetxController {
   var conversations = <Map<String, dynamic>>[].obs;
   var messages = <Map<String, dynamic>>[].obs;
   var currentConversationId = Rxn<int>();
+
+  // VIP Subscription state
+  var isVip = false.obs;
+  var vipExpireAt = Rxn<DateTime>();
+  var chatLimitToday = 15.obs;
+  var chatCountToday = 0.obs;
+  var remainingChatsToday = 15.obs;
+
+  var subscriptions = <Map<String, dynamic>>[].obs;
+  var isGeneratingQr = false.obs;
+  var paymentUrl = ''.obs;
+  var paymentOrderId = ''.obs;
+  var selectedSubId = Rxn<int>();
   
   final messageController = TextEditingController();
   final scrollController = ScrollController();
@@ -15,7 +29,81 @@ class ChatController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    checkVipStatus();
+    fetchSubscriptions();
     fetchConversations();
+  }
+
+  Future<void> checkVipStatus() async {
+    try {
+      final response = await DioClient.dio.get('/v1/payments/vip-status');
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        isVip.value = data['isVip'] ?? false;
+        if (data['vipExpireAt'] != null) {
+          vipExpireAt.value = DateTime.tryParse(data['vipExpireAt']);
+        } else {
+          vipExpireAt.value = null;
+        }
+        chatLimitToday.value = data['chatLimitToday'] ?? 15;
+        chatCountToday.value = data['chatCountToday'] ?? 0;
+        remainingChatsToday.value = data['remainingChatsToday'] ?? 15;
+      }
+    } catch (e) {
+      print('Error checking VIP status: $e');
+    }
+  }
+
+  Future<void> fetchSubscriptions() async {
+    try {
+      final response = await DioClient.dio.get('/v1/payments/subscriptions');
+      if (response.statusCode == 200) {
+        subscriptions.value = (response.data['data'] as List).cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      print('Error fetching subscriptions: $e');
+    }
+  }
+
+  Future<void> createPayment(int subId, String gateway) async {
+    isGeneratingQr.value = true;
+    try {
+      final response = await DioClient.dio.post('/v1/payments/create', data: {
+        'subscriptionId': subId,
+        'paymentGateway': gateway,
+      });
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        paymentUrl.value = data['paymentUrl'] ?? '';
+        paymentOrderId.value = data['orderId'] ?? '';
+        selectedSubId.value = subId;
+      }
+    } catch (e) {
+      Get.snackbar('Lỗi', 'Không thể khởi tạo thanh toán: $e');
+    } finally {
+      isGeneratingQr.value = false;
+    }
+  }
+
+  Future<void> verifyPayment() async {
+    await checkVipStatus();
+    if (isVip.value) {
+      Get.snackbar('Thành công', 'Tài khoản của bạn đã được nâng cấp lên VIP!',
+          backgroundColor: Colors.green, colorText: Colors.white);
+      // Reset variables
+      paymentUrl.value = '';
+      paymentOrderId.value = '';
+      selectedSubId.value = null;
+    } else {
+      Get.snackbar('Thông báo', 'Hệ thống chưa nhận được thanh toán của bạn. Vui lòng quét mã QR hoặc thử lại.',
+          backgroundColor: Colors.amber, colorText: Colors.black);
+    }
+  }
+
+  void cancelPayment() {
+    paymentUrl.value = '';
+    paymentOrderId.value = '';
+    selectedSubId.value = null;
   }
 
   Future<void> fetchConversations() async {
@@ -105,6 +193,16 @@ class ChatController extends GetxController {
   Future<void> sendMessage() async {
     final text = messageController.text.trim();
     if (text.isEmpty || currentConversationId.value == null) return;
+
+    if (!isVip.value && remainingChatsToday.value <= 0) {
+      Get.snackbar(
+        'Hết lượt chat miễn phí',
+        'Bạn đã dùng hết 15 tin nhắn miễn phí hôm nay. Vui lòng đăng ký VIP để tiếp tục.',
+        backgroundColor: Colors.orangeAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
     
     // Optimistic UI update
     final userMessage = {'role': 'user', 'content': text};
@@ -139,6 +237,12 @@ class ChatController extends GetxController {
             'role': 'model',
             'content': content,
           });
+
+          // Cập nhật lượt chat còn lại trên giao diện
+          if (!isVip.value) {
+            remainingChatsToday.value = (remainingChatsToday.value - 1).clamp(0, 15);
+            chatCountToday.value = (chatCountToday.value + 1).clamp(0, 15);
+          }
         } else {
           // Fallback: reload messages if result format is unexpected
           await fetchMessages(currentConversationId.value!);
@@ -147,7 +251,18 @@ class ChatController extends GetxController {
       }
     } catch (e) {
       print('Error sending message: $e');
-      Get.snackbar('Lỗi', 'Không thể gửi tin nhắn. Vui lòng thử lại.');
+      if (e is DioException && e.response?.statusCode == 403) {
+        messages.removeLast(); // Xóa tin nhắn gửi lỗi
+        await checkVipStatus(); // Cập nhật lại trạng thái chính xác
+        Get.snackbar(
+          'Đạt giới hạn',
+          'Bạn đã hết lượt chat miễn phí hôm nay. Vui lòng đăng ký gói VIP.',
+          backgroundColor: Colors.orangeAccent,
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar('Lỗi', 'Không thể gửi tin nhắn. Vui lòng thử lại.');
+      }
     } finally {
       isSending.value = false;
     }

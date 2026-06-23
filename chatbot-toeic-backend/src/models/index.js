@@ -17,6 +17,7 @@ const sequelize = new Sequelize(
       options: {
         encrypt: process.env.DB_ENCRYPT === 'true',
         trustServerCertificate: true,
+        useUTC: false,
       },
     },
     pool: {
@@ -78,6 +79,9 @@ const initDb = async () => {
   db.QuestionMediaMap = (await import('./QuestionMediaMap.js')).default(sequelize, Sequelize.DataTypes);
   db.MLPrediction = (await import('./MLPrediction.js')).default(sequelize, Sequelize.DataTypes);
   db.MLPredictionHistory = (await import('./MLPredictionHistory.js')).default(sequelize, Sequelize.DataTypes);
+  db.Subscription = (await import('./Subscription.js')).default(sequelize, Sequelize.DataTypes);
+  db.UserSubscription = (await import('./UserSubscription.js')).default(sequelize, Sequelize.DataTypes);
+  db.Transaction = (await import('./Transaction.js')).default(sequelize, Sequelize.DataTypes);
 
 
   // ✅ Gắn associations (nếu có)

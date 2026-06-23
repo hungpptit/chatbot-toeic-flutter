@@ -8,7 +8,8 @@ export default (sequelize, DataTypes) => {
       User.hasMany(models.UserResult, { foreignKey: 'userId', onDelete: 'CASCADE' });
       User.hasMany(models.Log, { foreignKey: 'userId', onDelete: 'CASCADE' });
       User.hasMany(models.UserTest, { foreignKey: 'userId', onDelete: 'CASCADE' });
-
+      User.hasMany(models.UserSubscription, { foreignKey: 'userId', onDelete: 'CASCADE' });
+      User.hasMany(models.Transaction, { foreignKey: 'userId', onDelete: 'CASCADE' });
     }
   }
 
@@ -38,8 +39,16 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
-      
-    }
+    },
+  isVip: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  vipExpireAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  }
 }, {
   sequelize,
   modelName: 'User',

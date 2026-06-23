@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:chat_toeic_app/features/chat/chat_controller.dart';
 import 'package:chat_toeic_app/widgets/nav_bar.dart';
 import 'package:chat_toeic_app/features/auth/auth_controller.dart';
+import 'package:chat_toeic_app/core/api/dio_client.dart';
 
 class ChatView extends StatelessWidget {
   const ChatView({super.key});
@@ -32,18 +33,36 @@ class ChatView extends StatelessWidget {
                 
                 // Main Chat Area (Right)
                 Expanded(
-                  child: Column(
-                    children: [
-                      // Header
-                      _buildChatHeader(controller, isMobile: isMobile),
-                      
-                      // Messages
-                      Expanded(child: _buildMessageList(controller, isMobile: isMobile)),
-                      
-                      // Input Area
-                      _buildInputArea(controller, isMobile: isMobile),
-                    ],
-                  ),
+                  child: Obx(() {
+                    final noChatsLeft = !controller.isVip.value && controller.remainingChatsToday.value <= 0;
+                    
+                    return Column(
+                      children: [
+                        // Header
+                        _buildChatHeader(controller, isMobile: isMobile, context: context),
+                        
+                        if (noChatsLeft)
+                          Expanded(
+                            child: Center(
+                              child: Container(
+                                constraints: const BoxConstraints(maxWidth: 550),
+                                padding: const EdgeInsets.all(24),
+                                child: SingleChildScrollView(
+                                  child: _buildUpgradePanel(controller, context),
+                                ),
+                              ),
+                            ),
+                          )
+                        else ...[
+                          // Messages
+                          Expanded(child: _buildMessageList(controller, isMobile: isMobile)),
+                          
+                          // Input Area
+                          _buildInputArea(controller, isMobile: isMobile),
+                        ]
+                      ],
+                    );
+                  }),
                 ),
               ],
             ),
@@ -243,7 +262,7 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget _buildChatHeader(ChatController controller, {bool isMobile = false}) {
+  Widget _buildChatHeader(ChatController controller, {bool isMobile = false, required BuildContext context}) {
     return Container(
       height: 60,
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24),
@@ -268,6 +287,72 @@ class ChatView extends StatelessWidget {
             );
           }),
           const Spacer(),
+          
+          // VIP Status Badge & Upgrade Button
+          Obx(() {
+            if (controller.isVip.value) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(LucideIcons.crown, size: 14, color: Colors.white),
+                    SizedBox(width: 4),
+                    Text('VIP ACTIVE', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              );
+            } else {
+              return Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Text(
+                      'Free (${controller.remainingChatsToday.value}/15)',
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => Dialog(
+                          backgroundColor: const Color(0xFF1E293B),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 500),
+                            padding: const EdgeInsets.all(24),
+                            child: SingleChildScrollView(
+                              child: _buildUpgradePanel(controller, ctx),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(LucideIcons.crown, size: 14, color: Colors.white),
+                    label: const Text('Lên VIP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      backgroundColor: const Color(0xFF6366F1),
+                    ),
+                  ),
+                ],
+              );
+            }
+          }),
+          
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(LucideIcons.share2, size: 20, color: Color(0xFF94A3B8)),
             onPressed: () {},
@@ -275,6 +360,226 @@ class ChatView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildUpgradePanel(ChatController controller, BuildContext context) {
+    final selectedPlanId = Rxn<int>();
+    
+    // Set initial selection if available
+    if (controller.subscriptions.isNotEmpty) {
+      selectedPlanId.value = controller.subscriptions.first['id'];
+    }
+
+    return Obx(() {
+      // If QR code is generated, show the payment view
+      if (controller.paymentUrl.value.isNotEmpty) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(LucideIcons.wallet, size: 48, color: Color(0xFF6366F1)),
+            const SizedBox(height: 16),
+            const Text(
+              'Thanh toán qua ZaloPay',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Mã đơn hàng: ${controller.paymentOrderId.value}',
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            
+            // QR Code
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Image.network(
+                'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${Uri.encodeComponent(controller.paymentUrl.value)}',
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Mở ứng dụng ZaloPay quét mã QR để thanh toán',
+              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            
+            // Control buttons
+            ElevatedButton.icon(
+              onPressed: () async {
+                await controller.verifyPayment();
+                if (controller.isVip.value) {
+                  Navigator.of(context).pop(); // Đóng dialog nếu đang mở
+                }
+              },
+              icon: const Icon(LucideIcons.checkCircle, size: 18),
+              label: const Text('Tôi đã thanh toán thành công'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                minimumSize: const Size(double.infinity, 45),
+              ),
+            ),
+
+            TextButton(
+              onPressed: () => controller.cancelPayment(),
+              child: const Text('Quay lại chọn gói khác', style: TextStyle(color: Color(0xFFEF4444))),
+            ),
+          ],
+        );
+      }
+
+      // Default Packages list
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(LucideIcons.crown, size: 40, color: Color(0xFF6366F1)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Center(
+            child: Text(
+              'Nâng Cấp VIP Chatbot',
+              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Center(
+            child: Text(
+              'Trò chuyện không giới hạn và mở khóa tất cả tính năng AI',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          const Text('Chọn gói đăng ký của bạn:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
+
+          // Render Packages
+          if (controller.subscriptions.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            ...controller.subscriptions.map((sub) {
+              final id = sub['id'] as int;
+              final name = sub['name'] ?? '';
+              final price = sub['price'];
+              final duration = sub['durationDays'] ?? 30;
+              final description = sub['description'] ?? '';
+              
+              // Set selected defaults if not set
+              if (selectedPlanId.value == null) {
+                selectedPlanId.value = id;
+              }
+              
+              return Obx(() {
+                final isSelected = selectedPlanId.value == id;
+                return GestureDetector(
+                  onTap: () => selectedPlanId.value = id,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF6366F1) : Colors.white.withOpacity(0.05),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                          color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF475569),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                description.isNotEmpty ? description : 'Thời hạn sử dụng $duration ngày',
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          _formatPrice(price),
+                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              });
+            }).toList(),
+            
+          const SizedBox(height: 24),
+          
+          // Action buttons
+          Obx(() {
+            final activeId = selectedPlanId.value;
+            if (activeId == null) return const SizedBox.shrink();
+            
+            return controller.isGeneratingQr.value
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => controller.createPayment(activeId, 'zalopay'),
+                        icon: const Icon(LucideIcons.qrCode),
+                        label: const Text('Thanh toán ZaloPay (Mã QR động)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    
+                    ],
+                  );
+          }),
+        ],
+      );
+    });
+  }
+
+  String _formatPrice(dynamic price) {
+    if (price == null) return '0đ';
+    final numPrice = double.tryParse(price.toString()) ?? 0;
+    final str = numPrice.toInt().toString();
+    if (str.length > 3) {
+      return str.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.') + 'đ';
+    }
+    return '$strđ';
   }
 
   Widget _buildMessageList(ChatController controller, {bool isMobile = false}) {

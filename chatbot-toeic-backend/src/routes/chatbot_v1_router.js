@@ -10,6 +10,7 @@ import {
     askChatbot
 } from '../controllers/chatbot_v1_controller.js';
 import { authMiddleware } from '../Middleware/authMiddleware.js';
+import { vipCheckMiddleware } from '../Middleware/vipCheckMiddleware.js';
 
 const router = express.Router();
 
@@ -158,6 +159,6 @@ router.post('/conversations/:conversationId/messages', authMiddleware, createMes
  *       200:
  *         description: Thành công
  */
-router.post('/conversations/:conversationId/ask', authMiddleware, askChatbot);
+router.post('/conversations/:conversationId/ask', authMiddleware, vipCheckMiddleware, askChatbot);
 
 export default router;
