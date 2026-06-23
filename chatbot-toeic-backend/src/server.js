@@ -11,6 +11,7 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import { errorHandler } from './utils/response.js';
+import { initRabbitMQ } from './services/rabbitmq_service.js';
 
 
 const app = express();
@@ -111,6 +112,7 @@ app.use(errorHandler);
 
 // Test kết nối database
 db.connectToDB();
+initRabbitMQ();
 import "./cronJobs/embeddingCron.js";
 import "./cronJobs/mlRetrainCron.js"; // ✅ Auto-retrain ML models every 6 hours
 

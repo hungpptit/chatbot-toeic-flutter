@@ -1310,3 +1310,96 @@ Module hỗ trợ quản lý phân quyền và kiểm soát tài khoản ngườ
       "message": "User profile updated successfully"
     }
     ```
+
+---
+
+### 4.3.10 Module Thanh toán và Gói cước VIP (Payment & VIP Subscription)
+Cung cấp các API phục vụ tích hợp cổng thanh toán (ZaloPay, MoMo) để nâng cấp tài khoản VIP của người dùng.
+
+#### 4.3.10.1 API Lấy danh sách gói cước VIP (Get VIP Subscriptions)
+*   **HTTP Method:** `GET`
+*   **Endpoint:** `/api/v1/payments/subscriptions`
+*   **Mô tả:** Lấy toàn bộ danh sách các gói cước VIP hiện có hỗ trợ trong hệ thống.
+*   **Tham số yêu cầu:** Không có.
+*   **Phản hồi thành công (200 OK):**
+    ```json
+    {
+      "status": "success",
+      "message": "Lấy danh sách gói cước thành công",
+      "data": [
+        {
+          "id": 1,
+          "name": "Gói VIP 1 Tháng",
+          "price": "99000.00",
+          "durationDays": 30,
+          "description": "Thời hạn sử dụng 30 ngày"
+        }
+      ]
+    }
+    ```
+
+#### 4.3.10.2 API Lấy trạng thái VIP hiện tại (Get VIP Status)
+*   **HTTP Method:** `GET`
+*   **Endpoint:** `/api/v1/payments/vip-status`
+*   **Mô tả:** Lấy thông tin trạng thái VIP, ngày hết hạn và số lượt chat còn lại trong ngày của tài khoản hiện tại.
+*   **Yêu cầu xác thực:** Đính kèm Access Token trong Authorization header.
+*   **Tham số yêu cầu:** Không có.
+*   **Phản hồi thành công (200 OK):**
+    ```json
+    {
+      "status": "success",
+      "message": "Lấy trạng thái tài khoản thành công",
+      "data": {
+        "userId": 6,
+        "isVip": true,
+        "vipExpireAt": "2026-07-23T18:14:15.175Z",
+        "chatLimitToday": -1,
+        "chatCountToday": 5,
+        "remainingChatsToday": -1
+      }
+    }
+    ```
+
+#### 4.3.10.3 API Khởi tạo giao dịch thanh toán (Create Payment Order)
+*   **HTTP Method:** `POST`
+*   **Endpoint:** `/api/v1/payments/create`
+*   **Mô tả:** Tạo đơn hàng thanh toán nâng cấp VIP và sinh link thanh toán/mã QR của cổng thanh toán tương ứng.
+*   **Yêu cầu xác thực:** Đính kèm Access Token trong Authorization header.
+*   **Tham số yêu cầu:**
+    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
+    | :--- | :--- | :--- | :--- |
+    | `subscriptionId` | Integer | Có | ID của gói cước VIP người dùng chọn |
+    | `paymentGateway` | String | Có | Cổng thanh toán muốn sử dụng (`zalopay` hoặc `momo`) |
+    | `returnUrl` | String | Không | URL để chuyển hướng người dùng sau khi giao dịch hoàn tất trên giao diện Web |
+*   **Phản hồi thành công (200 OK):**
+    ```json
+    {
+      "status": "success",
+      "message": "Khởi tạo thanh toán thành công",
+      "data": {
+        "transactionId": 12,
+        "orderId": "260623_VIP_6_1782213227183",
+        "amount": 99000,
+        "paymentGateway": "zalopay",
+        "paymentUrl": "https://sb-openapi.zalopay.vn/v2/checkout?order=..."
+      }
+    }
+    ```
+
+#### 4.3.10.4 Webhook nhận kết quả thanh toán từ ZaloPay (ZaloPay Callback)
+*   **HTTP Method:** `POST`
+*   **Endpoint:** `/api/v1/payments/zalopay-callback`
+*   **Mô tả:** Webhook nhận kết quả thanh toán bất đồng bộ (callback) từ hệ thống máy chủ ZaloPay. Sử dụng chữ ký MAC xác thực tính toàn vẹn dữ liệu và tự động kích hoạt tài khoản VIP của người dùng.
+*   **Tham số yêu cầu:**
+    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
+    | :--- | :--- | :--- | :--- |
+    | `data` | String | Có | Chuỗi JSON chứa thông tin chi tiết giao dịch từ ZaloPay |
+    | `mac` | String | Có | Chữ ký điện tử bảo mật đi kèm để đối chiếu kiểm tra |
+*   **Phản hồi thành công (200 OK - Trả về ZaloPay):**
+    ```json
+    {
+      "return_code": 1,
+      "return_message": "success"
+    }
+    ```
+

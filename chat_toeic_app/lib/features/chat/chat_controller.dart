@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
@@ -25,6 +26,7 @@ class ChatController extends GetxController {
   
   final messageController = TextEditingController();
   final scrollController = ScrollController();
+  Timer? _paymentTimer;
 
   @override
   void onInit() {
@@ -77,6 +79,7 @@ class ChatController extends GetxController {
         paymentUrl.value = data['paymentUrl'] ?? '';
         paymentOrderId.value = data['orderId'] ?? '';
         selectedSubId.value = subId;
+        startPaymentPolling();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể khởi tạo thanh toán: $e');
@@ -85,22 +88,43 @@ class ChatController extends GetxController {
     }
   }
 
-  Future<void> verifyPayment() async {
-    await checkVipStatus();
-    if (isVip.value) {
-      Get.snackbar('Thành công', 'Tài khoản của bạn đã được nâng cấp lên VIP!',
-          backgroundColor: Colors.green, colorText: Colors.white);
-      // Reset variables
-      paymentUrl.value = '';
-      paymentOrderId.value = '';
-      selectedSubId.value = null;
-    } else {
-      Get.snackbar('Thông báo', 'Hệ thống chưa nhận được thanh toán của bạn. Vui lòng quét mã QR hoặc thử lại.',
-          backgroundColor: Colors.amber, colorText: Colors.black);
-    }
+  void startPaymentPolling() {
+    _paymentTimer?.cancel();
+    int checkCount = 0;
+    _paymentTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      checkCount++;
+      // Hết hạn sau 5 phút (150 lần check)
+      if (checkCount > 150) {
+        stopPaymentPolling();
+        Get.snackbar('Hết thời gian', 'Quá thời gian thanh toán. Vui lòng thử lại nếu muốn tiếp tục.',
+            backgroundColor: Colors.orangeAccent, colorText: Colors.white);
+        cancelPayment();
+        return;
+      }
+
+      await checkVipStatus();
+      if (isVip.value) {
+        timer.cancel();
+        _paymentTimer = null;
+        paymentUrl.value = '';
+        paymentOrderId.value = '';
+        selectedSubId.value = null;
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+        }
+        Get.snackbar('Thành công', 'Tài khoản của bạn đã được nâng cấp lên VIP!',
+            backgroundColor: Colors.green, colorText: Colors.white);
+      }
+    });
+  }
+
+  void stopPaymentPolling() {
+    _paymentTimer?.cancel();
+    _paymentTimer = null;
   }
 
   void cancelPayment() {
+    stopPaymentPolling();
     paymentUrl.value = '';
     paymentOrderId.value = '';
     selectedSubId.value = null;
@@ -282,6 +306,7 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    stopPaymentPolling();
     messageController.dispose();
     scrollController.dispose();
     super.onClose();

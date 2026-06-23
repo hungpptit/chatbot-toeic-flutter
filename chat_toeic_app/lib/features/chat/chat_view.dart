@@ -414,18 +414,34 @@ class ChatView extends StatelessWidget {
             const SizedBox(height: 24),
             
             // Control buttons
-            ElevatedButton.icon(
-              onPressed: () async {
-                await controller.verifyPayment();
-                if (controller.isVip.value) {
-                  Navigator.of(context).pop(); // Đóng dialog nếu đang mở
-                }
-              },
-              icon: const Icon(LucideIcons.checkCircle, size: 18),
-              label: const Text('Tôi đã thanh toán thành công'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                minimumSize: const Size(double.infinity, 45),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Đang chờ thanh toán tự động...',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -592,7 +608,7 @@ class ChatView extends StatelessWidget {
         return _buildEmptyState();
       }
       
-      final horizontalPadding = isMobile ? 16.0 : 100.0;
+      final horizontalPadding = isMobile ? 16.0 : 24.0;
       final verticalPadding = isMobile ? 20.0 : 40.0;
 
       return ListView.builder(
@@ -764,14 +780,13 @@ class ChatView extends StatelessWidget {
           ],
         ),
       ),
-      child: Center(
-        child: Container(
-          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center, // Better default alignment
             children: [
@@ -815,8 +830,7 @@ class ChatView extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

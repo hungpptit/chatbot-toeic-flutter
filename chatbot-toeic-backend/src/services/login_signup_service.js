@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import { OAuth2Client } from 'google-auth-library';
+import { sendEmailAsync } from './rabbitmq_service.js';
 
 const User = db.User;
 const SECRET_KEY = process.env.JWT_SECRET_KEY;
@@ -118,7 +119,11 @@ const login = async ({ email, password }) => {
   const otp = generateOTP();
   otpStore.set(email, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
-  await sendOTP(email, "OTP - Đặt lại mật khẩu", `Mã OTP của bạn là: ${otp} (hết hạn sau 5 phút).`);
+  await sendEmailAsync({
+    to: email,
+    subject: "OTP - Đặt lại mật khẩu",
+    text: `Mã OTP của bạn là: ${otp} (hết hạn sau 5 phút).`
+  });
   return { code: 200, message: "✅ Đã gửi mã OTP đến email" };
 };
 
@@ -144,7 +149,11 @@ const login = async ({ email, password }) => {
   const otp = generateOTP();
   otpStore.set(email, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
-  await sendOTP(email, "Xác thực đăng ký tài khoản", `Mã OTP xác thực đăng ký của bạn là: ${otp} (hết hạn sau 5 phút).`);
+  await sendEmailAsync({
+    to: email,
+    subject: "Xác thực đăng ký tài khoản",
+    text: `Mã OTP xác thực đăng ký của bạn là: ${otp} (hết hạn sau 5 phút).`
+  });
   return { code: 200, message: "📩 OTP đã được gửi đến email" };
 };
 
