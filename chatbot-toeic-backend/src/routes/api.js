@@ -42,22 +42,39 @@ router.use('/v1', chatbotV1Router); // Handles /v1/users/me/conversations and /v
  * @deprecated Legacy APIs - These will be removed once Web migration to v1 is complete.
  * Sunset Timeline: TBD (Expected Q3 2026)
  */
-// Gắn các router con
+// Gắn các router con (Cả định dạng cũ và định dạng chuẩn RESTful mới để đảm bảo tương thích ngược)
 router.use('/vocabulary', vocabularyRouter);
-// router.use('/user', userRouter);
+router.use('/vocabularies', vocabularyRouter); // RESTful Alias
+
 router.use('/question', questionRouter);
+router.use('/questions', questionRouter); // RESTful Alias
+
 router.use('/auth', loginRouter);
 router.use('/conversations', conversationRouter);
 router.use('/messages', messageRouter);
 router.use('/', authRouter);
 router.use('/courses', coursesRouter);
+
 router.use('/testcourses', testcourseRouter);
+router.use('/test-courses', testcourseRouter); // RESTful Alias
+
 router.use('/questionTest', questiontestRouter);
+router.use('/question-tests', questiontestRouter); // RESTful Alias
+
 router.use('/adminUser', AdminUserRouter);
+router.use('/admin-users', AdminUserRouter); // RESTful Alias
+
 router.use('/adminTest', AminTestRouter); 
+router.use('/admin-tests', AminTestRouter); // RESTful Alias
+
 router.use('/adminMetadata', AdminMetadataRouter);
+router.use('/admin-metadata', AdminMetadataRouter); // RESTful Alias
+
 router.use('/account', accountRouter);
+
 router.use('/statistical', statisticalRouter);
+router.use('/statistics', statisticalRouter); // RESTful Alias
+
 router.use('/', uploadRouter);
 router.use('/ml', mlRouter); 
 

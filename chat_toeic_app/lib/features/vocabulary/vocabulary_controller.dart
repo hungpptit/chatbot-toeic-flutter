@@ -19,7 +19,7 @@ class VocabularyController extends GetxController {
     
     isLoading.value = true;
     try {
-      final response = await DioClient.dio.get('/vocabulary/word/$word');
+      final response = await DioClient.dio.get('/vocabularies/word/$word');
       if (response.statusCode == 200) {
         wordData.value = response.data;
       } else {

@@ -59,7 +59,7 @@ class TestController extends GetxController {
 
   Future<bool> deleteTest(int id) async {
     try {
-      final response = await DioClient.dio.delete('/adminTest/deleteTest/$id');
+      final response = await DioClient.dio.delete('/admin-tests/deleteTest/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
         tests.removeWhere((t) => t['id'] == id);
         return true;
@@ -125,7 +125,7 @@ class TestController extends GetxController {
   Future<Map<String, dynamic>?> createNewTest(Map<String, dynamic> payload) {
     return _runSerialized<Map<String, dynamic>?>(() async {
       try {
-        final response = await DioClient.dio.post('/adminTest/createTestNew', data: payload);
+        final response = await DioClient.dio.post('/admin-tests/createTestNew', data: payload);
 
         if (response.statusCode == 201 || response.statusCode == 200) {
           await fetchTests();

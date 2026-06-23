@@ -24,7 +24,7 @@ class PartController extends GetxController {
   Future<void> fetchParts() async {
     isLoading.value = true;
     try {
-      final response = await DioClient.dio.get('/adminMetadata/parts');
+      final response = await DioClient.dio.get('/admin-metadata/parts');
       if (response.statusCode == 200) {
         final raw = response.data;
         List<dynamic> data = [];
@@ -46,7 +46,7 @@ class PartController extends GetxController {
 
   Future<Map<String, dynamic>?> createPart(String name) async {
     try {
-      final response = await DioClient.dio.post('/adminMetadata/parts', data: {'name': name});
+      final response = await DioClient.dio.post('/admin-metadata/parts', data: {'name': name});
       if (response.statusCode == 201 || response.statusCode == 200) {
         final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         parts.insert(0, created as Map<String, dynamic>);
@@ -61,7 +61,7 @@ class PartController extends GetxController {
 
   Future<Map<String, dynamic>?> updatePart(int id, String name) async {
     try {
-      final response = await DioClient.dio.put('/adminMetadata/parts/$id', data: {'name': name});
+      final response = await DioClient.dio.put('/admin-metadata/parts/$id', data: {'name': name});
       if (response.statusCode == 200) {
         final updated = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         final idx = parts.indexWhere((p) => p['id'] == id);
@@ -79,7 +79,7 @@ class PartController extends GetxController {
 
   Future<bool> deletePart(int id) async {
     try {
-      final response = await DioClient.dio.delete('/adminMetadata/parts/$id');
+      final response = await DioClient.dio.delete('/admin-metadata/parts/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
         parts.removeWhere((p) => p['id'] == id);
         return true;

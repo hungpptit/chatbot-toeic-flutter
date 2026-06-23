@@ -17,7 +17,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/adminUser/all:
+ * /api/admin-users/all:
  *   get:
  *     summary: Lấy danh sách toàn bộ người dùng
  *     tags: [Admin (User)]
@@ -37,7 +37,7 @@ router.get('/all', authMiddleware, adminMiddleware, getAllUserController);
 
 /**
  * @swagger
- * /api/adminUser/role:
+ * /api/admin-users/role:
  *   put:
  *     summary: Cập nhật vai trò (role) của người dùng
  *     tags: [Admin (User)]
@@ -62,7 +62,7 @@ router.put('/role', authMiddleware, adminMiddleware, updateUserRoleController);
 
 /**
  * @swagger
- * /api/adminUser:
+ * /api/admin-users:
  *   delete:
  *     summary: Xoá người dùng
  *     tags: [Admin (User)]
@@ -85,7 +85,7 @@ router.delete('/', authMiddleware, adminMiddleware, deleteUserController);
 
 /**
  * @swagger
- * /api/adminUser/lock:
+ * /api/admin-users/lock:
  *   put:
  *     summary: Khoá hoặc mở khoá tài khoản
  *     tags: [Admin (User)]
@@ -110,7 +110,7 @@ router.put('/lock', authMiddleware, adminMiddleware, lockUserController);
 
 /**
  * @swagger
- * /api/adminUser/update:
+ * /api/admin-users/update:
  *   put:
  *     summary: Chỉnh sửa thông tin người dùng tổng quát
  *     tags: [Admin (User)]

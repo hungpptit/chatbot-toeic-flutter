@@ -45,7 +45,7 @@ router.post('/question-types', authMiddleware, createQuestionTypeController);
 router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeController);
 /**
  * @swagger
- * /api/adminTest/createTestNew:
+ * /api/admin-tests/createTestNew:
  *   post:
  *     summary: Tạo bài thi mới (Hỗ trợ định dạng Flat và Mixed)
  *     description: |
@@ -103,7 +103,7 @@ router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeControlle
 router.post('/createTestNew', authMiddleware, createNewTestController);
 /**
  * @swagger
- * /api/adminTest/deleteTest/{testId}:
+ * /api/admin-tests/deleteTest/{testId}:
  *   delete:
  *     summary: Xóa bài thi theo ID
  *     description: Xóa đề thi cùng với các liên kết khóa học, lịch sử làm bài (UserTest) và liên kết câu hỏi liên quan.

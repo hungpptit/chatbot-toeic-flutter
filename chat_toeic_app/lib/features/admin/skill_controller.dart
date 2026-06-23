@@ -24,7 +24,7 @@ class SkillController extends GetxController {
   Future<void> fetchSkills() async {
     isLoading.value = true;
     try {
-      final response = await DioClient.dio.get('/adminMetadata/skills');
+      final response = await DioClient.dio.get('/admin-metadata/skills');
       if (response.statusCode == 200) {
         final raw = response.data;
         List<dynamic> data = [];
@@ -46,7 +46,7 @@ class SkillController extends GetxController {
 
   Future<Map<String, dynamic>?> createSkill(String name) async {
     try {
-      final response = await DioClient.dio.post('/adminMetadata/skills', data: {'name': name});
+      final response = await DioClient.dio.post('/admin-metadata/skills', data: {'name': name});
       if (response.statusCode == 201 || response.statusCode == 200) {
         final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         skills.insert(0, created as Map<String, dynamic>);
@@ -61,7 +61,7 @@ class SkillController extends GetxController {
 
   Future<Map<String, dynamic>?> updateSkill(int id, String name) async {
     try {
-      final response = await DioClient.dio.put('/adminMetadata/skills/$id', data: {'name': name});
+      final response = await DioClient.dio.put('/admin-metadata/skills/$id', data: {'name': name});
       if (response.statusCode == 200) {
         final updated = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         final idx = skills.indexWhere((s) => s['id'] == id);
@@ -79,7 +79,7 @@ class SkillController extends GetxController {
 
   Future<bool> deleteSkill(int id) async {
     try {
-      final response = await DioClient.dio.delete('/adminMetadata/skills/$id');
+      final response = await DioClient.dio.delete('/admin-metadata/skills/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
         skills.removeWhere((s) => s['id'] == id);
         return true;

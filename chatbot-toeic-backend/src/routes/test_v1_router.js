@@ -129,6 +129,55 @@ router.post('/:testId/attempts/:attemptId/cancel', authMiddleware, cancelTestAtt
 
 /**
  * @swagger
+ * /api/v1/tests/{testId}/attempts/{attemptId}:
+ *   patch:
+ *     summary: Cập nhật trạng thái lượt làm bài (Nộp bài hoặc Hủy bài)
+ *     tags: [Test (v1)]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: testId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: attemptId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [cancelled, completed]
+ *               answers:
+ *                 type: object
+ *                 description: Map of questionId to answer letter (A/B/C/D)
+ *               timeSpent:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.patch('/:testId/attempts/:attemptId', authMiddleware, (req, res, next) => {
+    const { status } = req.body;
+    if (status === 'cancelled') {
+        return cancelTestAttempt(req, res, next);
+    } else if (status === 'completed') {
+        return submitTestAttempt(req, res, next);
+    }
+    return res.status(400).json({ message: "Invalid status. Use 'cancelled' or 'completed'." });
+});
+
+/**
+ * @swagger
  * /api/v1/tests/{testId}/attempts/{attemptId}/submit:
  *   post:
  *     summary: Nộp bài thi
@@ -195,6 +244,26 @@ router.post('/:testId/attempts/:attemptId/submit', authMiddleware, submitTestAtt
  *         description: Thành công
  */
 router.get('/:testId/attempts/latest/check', authMiddleware, checkLatestAttempt);
+
+/**
+ * @swagger
+ * /api/v1/tests/{testId}/attempts/latest:
+ *   get:
+ *     summary: Kiểm tra trạng thái làm bài gần nhất (Chuẩn RESTful)
+ *     tags: [Test (v1)]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: testId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/:testId/attempts/latest', authMiddleware, checkLatestAttempt);
 
 /**
  * @swagger

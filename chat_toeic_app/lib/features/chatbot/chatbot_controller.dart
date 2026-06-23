@@ -18,7 +18,7 @@ class ChatbotController extends GetxController {
     isLoading.value = true;
     try {
       final response = await DioClient.dio.post(
-        '/v1/conversations/$conversationId/ask',
+        '/v1/conversations/$conversationId/messages',
         data: {'rawText': text},
       );
 

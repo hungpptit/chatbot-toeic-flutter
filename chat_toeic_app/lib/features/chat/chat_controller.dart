@@ -237,7 +237,7 @@ class ChatController extends GetxController {
     isSending.value = true;
     try {
       final response = await DioClient.dio.post(
-        '/v1/conversations/${currentConversationId.value}/ask',
+        '/v1/conversations/${currentConversationId.value}/messages',
         data: {'rawText': text},
       );
       

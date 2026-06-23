@@ -24,7 +24,7 @@ class TypeController extends GetxController {
   Future<void> fetchTypes() async {
     isLoading.value = true;
     try {
-      final response = await DioClient.dio.get('/adminMetadata/types');
+      final response = await DioClient.dio.get('/admin-metadata/types');
       if (response.statusCode == 200) {
         final raw = response.data;
         List<dynamic> data = [];
@@ -46,7 +46,7 @@ class TypeController extends GetxController {
 
   Future<Map<String, dynamic>?> createType(String name) async {
     try {
-      final response = await DioClient.dio.post('/adminMetadata/types', data: {'name': name});
+      final response = await DioClient.dio.post('/admin-metadata/types', data: {'name': name});
       if (response.statusCode == 201 || response.statusCode == 200) {
         final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         types.insert(0, created as Map<String, dynamic>);
@@ -61,7 +61,7 @@ class TypeController extends GetxController {
 
   Future<Map<String, dynamic>?> updateType(int id, String name) async {
     try {
-      final response = await DioClient.dio.put('/adminMetadata/types/$id', data: {'name': name});
+      final response = await DioClient.dio.put('/admin-metadata/types/$id', data: {'name': name});
       if (response.statusCode == 200) {
         final updated = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         final idx = types.indexWhere((t) => t['id'] == id);
@@ -79,7 +79,7 @@ class TypeController extends GetxController {
 
   Future<bool> deleteType(int id) async {
     try {
-      final response = await DioClient.dio.delete('/adminMetadata/types/$id');
+      final response = await DioClient.dio.delete('/admin-metadata/types/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
         types.removeWhere((t) => t['id'] == id);
         return true;

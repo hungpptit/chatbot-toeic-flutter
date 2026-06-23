@@ -117,7 +117,7 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
         rethrow;
       }
 
-      final fallbackResponse = await DioClient.dio.get('/questionTest/DetailResult/$id');
+      final fallbackResponse = await DioClient.dio.get('/question-tests/DetailResult/$id');
       final dynamic rawData = fallbackResponse.data['data'] ?? fallbackResponse.data;
       return _safeMap(rawData);
     }
@@ -140,7 +140,7 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
     } on DioException catch (error) {
       if (error.response?.statusCode != 404) rethrow;
 
-      final fallback = await DioClient.dio.get('/questionTest/Detail/$id');
+      final fallback = await DioClient.dio.get('/question-tests/Detail/$id');
       final dynamic rawData = fallback.data['data'] ?? fallback.data;
       if (rawData is List) {
         return rawData.whereType<Map>().map((q) => Map<String, dynamic>.from(q)).toList();

@@ -21,7 +21,7 @@ router.use(authMiddleware, adminMiddleware);
 // === Parts ===
 /**
  * @swagger
- * /api/adminMetadata/parts:
+ * /api/admin-metadata/parts:
  *   get:
  *     summary: Lấy danh sách Part
  *     tags: [Admin (Metadata)]
@@ -35,7 +35,7 @@ router.get('/parts', authMiddleware, getAllParts);
 
 /**
  * @swagger
- * /api/adminMetadata/parts:
+ * /api/admin-metadata/parts:
  *   post:
  *     summary: Thêm mới Part
  *     tags: [Admin (Metadata)]
@@ -60,7 +60,7 @@ router.post('/parts', authMiddleware, createPart);
 
 /**
  * @swagger
- * /api/adminMetadata/parts/{id}:
+ * /api/admin-metadata/parts/{id}:
  *   put:
  *     summary: Cập nhật Part
  *     tags: [Admin (Metadata)]
@@ -89,7 +89,7 @@ router.put('/parts/:id', authMiddleware, updatePart);
 
 /**
  * @swagger
- * /api/adminMetadata/parts/{id}:
+ * /api/admin-metadata/parts/{id}:
  *   delete:
  *     summary: Xóa Part
  *     tags: [Admin (Metadata)]
@@ -110,7 +110,7 @@ router.delete('/parts/:id', authMiddleware, deletePart);
 // === Types ===
 /**
  * @swagger
- * /api/adminMetadata/types:
+ * /api/admin-metadata/types:
  *   get:
  *     summary: Lấy danh sách Question Type
  *     tags: [Admin (Metadata)]
@@ -124,7 +124,7 @@ router.get('/types', authMiddleware, getAllTypes);
 
 /**
  * @swagger
- * /api/adminMetadata/types:
+ * /api/admin-metadata/types:
  *   post:
  *     summary: Thêm mới Question Type
  *     tags: [Admin (Metadata)]
@@ -151,7 +151,7 @@ router.post('/types', authMiddleware, createType);
 
 /**
  * @swagger
- * /api/adminMetadata/types/{id}:
+ * /api/admin-metadata/types/{id}:
  *   put:
  *     summary: Cập nhật Question Type
  *     tags: [Admin (Metadata)]
@@ -182,7 +182,7 @@ router.put('/types/:id', authMiddleware, updateType);
 
 /**
  * @swagger
- * /api/adminMetadata/types/{id}:
+ * /api/admin-metadata/types/{id}:
  *   delete:
  *     summary: Xóa Question Type
  *     tags: [Admin (Metadata)]
@@ -203,7 +203,7 @@ router.delete('/types/:id', authMiddleware, deleteType);
 // === Skills ===
 /**
  * @swagger
- * /api/adminMetadata/skills:
+ * /api/admin-metadata/skills:
  *   get:
  *     summary: Lấy danh sách Skill
  *     tags: [Admin (Metadata)]
@@ -217,7 +217,7 @@ router.get('/skills', authMiddleware, getAllSkills);
 
 /**
  * @swagger
- * /api/adminMetadata/skills:
+ * /api/admin-metadata/skills:
  *   post:
  *     summary: Thêm mới Skill
  *     tags: [Admin (Metadata)]
@@ -246,7 +246,7 @@ router.post('/skills', authMiddleware, createSkill);
 
 /**
  * @swagger
- * /api/adminMetadata/skills/{id}:
+ * /api/admin-metadata/skills/{id}:
  *   put:
  *     summary: Cập nhật Skill
  *     tags: [Admin (Metadata)]
@@ -279,7 +279,7 @@ router.put('/skills/:id', authMiddleware, updateSkill);
 
 /**
  * @swagger
- * /api/adminMetadata/skills/{id}:
+ * /api/admin-metadata/skills/{id}:
  *   delete:
  *     summary: Xóa Skill
  *     tags: [Admin (Metadata)]

@@ -797,13 +797,14 @@ class TestController extends GetxController {
         }
       }
 
-      final url = '/v1/tests/${testId.value}/attempts/${attemptId.value}/submit';
+      final url = '/v1/tests/${testId.value}/attempts/${attemptId.value}';
       final requestData = {
+        'status': 'completed',
         'answers': answersData,
         'timeSpent': 2700 - timeRemaining.value,
       };
       
-      print('📤 === SUBMIT REQUEST ===');
+      print('📤 === SUBMIT REQUEST (PATCH RESTful) ===');
       print('  URL: $url');
       print('  testId: ${testId.value}');
       print('  attemptId: ${attemptId.value}');
@@ -811,8 +812,8 @@ class TestController extends GetxController {
       print('  timeSpent: ${2700 - timeRemaining.value}');
       print('  Full data: ${jsonEncode(requestData)}');
 
-      // Send POST request
-      final response = await DioClient.dio.post(url, data: requestData);
+      // Send PATCH request
+      final response = await DioClient.dio.patch(url, data: requestData);
 
       print('✅ === RESPONSE ===');
       print('  Status: ${response.statusCode}');
@@ -846,8 +847,9 @@ class TestController extends GetxController {
 
     try {
       if (attemptId.value.isNotEmpty && testId.value > 0) {
-        await DioClient.dio.post(
-          '/v1/tests/${testId.value}/attempts/${attemptId.value}/cancel',
+        await DioClient.dio.patch(
+          '/v1/tests/${testId.value}/attempts/${attemptId.value}',
+          data: {'status': 'cancelled'},
         );
       }
     } catch (e) {
