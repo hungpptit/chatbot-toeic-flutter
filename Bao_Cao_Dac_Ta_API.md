@@ -588,20 +588,23 @@ Hỗ trợ quản lý khóa học luyện thi TOEIC, ngân hàng câu hỏi, th�
 #### 4.3.2.15 API Nộp bài thi luyện tập tự do (Submit Practice Attempt)
 *   **HTTP Method:** `POST`
 *   **Endpoint:** `/api/v1/tests/practice-attempts`
-*   **Mô tả:** Nộp câu trả lời cho bài luyện tập tự do theo từng câu hoặc danh sách câu hỏi để tạo lượt luyện tập mới.
+*   **Mô tả:** Nộp câu trả lời cho bài luyện tập tự do theo danh sách câu hỏi để tạo lượt luyện tập mới và lưu lịch sử.
 *   **Tham số yêu cầu:**
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
-    | `answers` | Array | Có | Mảng đáp án lựa chọn của người học (chứa `questionId` và `selectedAnswer`) |
-    | `timeSpent` | Integer | Có | Thời gian làm bài (giây) |
+    | `answers` | Array | Có | Mảng đáp án lựa chọn của người học. Mỗi phần tử chứa `questionId` (Integer, bắt buộc) và `selectedAnswer` (String, có thể null nếu bỏ qua). |
+    | `timeSpent` | Integer | Không | Thời gian làm bài (giây). Client gửi lên nhưng Backend không bắt buộc/không lưu trữ trực tiếp. |
 *   **Phản hồi thành công (200 OK):**
     ```json
     {
       "status": "success",
+      "message": "Practice submitted successfully",
       "data": {
-        "isCorrect": true,
-        "correctAnswer": "A",
-        "explanation": "Từ cần điền là danh từ đóng vai trò chủ ngữ..."
+        "userTestId": 58,
+        "correctCount": 1,
+        "total": 1,
+        "score": 10.0,
+        "incorrectAnswers": []
       }
     }
     ```
@@ -775,23 +778,31 @@ Phụ trách quản lý lịch sử hội thoại và tương tác trực tiếp
 #### 4.3.3.7 API Gửi tin nhắn và Hỏi Chatbot AI (Send Message / Ask Chatbot)
 *   **HTTP Method:** `POST`
 *   **Endpoint:** `/api/v1/conversations/:conversationId/messages`
-*   **Mô tả:** Gửi tin nhắn vào cuộc hội thoại. API này hỗ trợ 2 cơ chế:
-    1. **Hỏi AI (Chatbot):** Gửi `rawText` để chatbot AI phân tích, giải thích và trả về câu trả lời.
-    2. **Lưu tin nhắn thủ công:** Gửi `role` và `content` để lưu trữ trực tiếp tin nhắn vào cơ sở dữ liệu.
+*   **Mô tả:** Gửi tin nhắn vào cuộc hội thoại. API này hỗ trợ 2 cơ chế dựa trên dữ liệu truyền vào:
+    1. **Hỏi AI (Chatbot):** Truyền `rawText` để chatbot AI phân tích, giải thích và trả về câu trả lời.
+    2. **Lưu tin nhắn thủ công:** Truyền `role` và `content` để lưu trữ trực tiếp tin nhắn vào cơ sở dữ liệu.
 *   **Tham số yêu cầu:**
     | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
     | :--- | :--- | :--- | :--- |
-    | `rawText` | String | Không | Nội dung câu hỏi gửi tới AI (Nếu gửi trường này, hệ thống sẽ tự động kích hoạt chatbot) |
-    | `role` | String | Không | Vai trò người gửi ('user' hoặc 'model') khi lưu tin nhắn thủ công |
-    | `content` | String | Không | Nội dung tin nhắn khi lưu tin nhắn thủ công |
+    | `conversationId` | Integer | Có | Path Param - ID cuộc trò chuyện |
+    | `rawText` | String | Không | Bắt buộc nếu chọn cơ chế **Hỏi AI**. Nội dung câu hỏi gửi tới AI. |
+    | `role` | String | Không | Bắt buộc nếu chọn cơ chế **Lưu tin nhắn thủ công** ('user' hoặc 'model'). |
+    | `content` | String | Không | Bắt buộc nếu chọn cơ chế **Lưu tin nhắn thủ công**. Nội dung tin nhắn cần lưu. |
 *   **Phản hồi thành công (201 Created / 200 OK):**
     *   **Trường hợp Hỏi AI (Chatbot):**
         ```json
         {
           "status": "success",
+          "message": "AI response generated and saved",
           "data": {
-            "response": "Chào bạn! Đây là cách phân biệt:\n1. 'Affect' (Động từ): Gây ảnh hưởng...\n2. 'Effect' (Danh từ): Sự ảnh hưởng...",
-            "suggestions": ["Ví dụ thêm về 'affect'", "Bài tập phân biệt 'affect' & 'effect'"]
+            "count": 1,
+            "results": [
+              {
+                "type": "General-AI",
+                "source": "gemini",
+                "answer": "Chào bạn! Đây là cách phân biệt:\n1. 'Affect' (Động từ): Gây ảnh hưởng...\n2. 'Effect' (Danh từ): Sự ảnh hưởng..."
+              }
+            ]
           }
         }
         ```
@@ -799,11 +810,11 @@ Phụ trách quản lý lịch sử hội thoại và tương tác trực tiếp
         ```json
         {
           "status": "success",
+          "message": "Message created successfully",
           "data": {
             "id": 1504,
             "role": "user",
-            "content": "Phân biệt giúp mình 'affect' và 'effect' với!",
-            "timestamp": "2026-06-22T20:52:00.000Z"
+            "content": "Phân biệt giúp mình 'affect' và 'effect' với!"
           }
         }
         ```

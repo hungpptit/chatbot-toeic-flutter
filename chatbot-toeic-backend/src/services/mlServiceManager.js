@@ -9,6 +9,12 @@ const __dirname = path.dirname(__filename);
 let mlProcess = null;
 
 export function startMLService() {
+  // Bỏ qua việc tự spawn Python process nếu sử dụng service ML ngoài (như trong Docker)
+  if (process.env.ML_SERVICE_URL || process.env.SKIP_ML_SPAWN === 'true') {
+    console.log(`🤖 [ML Manager] ML Python Service is running externally at: ${process.env.ML_SERVICE_URL || 'Configured URL'}. Skipping local spawn.`);
+    return;
+  }
+
   const rootDir = path.join(__dirname, '../../');
   const appPyPath = path.join(rootDir, 'ml/app.py');
   

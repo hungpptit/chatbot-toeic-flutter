@@ -8,7 +8,7 @@ let connection = null;
 let channel = null;
 let isConnected = false;
 
-// Transporter cho Nodemailer (dùng chung cho consumer hoặc fallback)
+// Transporter cho Nodemailer (chỉ dùng cho chế độ dự phòng gửi đồng bộ từ backend chính)
 const getTransporter = () => {
   return nodemailer.createTransport({
     service: 'gmail',
@@ -28,10 +28,7 @@ export const initRabbitMQ = async () => {
     await channel.assertQueue(QUEUE_NAME, { durable: true });
     
     isConnected = true;
-    console.log('[RabbitMQ] Kết nối thành công và đã sẵn sàng!');
-
-    // Bắt đầu lắng nghe hàng đợi (Consumer)
-    startEmailConsumer();
+    console.log('[RabbitMQ] Kết nối thành công! Đóng vai trò là Email Publisher.');
 
     // Lắng nghe sự kiện ngắt kết nối
     connection.on('close', () => {
@@ -84,35 +81,4 @@ export const sendEmailAsync = async (emailData) => {
     console.error('[RabbitMQ Fallback] Lỗi khi gửi email trực tiếp:', error.message);
     throw error;
   }
-};
-
-// Hàm Consumer lắng nghe hàng đợi
-const startEmailConsumer = () => {
-  if (!channel) return;
-
-  channel.consume(QUEUE_NAME, async (msg) => {
-    if (msg !== null) {
-      try {
-        const emailData = JSON.parse(msg.content.toString());
-        console.log(`[RabbitMQ Consumer] Nhận được yêu cầu gửi email tới: ${emailData.to}`);
-
-        const transporter = getTransporter();
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: emailData.to,
-          subject: emailData.subject,
-          text: emailData.text,
-        });
-
-        console.log(`[RabbitMQ Consumer] Đã gửi thành công email tới: ${emailData.to}`);
-        channel.ack(msg); // Xác nhận tin nhắn đã xử lý thành công
-      } catch (err) {
-        console.error('[RabbitMQ Consumer] Lỗi khi xử lý email:', err.message);
-        // Trong trường hợp lỗi nghiêm trọng (ví dụ lỗi xác thực mail), ta có thể từ chối và không requeue để tránh vòng lặp vô hạn
-        channel.nack(msg, false, false); 
-      }
-    }
-  }, { noAck: false });
-
-  console.log('[RabbitMQ] Consumer đã bắt đầu lắng nghe hàng đợi "email_queue"...');
 };

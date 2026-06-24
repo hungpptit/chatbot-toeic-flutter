@@ -31,6 +31,37 @@ services:
       - "5672:5672"
       - "15672:15672"
 
+  ml-service:
+    build:
+      context: ..
+      dockerfile: ml/Dockerfile
+    container_name: ml_python_service
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - ML_PORT=5000
+      - DB_HOST=db
+      - DB_PORT=1433
+      - DB_NAME=ChatbotToeic
+      - DB_USERNAME=sa
+      - DB_PASS=YourStrongPassword123!
+    depends_on:
+      - db
+
+  email-service:
+    build:
+      context: ..
+      dockerfile: services/email-service/Dockerfile
+    container_name: email_worker_service
+    restart: always
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+    depends_on:
+      - rabbitmq
+
   backend:
     build:
       context: .. # Trỏ build context ra thư mục cha (backend root) để copy code và ml/
@@ -68,9 +99,12 @@ services:
       - ZALOPAY_ENDPOINT=${ZALOPAY_ENDPOINT}
       - ZALOPAY_CALLBACK_URL=${ZALOPAY_CALLBACK_URL}
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - ML_SERVICE_URL=http://ml-service:5000
+      - SKIP_ML_SPAWN=true
     depends_on:
       - db
       - rabbitmq
+      - ml-service
 
   frontend:
     build:

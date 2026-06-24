@@ -8,7 +8,9 @@ build/
 src/config.js
 
 # ML models and artifacts
-ml/
+ml/model/
+ml/__pycache__/
+ml/result_user_*.json
 venv/
 __pycache__/
 *.pkl
