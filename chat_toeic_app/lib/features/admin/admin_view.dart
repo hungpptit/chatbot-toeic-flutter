@@ -889,7 +889,7 @@ class _AdminViewState extends State<AdminView> {
           ),
           const SizedBox(height: 24),
           SizedBox(
-            height: 180,
+            height: 200,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
