@@ -115,8 +115,8 @@ Sử dụng chuẩn RESTful v1.
             code: { type: 'integer', example: 400 },
             message: { type: 'string', example: 'Error message' },
             errorCode: { type: 'string', example: 'ERROR_CODE' },
-            details: { 
-              type: 'array', 
+            details: {
+              type: 'array',
               items: { type: 'string' },
               example: []
             },
@@ -152,8 +152,8 @@ Sử dụng chuẩn RESTful v1.
             participants: { type: 'integer', example: 120 },
             commentsCount: { type: 'integer', example: 5 },
             questionsCount: { type: 'integer', example: 100 },
-            tags: { 
-              type: 'array', 
+            tags: {
+              type: 'array',
               items: { type: 'string' },
               example: ['Grammar', 'Reading']
             },

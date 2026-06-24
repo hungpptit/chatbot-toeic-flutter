@@ -19,12 +19,24 @@ import { sendSuccess, sendError } from "../utils/response.js";
 
 /**
  * GET /api/v1/tests
- * Lấy danh sách tất cả bài thi
+ * Lấy danh sách bài thi kèm phân trang
  */
 export const getTests = async (req, res) => {
     try {
-        const tests = await getAllTestsWithCourses();
-        return sendSuccess(res, tests, "Fetched tests successfully");
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        
+        const { tests, total } = await getAllTestsWithCourses(page, limit);
+        
+        return sendSuccess(res, {
+            tests,
+            pagination: {
+                totalItems: total,
+                currentPage: page,
+                limit: limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        }, "Fetched tests successfully");
     } catch (error) {
         console.error("[TEST V1] getTests error:", error);
         return sendError(res, 500, "Error fetching tests", [error.message]);
@@ -63,7 +75,7 @@ export const startTestAttempt = async (req, res) => {
 };
 
 /**
- * POST /api/v1/tests/:testId/attempts/:attemptId/cancel
+ * PATCH /api/v1/tests/:testId/attempts/:attemptId (Gom logic Cancel)
  * Hủy bài thi đang làm dở
  */
 export const cancelTestAttempt = async (req, res) => {
@@ -84,33 +96,22 @@ export const cancelTestAttempt = async (req, res) => {
 };
 
 /**
- * POST /api/v1/tests/:testId/attempts/:attemptId/submit
+ * PATCH /api/v1/tests/:testId/attempts/:attemptId (Gom logic Submit)
  * Nộp bài thi
  * Body: { answers: {questionId: answerLetter, ...}, timeSpent: number }
  */
 export const submitTestAttempt = async (req, res) => {
     try {
-        console.log('[DEBUG] ============ submitTestAttempt CALLED ============');
-        console.log('[DEBUG] req.method:', req.method);
-        console.log('[DEBUG] req.url:', req.url);
-        console.log('[DEBUG] req.params:', req.params);
-        console.log('[DEBUG] req.headers:', JSON.stringify(req.headers).substring(0, 200));
-        console.log('[DEBUG] req.body:', JSON.stringify(req.body).substring(0, 500));
-        
         const userId = req.user.id;
-        const { testId } = req.params;
+        const { testId, attemptId } = req.params;
         const { answers, timeSpent } = req.body;
 
-        console.log('[DEBUG] Extracted: userId=%s, testId=%s, answers=%s, timeSpent=%s', 
-            userId, testId, JSON.stringify(answers).substring(0, 100), timeSpent);
-
-        // Validate answers - can be object {questionId: answerLetter}
-        // Allow empty object so a blank submission still creates a completed result.
+        // Validate answers
         if (!answers || (typeof answers !== 'object')) {
             return sendError(res, 400, "Answers must be an object");
         }
 
-        // Convert object format {questionId: answerLetter} to array format [{questionId, selectedAnswer}, ...]
+        // Chuyển đổi dữ liệu (Data Transformation)
         const answersArray = Object.entries(answers)
             .filter(([_, selectedAnswer]) => selectedAnswer !== null && selectedAnswer !== undefined)
             .map(([questionId, selectedAnswer]) => ({
@@ -118,11 +119,14 @@ export const submitTestAttempt = async (req, res) => {
                 selectedAnswer: String(selectedAnswer).toUpperCase().trim()
             }));
 
-        console.log('[DEBUG] Converted answers array:', JSON.stringify(answersArray).substring(0, 200));
+        const result = await SubmitTestResult({ 
+            userId, 
+            testId, 
+            userTestId: attemptId, 
+            answers: answersArray 
+        });
 
-        const result = await SubmitTestResult({ userId, testId, answers: answersArray });
-
-        // Background ML trigger
+        // Chạy ngầm AI Prediction
         triggerMLPredictionAsync(userId);
 
         return sendSuccess(res, result, "Test submitted successfully");

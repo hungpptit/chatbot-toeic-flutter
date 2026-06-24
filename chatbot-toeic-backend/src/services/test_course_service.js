@@ -5,8 +5,10 @@ const Test = db.Test;
 const Course = db.Course;
 const { fn, col, literal } = db.Sequelize;
 
-const getAllTestsWithCourses = async () => {
+const getAllTestsWithCourses = async (page = 1, limit = 10) => {
   try {
+    const offset = (page - 1) * limit;
+
     const testList = await Test.findAll({
       attributes: [
         'id',
@@ -14,7 +16,7 @@ const getAllTestsWithCourses = async () => {
         'duration',
         'participants',
         'comments',
-        [fn('COUNT', col('testQuestions.id')), 'questionCount'], // ⬅️ dùng alias
+        [fn('COUNT', col('testQuestions.id')), 'questionCount'],
       ],
       include: [
         {
@@ -24,8 +26,8 @@ const getAllTestsWithCourses = async () => {
         },
         {
           model: db.TestQuestion,
-          as: 'testQuestions', // ⬅️ dùng đúng alias như trong model
-          attributes: [], // chỉ dùng để đếm
+          as: 'testQuestions',
+          attributes: [],
         },
       ],
       group: [
@@ -39,9 +41,14 @@ const getAllTestsWithCourses = async () => {
         'Courses->Test_Courses.courseId',
         'Courses->Test_Courses.testId',
       ],
-      having: literal('COUNT(testQuestions.id) >= 0'), // ⬅️ dùng alias ở đây nữa
+      having: literal('COUNT(testQuestions.id) >= 0'),
       order: [['id', 'ASC']],
+      limit: limit,
+      offset: offset,
+      subQuery: false, // Quan trọng khi dùng limit với include + group
     });
+
+    const totalCount = await Test.count();
 
     const formattedTests = testList.map(test => ({
       id: test.id,
@@ -53,7 +60,10 @@ const getAllTestsWithCourses = async () => {
       tags: test.Courses.map(course => course.name),
     }));
 
-    return formattedTests;
+    return {
+      tests: formattedTests,
+      total: totalCount
+    };
   } catch (error) {
     console.error('❌ Error fetching tests with Courses:', error);
     throw error;

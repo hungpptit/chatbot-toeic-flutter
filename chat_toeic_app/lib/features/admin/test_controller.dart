@@ -34,8 +34,10 @@ class TestController extends GetxController {
       final response = await DioClient.dio.get('/v1/tests');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
-        tests.value = data.cast<Map<String, dynamic>>();
+        // Updated to handle paginated response structure
+        final dynamic rawData = response.data['data'];
+        final List<dynamic> testsList = (rawData is Map) ? (rawData['tests'] ?? []) : (rawData ?? []);
+        tests.value = testsList.cast<Map<String, dynamic>>();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách đề thi: $e');
