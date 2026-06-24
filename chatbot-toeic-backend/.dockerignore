@@ -1,0 +1,10 @@
+node_modules
+venv
+.env
+sql.log
+build
+*.db
+*.local
+.git
+.gitignore
+docker

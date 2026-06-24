@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_db
+    restart: always
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrongPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+      - ./db-init:/usr/src/app
+    # Sử dụng command để chạy script import-data.sh ở chế độ chạy ngầm và khởi động SQL Server
+    # sed -i 's/\r$//' dùng để sửa lỗi xuống dòng CRLF trên Windows nếu có
+    entrypoint: >
+      /bin/bash -c "
+      sed -i 's/\r$$//' /usr/src/app/import-data.sh &&
+      chmod +x /usr/src/app/import-data.sh &&
+      /usr/src/app/import-data.sh &
+      /opt/mssql/bin/sqlservr
+      "
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_queue
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  backend:
+    build:
+      context: .. # Trỏ build context ra thư mục cha (backend root) để copy code và ml/
+      dockerfile: docker/Dockerfile # Đường dẫn tới Dockerfile tương đối so với build context
+    container_name: node_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - HOSTNAME=0.0.0.0
+      - DB_HOST=db
+      - DB_PORT=1433
+      - DB_NAME=ChatbotToeic
+      - DB_USERNAME=sa
+      - DB_PASS=YourStrongPassword123!
+      - DB_ENCRYPT=false
+      - JWT_SECRET_KEY=ChatbotToeic_project
+      - JWT_REFRESH_SECRET_KEY=ChatbotToeic_refresh_secret_key
+      - JWT_EXPIRATION=7d
+      - JWT_REFRESH_EXPIRATION=30d
+      - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - CLOUDINARY_NAME=${CLOUDINARY_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - ZALOPAY_APP_ID=${ZALOPAY_APP_ID}
+      - ZALOPAY_KEY1=${ZALOPAY_KEY1}
+      - ZALOPAY_KEY2=${ZALOPAY_KEY2}
+      - ZALOPAY_ENDPOINT=${ZALOPAY_ENDPOINT}
+      - ZALOPAY_CALLBACK_URL=${ZALOPAY_CALLBACK_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - db
+      - rabbitmq
+
+volumes:
+  mssql_data:
