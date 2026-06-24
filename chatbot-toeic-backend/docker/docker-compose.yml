@@ -62,18 +62,15 @@ services:
     depends_on:
       - rabbitmq
 
-  backend:
+  auth-service:
     build:
-      context: .. # Trỏ build context ra thư mục cha (backend root) để copy code và ml/
-      dockerfile: docker/Dockerfile # Đường dẫn tới Dockerfile tương đối so với build context
-    container_name: node_backend
+      context: ..
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth_service
     restart: always
-    ports:
-      - "8080:8080"
     environment:
       - NODE_ENV=production
-      - PORT=8080
-      - HOSTNAME=0.0.0.0
+      - PORT=8081
       - DB_HOST=db
       - DB_PORT=1433
       - DB_NAME=ChatbotToeic
@@ -84,26 +81,99 @@ services:
       - JWT_REFRESH_SECRET_KEY=ChatbotToeic_refresh_secret_key
       - JWT_EXPIRATION=7d
       - JWT_REFRESH_EXPIRATION=30d
-      - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
-      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
+    depends_on:
+      - db
+      - rabbitmq
+
+  quiz-service:
+    build:
+      context: ..
+      dockerfile: services/quiz-service/Dockerfile
+    container_name: quiz_service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=8082
+      - DB_HOST=db
+      - DB_PORT=1433
+      - DB_NAME=ChatbotToeic
+      - DB_USERNAME=sa
+      - DB_PASS=YourStrongPassword123!
+      - DB_ENCRYPT=false
       - CLOUDINARY_NAME=${CLOUDINARY_NAME}
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
-      - ZALOPAY_APP_ID=${ZALOPAY_APP_ID}
-      - ZALOPAY_KEY1=${ZALOPAY_KEY1}
-      - ZALOPAY_KEY2=${ZALOPAY_KEY2}
-      - ZALOPAY_ENDPOINT=${ZALOPAY_ENDPOINT}
-      - ZALOPAY_CALLBACK_URL=${ZALOPAY_CALLBACK_URL}
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - ML_SERVICE_URL=http://ml-service:5000
       - SKIP_ML_SPAWN=true
     depends_on:
       - db
       - rabbitmq
+      - ml-service
+
+  payment-service:
+    build:
+      context: ..
+      dockerfile: services/payment-service/Dockerfile
+    container_name: payment_service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=8083
+      - DB_HOST=db
+      - DB_PORT=1433
+      - DB_NAME=ChatbotToeic
+      - DB_USERNAME=sa
+      - DB_PASS=YourStrongPassword123!
+      - DB_ENCRYPT=false
+      - ZALOPAY_APP_ID=${ZALOPAY_APP_ID}
+      - ZALOPAY_KEY1=${ZALOPAY_KEY1}
+      - ZALOPAY_KEY2=${ZALOPAY_KEY2}
+      - ZALOPAY_ENDPOINT=${ZALOPAY_ENDPOINT}
+      - ZALOPAY_CALLBACK_URL=${ZALOPAY_CALLBACK_URL}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - db
+      - rabbitmq
+
+  chatbot-service:
+    build:
+      context: ..
+      dockerfile: services/chatbot-service/Dockerfile
+    container_name: chatbot_service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=8084
+      - DB_HOST=db
+      - DB_PORT=1433
+      - DB_NAME=ChatbotToeic
+      - DB_USERNAME=sa
+      - DB_PASS=YourStrongPassword123!
+      - DB_ENCRYPT=false
+      - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+    depends_on:
+      - db
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: api_gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - quiz-service
+      - payment-service
+      - chatbot-service
       - ml-service
 
   frontend:
@@ -115,7 +185,7 @@ services:
     ports:
       - "8000:80"
     depends_on:
-      - backend
+      - api-gateway
 
 volumes:
   mssql_data:

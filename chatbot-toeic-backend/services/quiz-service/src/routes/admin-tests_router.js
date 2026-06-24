@@ -1,0 +1,143 @@
+import express from 'express';
+import {
+  getTestList,
+  getQuestionTypes,
+  getParts,
+  createPartController,
+  deletePartController,
+  createQuestionTypeController,
+  deleteQuestionTypeController,
+  createNewTestController,
+  updatePartNameController,
+  updateQuestionTypeController,
+  deleteTestByIdController,
+  generateMissingEmbeddingsController,
+  getSkillsController,
+  getSkillByIdController,
+  createSkillController,
+  updateSkillController,
+  deleteSkillController,
+} from '../controllers/AdminTest_controller.js';
+
+import { authMiddleware, adminMiddleware } from '../Middleware/authMiddleware.js';
+
+const router = express.Router();
+
+// Tất cả các API trong router này yêu cầu đăng nhập và có quyền Admin
+router.use(authMiddleware, adminMiddleware);
+
+// Lấy tất cả bài test kèm thông tin khóa học
+router.get('/', authMiddleware, getTestList);
+
+// Lấy danh sách question types và parts
+router.get('/question-types', authMiddleware, getQuestionTypes);
+router.get('/parts', authMiddleware, getParts);
+// Cập nhật tên Part và Question Type
+router.patch('/parts/:id', authMiddleware, updatePartNameController);
+router.patch('/question-types/:id', authMiddleware, updateQuestionTypeController);
+router.put('/parts/update', authMiddleware, updatePartNameController); // Legacy compatibility
+router.put('/question-types/update', authMiddleware, updateQuestionTypeController); // Legacy compatibility
+
+// Tạo / Xóa Part
+router.post('/parts', authMiddleware, createPartController);
+router.delete('/parts/:id', authMiddleware, deletePartController);
+
+// Tạo / Xóa QuestionType
+router.post('/question-types', authMiddleware, createQuestionTypeController);
+router.delete('/question-types/:id', authMiddleware, deleteQuestionTypeController);
+/**
+ * @swagger
+ * /api/admin-tests:
+ *   post:
+ *     summary: Tạo bài thi mới (Hỗ trợ định dạng Flat và Mixed)
+ *     description: |
+ *       API hợp nhất cho phép tạo bài thi theo 2 cách:
+ *       1. **Flat:** Gửi một mảng `questions` duy nhất.
+ *       2. **Mixed:** Gửi 2 mảng `listeningQuestions` và `readingQuestions` riêng biệt.
+ *       
+ *       **Tính năng tự động:**
+ *       - Nếu gửi `imagePath` hoặc `audioPath` (local path trên server), server sẽ tự động upload lên Cloudinary.
+ *       - Nếu gửi định dạng Mixed, server tự động gán `skillId` (1 cho Listening, 2 cho Reading).
+ *       - Tự động tạo AI Embeddings cho tất cả câu hỏi.
+ *     tags: [Admin Test]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - courseId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "TOEIC Practice Test #10"
+ *               courseId:
+ *                 type: integer
+ *                 example: 1
+ *               duration:
+ *                 type: string
+ *                 example: "120 minutes"
+ *               questions:
+ *                 type: array
+ *                 description: Mảng câu hỏi (định dạng phẳng)
+ *                 items:
+ *                   $ref: '#/components/schemas/AdminQuestionInput'
+ *               listeningQuestions:
+ *                 type: array
+ *                 description: Mảng câu hỏi phần Nghe (định dạng Mixed)
+ *                 items:
+ *                   $ref: '#/components/schemas/AdminQuestionInput'
+ *               readingQuestions:
+ *                 type: array
+ *                 description: Mảng câu hỏi phần Đọc (định dạng Mixed)
+ *                 items:
+ *                   $ref: '#/components/schemas/AdminQuestionInput'
+ *     responses:
+ *       201:
+ *         description: Bài thi đã được tạo và lưu thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ */
+router.post('/', authMiddleware, createNewTestController);
+router.post('/createTestNew', authMiddleware, createNewTestController); // Legacy compatibility
+
+/**
+ * @swagger
+ * /api/admin-tests/{testId}:
+ *   delete:
+ *     summary: Xóa bài thi theo ID
+ *     description: Xóa đề thi cùng với các liên kết khóa học, lịch sử làm bài (UserTest) và liên kết câu hỏi liên quan.
+ *     tags: [Admin Test]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: testId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của bài thi cần xóa
+ *     responses:
+ *       200:
+ *         description: Xóa đề thi thành công
+ *       404:
+ *         description: Không tìm thấy đề thi
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.delete('/:testId', authMiddleware, deleteTestByIdController);
+router.delete('/deleteTest/:testId', authMiddleware, deleteTestByIdController); // Legacy compatibility
+
+
+router.post('/tests/generate-missing-embeddings', generateMissingEmbeddingsController);
+// Skill routes
+router.get('/skills', authMiddleware, getSkillsController);// Lấy tất cả skill
+router.get('/skills/:id', authMiddleware, getSkillByIdController);// Lấy skill theo ID
+router.post('/skills', authMiddleware, createSkillController);// Tạo skill mới
+router.put('/skills/:id', authMiddleware, updateSkillController);// Cập nhật skill
+router.delete('/skills/:id', authMiddleware, deleteSkillController);// Xóa skill
+export default router;
