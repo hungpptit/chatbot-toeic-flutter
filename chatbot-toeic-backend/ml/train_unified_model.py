@@ -23,8 +23,11 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 # Load biến môi trường
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+load_dotenv()
+# Load biến môi trường từ file .env ở thư mục gốc backend nếu chưa được định nghĩa
+if not os.getenv("DB_NAME"):
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")

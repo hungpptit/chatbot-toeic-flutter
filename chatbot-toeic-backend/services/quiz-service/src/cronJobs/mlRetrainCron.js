@@ -24,6 +24,17 @@ console.log("🤖 [TEST MODE] ML Retrain Cron Job initialized - Running every 3 
 
 // Retrain all ML models by running Python script
 async function retrainModels() {
+  if (process.env.SKIP_ML_SPAWN === 'true') {
+    const axios = (await import('axios')).default;
+    const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
+    console.log(`🌐 [Microservice Mode] Triggering remote model retraining at: ${mlServiceUrl}/retrain`);
+    const response = await axios.post(`${mlServiceUrl}/retrain`);
+    if (response.data && response.data.stdout) {
+      console.log('[ML Retrain Output]:', response.data.stdout);
+    }
+    return response.data;
+  }
+
   return new Promise((resolve, reject) => {
     const mlPath = path.resolve(__dirname, '../../ml');
     const scriptPath = path.join(mlPath, 'train_model.py');

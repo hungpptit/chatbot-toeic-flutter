@@ -56,9 +56,12 @@ except Exception:
     except Exception:
         pass
 
-# Load biến môi trường từ file .env (ở thư mục gốc backend)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+# Load biến môi trường
+load_dotenv()
+# Load biến môi trường từ file .env ở thư mục gốc backend nếu chưa được định nghĩa
+if not os.getenv("DB_NAME"):
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 # Lấy biến môi trường
 DB_HOST = os.getenv("DB_HOST")

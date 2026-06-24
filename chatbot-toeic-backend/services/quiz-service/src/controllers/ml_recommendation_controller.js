@@ -233,6 +233,18 @@ export const getRecommendations = async (req, res) => {
  */
 export const retrainModels = async (req, res) => {
     try {
+        if (process.env.SKIP_ML_SPAWN === 'true') {
+            const axios = (await import('axios')).default;
+            const mlServiceUrl = process.env.ML_SERVICE_URL || 'http://localhost:5000';
+            console.log(`🌐 [Microservice Mode] Triggering remote model retraining at: ${mlServiceUrl}/retrain`);
+            const response = await axios.post(`${mlServiceUrl}/retrain`);
+            return res.status(200).json({
+                code: 200,
+                message: "Models retrained successfully",
+                data: response.data
+            });
+        }
+
         const mlDir = path.join(__dirname, '../../ml');
 
         // Train global model

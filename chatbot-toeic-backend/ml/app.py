@@ -230,6 +230,38 @@ def reload_models():
     load_models()
     return jsonify({"message": "Models reloaded successfully"})
 
+@app.route('/retrain', methods=['POST'])
+def retrain():
+    import subprocess
+    try:
+        # 1. Train global model
+        script1 = os.path.join(os.path.dirname(__file__), 'train_model.py')
+        res1 = subprocess.run([sys.executable, script1], capture_output=True, text=True)
+        if res1.returncode != 0:
+            return jsonify({
+                "error": "Failed to train global model",
+                "stderr": res1.stderr,
+                "stdout": res1.stdout
+            }), 500
+            
+        # 2. Train unified model
+        script2 = os.path.join(os.path.dirname(__file__), 'train_unified_model.py')
+        res2 = subprocess.run([sys.executable, script2], capture_output=True, text=True)
+        if res2.returncode != 0:
+            return jsonify({
+                "error": "Failed to train unified model",
+                "stderr": res2.stderr,
+                "stdout": res2.stdout
+            }), 500
+            
+        load_models()
+        return jsonify({
+            "message": "Models retrained and reloaded successfully",
+            "stdout": res1.stdout + "\n" + res2.stdout
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.getenv("ML_PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
