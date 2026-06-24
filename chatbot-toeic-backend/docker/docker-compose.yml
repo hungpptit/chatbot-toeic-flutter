@@ -72,5 +72,16 @@ services:
       - db
       - rabbitmq
 
+  frontend:
+    build:
+      context: ../../chat_toeic_app
+      dockerfile: ../chatbot-toeic-backend/docker/Dockerfile.frontend
+    container_name: nginx_frontend
+    restart: always
+    ports:
+      - "8000:80"
+    depends_on:
+      - backend
+
 volumes:
   mssql_data:
