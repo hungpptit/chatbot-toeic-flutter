@@ -122,9 +122,9 @@ if OBJECT_ID('ChatbotToeic_Quiz.dbo.Vocabulary') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Vocabulary FROM ChatbotToeic.dbo.Vocabulary;
     ALTER TABLE ChatbotToeic_Quiz.dbo.Vocabulary ADD CONSTRAINT PK_Vocabulary PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.UserVocabularies') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.UserVocabularies FROM ChatbotToeic.dbo.UserVocabularies;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.UserVocabularies ADD CONSTRAINT PK_UserVocabularies PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.UserVocabulary') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.UserVocabulary FROM ChatbotToeic.dbo.UserVocabulary;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.UserVocabulary ADD CONSTRAINT PK_UserVocabulary PRIMARY KEY (id);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.Pronunciations') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Pronunciations FROM ChatbotToeic.dbo.Pronunciations;
