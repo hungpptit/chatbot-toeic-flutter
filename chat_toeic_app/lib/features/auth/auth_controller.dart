@@ -21,17 +21,19 @@ class AuthController extends GetxController {
     return _googleSignIn!;
   }
 
+  late Future<void> initFuture;
+
   @override
   void onInit() {
     super.onInit();
-    checkLoginStatus();
+    initFuture = checkLoginStatus();
   }
 
   Future<void> checkLoginStatus() async {
     final token = await StorageService.getAccessToken();
     if (token != null) {
       isLoggedIn.value = true;
-      fetchUserProfile();
+      await fetchUserProfile();
     }
   }
 

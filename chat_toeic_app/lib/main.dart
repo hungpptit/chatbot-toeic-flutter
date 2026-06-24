@@ -196,14 +196,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAuth() async {
     final authController = Get.find<AuthController>();
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Wait for auth controller to finish loading profile if active
-    int attempts = 0;
-    while (authController.isLoading.value && attempts < 10) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      attempts++;
-    }
+    
+    // Await both the minimum splash screen duration and the profile loading future in parallel
+    await Future.wait([
+      Future.delayed(const Duration(seconds: 2)),
+      authController.initFuture,
+    ]);
 
     final token = await StorageService.getAccessToken();
     final currentRoute = Get.currentRoute;

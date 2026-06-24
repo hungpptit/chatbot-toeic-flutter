@@ -54,83 +54,88 @@ class CustomNavBar extends StatelessWidget {
                 _buildMobileMenu(),
               ] else ...[
                 // Login Button / Profile for desktop/tablet
-                Obx(() => authController.isLoggedIn.value
-                    ? PopupMenuButton<int>(
-                        offset: const Offset(0, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                        ),
-                        color: const Color(0xFF1E293B),
-                        icon: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white24),
-                          ),
-                          child: const Icon(Icons.person, color: Colors.white, size: 24),
-                        ),
-                        itemBuilder: (context) {
-                          final user = authController.user.value;
-                          final isAdmin = user != null && (user['role_id'] == 2 || user['roleId'] == 2);
-                          return [
-                            const PopupMenuItem(
-                              value: 1,
-                              child: Row(
-                                children: [
-                                  Icon(Icons.info_outline, size: 20, color: Colors.white70),
-                                  SizedBox(width: 12),
-                                  Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
-                                ],
-                              ),
-                            ),
-                            if (isAdmin) ...[
-                              const PopupMenuDivider(height: 1),
-                              const PopupMenuItem(
-                                value: 3,
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.admin_panel_settings_outlined, size: 20, color: Color(0xFF6366F1)),
-                                    SizedBox(width: 12),
-                                    Text('Admin Panel', style: TextStyle(color: Colors.white, fontSize: 14)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            const PopupMenuDivider(height: 1),
-                            const PopupMenuItem(
-                              value: 2,
-                              child: Row(
-                                children: [
-                                  Icon(Icons.logout, size: 20, color: Colors.redAccent),
-                                  SizedBox(width: 12),
-                                  Text('Đăng xuất', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
-                                ],
-                              ),
-                            ),
-                          ];
-                        },
-                        onSelected: (value) {
-                          if (value == 1) {
-                            Get.toNamed('/profile');
-                          } else if (value == 2) {
-                            authController.logout();
-                          } else if (value == 3) {
-                            Get.toNamed('/admin');
-                          }
-                        },
-                      )
-                    : ElevatedButton(
-                        onPressed: () => Get.toNamed('/login'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text('Đăng nhập'),
-                      )),
+                 // Login Button / Profile for desktop/tablet
+                 Obx(() {
+                   final user = authController.user.value;
+                   final isLoggedIn = authController.isLoggedIn.value;
+                   final isAdmin = user != null && (user['role_id'] == 2 || user['roleId'] == 2);
+                   
+                   return isLoggedIn
+                       ? PopupMenuButton<int>(
+                           offset: const Offset(0, 50),
+                           shape: RoundedRectangleBorder(
+                             borderRadius: BorderRadius.circular(12),
+                             side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                           ),
+                           color: const Color(0xFF1E293B),
+                           icon: Container(
+                             padding: const EdgeInsets.all(4),
+                             decoration: BoxDecoration(
+                               shape: BoxShape.circle,
+                               border: Border.all(color: Colors.white24),
+                             ),
+                             child: const Icon(Icons.person, color: Colors.white, size: 24),
+                           ),
+                           itemBuilder: (context) {
+                             return [
+                               const PopupMenuItem(
+                                 value: 1,
+                                 child: Row(
+                                   children: [
+                                     Icon(Icons.info_outline, size: 20, color: Colors.white70),
+                                     SizedBox(width: 12),
+                                     Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                   ],
+                                 ),
+                               ),
+                               if (isAdmin) ...[
+                                 const PopupMenuDivider(height: 1),
+                                 const PopupMenuItem(
+                                   value: 3,
+                                   child: Row(
+                                     children: [
+                                       Icon(Icons.admin_panel_settings_outlined, size: 20, color: Color(0xFF6366F1)),
+                                       SizedBox(width: 12),
+                                       Text('Admin Panel', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                     ],
+                                   ),
+                                 ),
+                               ],
+                               const PopupMenuDivider(height: 1),
+                               const PopupMenuItem(
+                                 value: 2,
+                                 child: Row(
+                                   children: [
+                                     Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                                     SizedBox(width: 12),
+                                     Text('Đăng xuất', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                                   ],
+                                 ),
+                               ),
+                             ];
+                           },
+                           onSelected: (value) {
+                             if (value == 1) {
+                               Get.toNamed('/profile');
+                             } else if (value == 2) {
+                               authController.logout();
+                             } else if (value == 3) {
+                               Get.toNamed('/admin');
+                             }
+                           },
+                         )
+                       : ElevatedButton(
+                           onPressed: () => Get.toNamed('/login'),
+                           style: ElevatedButton.styleFrom(
+                             backgroundColor: const Color(0xFF6366F1),
+                             foregroundColor: Colors.white,
+                             shape: RoundedRectangleBorder(
+                               borderRadius: BorderRadius.circular(8),
+                             ),
+                           ),
+                           child: const Text('Đăng nhập'),
+                         );
+                 }),
               ],
             ],
           ),
@@ -165,17 +170,36 @@ class CustomNavBar extends StatelessWidget {
   }
 
   Widget _buildMobileMenu() {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.menu, color: Colors.white),
-      color: const Color(0xFF1E293B),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: '/home', child: Text('Trang chủ', style: TextStyle(color: Colors.white))),
-        const PopupMenuItem(value: '/vocabulary', child: Text('Tra từ vựng', style: TextStyle(color: Colors.white))),
-        const PopupMenuItem(value: '/chatbot', child: Text('Chat TOEIC', style: TextStyle(color: Colors.white))),
-      ],
-      onSelected: (route) {
-        if (Get.currentRoute != route) Get.offNamed(route);
-      },
-    );
+    final authController = Get.find<AuthController>();
+    return Obx(() {
+      final user = authController.user.value;
+      final isAdmin = user != null && (user['role_id'] == 2 || user['roleId'] == 2);
+      return PopupMenuButton<String>(
+        icon: const Icon(Icons.menu, color: Colors.white),
+        color: const Color(0xFF1E293B),
+        itemBuilder: (context) => [
+          const PopupMenuItem(value: '/home', child: Text('Trang chủ', style: TextStyle(color: Colors.white))),
+          const PopupMenuItem(value: '/vocabulary', child: Text('Tra từ vựng', style: TextStyle(color: Colors.white))),
+          const PopupMenuItem(value: '/chatbot', child: Text('Chat TOEIC', style: TextStyle(color: Colors.white))),
+          if (isAdmin)
+            const PopupMenuItem(
+              value: '/admin', 
+              child: Text(
+                'Admin Panel', 
+                style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)
+              )
+            ),
+        ],
+        onSelected: (route) {
+          if (Get.currentRoute != route) {
+            if (route == '/admin') {
+              Get.toNamed(route);
+            } else {
+              Get.offNamed(route);
+            }
+          }
+        },
+      );
+    });
   }
 }
