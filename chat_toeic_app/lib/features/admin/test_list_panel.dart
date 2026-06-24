@@ -159,30 +159,33 @@ class _TestListPanelState extends State<TestListPanel> {
                                           SizedBox(width: 48, child: Text('${test['id'] ?? ''}', style: const TextStyle(color: Colors.white70))),
                                           Expanded(
                                             flex: 3,
-                                            child: Obx(() {
-                                              final progress = controller.uploadProgress[test['id']];
-                                              return Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text('${test['title'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                                                  if (progress != null) ...[
-                                                    const SizedBox(height: 4),
-                                                    ClipRRect(
-                                                      borderRadius: BorderRadius.circular(2),
-                                                      child: LinearProgressIndicator(
-                                                        value: progress,
-                                                        backgroundColor: Colors.white10,
-                                                        color: const Color(0xFF6366F1),
-                                                        minHeight: 3,
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(right: 24.0),
+                                              child: Obx(() {
+                                                final progress = controller.uploadProgress[test['id']];
+                                                return Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text('${test['title'] ?? '-'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                                    if (progress != null) ...[
+                                                      const SizedBox(height: 6),
+                                                      ClipRRect(
+                                                        borderRadius: BorderRadius.circular(100),
+                                                        child: LinearProgressIndicator(
+                                                          value: progress,
+                                                          backgroundColor: Colors.white10,
+                                                          color: const Color(0xFF6366F1),
+                                                          minHeight: 5,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    const SizedBox(height: 2),
-                                                    Text('Đang cập nhật ${(progress * 100).toInt()}%', style: const TextStyle(color: Color(0xFF6366F1), fontSize: 10)),
+                                                      const SizedBox(height: 4),
+                                                      Text('Đang cập nhật ${(progress * 100).toInt()}%', style: const TextStyle(color: const Color(0xFF22D3EE), fontSize: 11, fontWeight: FontWeight.w500)),
+                                                    ],
                                                   ],
-                                                ],
-                                              );
-                                            }),
+                                                );
+                                              }),
+                                            ),
                                           ),
                                           Expanded(
                                             flex: 2,

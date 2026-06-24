@@ -473,6 +473,118 @@ export const getMe = async (user) => {
   }
 };
 
+/**
+ * Đổi mật khẩu người dùng
+ */
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return {
+        code: 404,
+        message: 'User not found',
+        details: [],
+      };
+    }
+
+    // So sánh mật khẩu hiện tại
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return {
+        code: 400,
+        message: 'Mật khẩu hiện tại không chính xác',
+        details: ['Mật khẩu hiện tại không khớp với mật khẩu đang dùng'],
+      };
+    }
+
+    // Băm mật khẩu mới và cập nhật
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.update({ password: hashedPassword }, { where: { id: userId } });
+
+    return {
+      code: 200,
+      message: 'Đổi mật khẩu thành công',
+    };
+  } catch (error) {
+    console.error('[AUTH_SERVICE] changePassword error:', error);
+    return {
+      code: 500,
+      message: 'Failed to change password',
+      details: [error.message],
+    };
+  }
+};
+
+export const sendForgotPasswordOtp = async (email) => {
+  try {
+    const { otpStore, generateOTP } = await import('./login_signup_service.js');
+    const { sendEmailAsync } = await import('./rabbitmq_service.js');
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return {
+        code: 404,
+        message: "Email không tồn tại",
+        details: ["Không tìm thấy tài khoản liên kết với email này"]
+      };
+    }
+
+    const otp = generateOTP();
+    otpStore.set(email, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    await sendEmailAsync({
+      to: email,
+      subject: "OTP - Đặt lại mật khẩu",
+      text: `Mã OTP của bạn là: ${otp} (hết hạn sau 5 phút).`
+    });
+
+    return { code: 200, message: "Đã gửi mã OTP đến email" };
+  } catch (error) {
+    console.error('[AUTH_SERVICE] sendForgotPasswordOtp error:', error);
+    return {
+      code: 500,
+      message: 'Failed to send OTP',
+      details: [error.message],
+    };
+  }
+};
+
+export const resetPassword = async ({ email, otp, newPassword }) => {
+  try {
+    const { otpStore } = await import('./login_signup_service.js');
+
+    const entry = otpStore.get(email);
+    if (!entry || entry.otp !== otp) {
+      return {
+        code: 400,
+        message: "OTP không hợp lệ",
+        details: ["Mã OTP không đúng hoặc không tồn tại"]
+      };
+    }
+    if (Date.now() > entry.expiresAt) {
+      otpStore.delete(email);
+      return {
+        code: 400,
+        message: "OTP đã hết hạn",
+        details: ["Mã OTP này đã quá thời gian hiệu lực (5 phút)"]
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.update({ password: hashedPassword }, { where: { email } });
+    otpStore.delete(email);
+
+    return { code: 200, message: "Đặt lại mật khẩu thành công" };
+  } catch (error) {
+    console.error('[AUTH_SERVICE] resetPassword error:', error);
+    return {
+      code: 500,
+      message: 'Failed to reset password',
+      details: [error.message],
+    };
+  }
+};
+
 export default {
   register,
   login,
@@ -480,6 +592,10 @@ export default {
   refresh,
   logout,
   getMe,
+  changePassword,
+  sendForgotPasswordOtp,
+  resetPassword,
   createAccessToken,
   createRefreshToken,
 };
+

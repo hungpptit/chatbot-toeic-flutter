@@ -194,6 +194,103 @@ class AuthController extends GetxController {
     return false;
   }
 
+  Future<String?> changePassword(String currentPassword, String newPassword) async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.put('/v1/auth/password', data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      });
+
+      if (response.statusCode == 200) {
+        return null;
+      }
+    } on DioException catch (e) {
+      final dynamic data = e.response?.data;
+      final message = data is Map
+          ? (data['message'] ?? data['error'] ?? e.message)
+          : e.message;
+      return message.toString();
+    } catch (e) {
+      return e.toString();
+    } finally {
+      isLoading.value = false;
+    }
+    return 'Lỗi không xác định';
+  }
+  Future<bool> sendForgotPasswordOtp(String email) async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.post('/v1/auth/password/forgot', data: {
+        'email': email,
+      });
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } on DioException catch (e) {
+      final dynamic data = e.response?.data;
+      final message = data is Map
+          ? (data['message'] ?? data['error'] ?? e.message)
+          : e.message;
+      Get.snackbar(
+        'Lỗi',
+        message.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Lỗi',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+    return false;
+  }
+
+  Future<bool> resetPassword(String email, String otp, String newPassword) async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.post('/v1/auth/password/reset', data: {
+        'email': email,
+        'otp': otp,
+        'newPassword': newPassword,
+      });
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } on DioException catch (e) {
+      final dynamic data = e.response?.data;
+      final message = data is Map
+          ? (data['message'] ?? data['error'] ?? e.message)
+          : e.message;
+      Get.snackbar(
+        'Lỗi',
+        message.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Lỗi',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+    return false;
+  }
+
+
   Future<void> logout() async {
     try {
       final refreshToken = await StorageService.getRefreshToken();

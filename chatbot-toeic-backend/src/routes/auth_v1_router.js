@@ -12,6 +12,9 @@ import {
   refreshController,
   logoutController,
   getMeController,
+  changePasswordController,
+  forgotPasswordController,
+  resetPasswordController,
 } from '../controllers/auth_v1_controller.js';
 import { authMiddleware } from '../Middleware/authMiddleware.js';
 
@@ -276,4 +279,108 @@ authV1Router.post('/logout', logoutController);
  */
 authV1Router.get('/me', authMiddleware, getMeController);
 
+/**
+ * @swagger
+ * /api/v1/auth/password:
+ *   put:
+ *     summary: Đổi mật khẩu tài khoản
+ *     description: Yêu cầu đăng nhập, cung cấp mật khẩu hiện tại và mật khẩu mới để cập nhật mật khẩu
+ *     tags:
+ *       - Auth (v1)
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Đổi mật khẩu thành công
+ *       400:
+ *         description: Thông tin không hợp lệ hoặc mật khẩu hiện tại sai
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+authV1Router.put('/password', authMiddleware, changePasswordController);
+
+/**
+ * @swagger
+ * /api/v1/auth/password/forgot:
+ *   post:
+ *     summary: Yêu cầu mã OTP quên mật khẩu
+ *     description: Gửi mã OTP khôi phục mật khẩu tới email của người dùng
+ *     tags:
+ *       - Auth (v1)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Đã gửi mã OTP đến email thành công
+ *       400:
+ *         description: Yêu cầu không hợp lệ
+ *       404:
+ *         description: Email không tồn tại trong hệ thống
+ */
+authV1Router.post('/password/forgot', forgotPasswordController);
+
+/**
+ * @swagger
+ * /api/v1/auth/password/reset:
+ *   post:
+ *     summary: Đặt lại mật khẩu bằng mã OTP
+ *     description: Đặt lại mật khẩu mới cho người dùng sau khi xác thực mã OTP gửi qua email
+ *     tags:
+ *       - Auth (v1)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Đặt lại mật khẩu thành công
+ *       400:
+ *         description: Mã OTP sai, hết hạn hoặc thông tin không hợp lệ
+ */
+authV1Router.post('/password/reset', resetPasswordController);
+
 export default authV1Router;
+

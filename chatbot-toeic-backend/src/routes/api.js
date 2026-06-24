@@ -1,10 +1,6 @@
 import express from 'express';
 import vocabulariesRouter from './vocabularies_router.js';
 import loginRouter from './login_signup_router.js';
-import questionsRouter from './questions_router.js';
-import conversationRouter from './conversation_router.js';
-import messageRouter from './message_routes.js';
-import authRouter from './auth_router.js';
 import authV1Router from './auth_v1_router.js';
 import courseV1Router from './course_v1_router.js';
 import testV1Router from './test_v1_router.js';
@@ -13,15 +9,10 @@ import statsV1Router from './stats_v1_router.js';
 import uploadV1Router from './upload_v1_router.js';
 import paymentV1Router from './payment_v1_router.js';
 
-import coursesRouter from './course_router.js';
-import testcourseRouter from './test_course_router.js';
-import questiontestRouter from './question_test_router.js';
 import adminUsersRouter from './admin-users_router.js';
 import adminTestsRouter from  './admin-tests_router.js';
 import adminMetadataRouter from './admin-metadata_router.js';
 import accountRouter from './account_router.js';
-import statisticsRouter from './statistics_router.js';
-import uploadRouter from './upload.js';
 import mlRouter from './ml_router.js';
 // import userRouter from './user.route.js';
 // import questionRouter from './question.route.js';
@@ -46,20 +37,7 @@ router.use('/v1', chatbotV1Router); // Handles /v1/users/me/conversations and /v
 router.use('/vocabulary', vocabulariesRouter);
 router.use('/vocabularies', vocabulariesRouter); // RESTful Alias
 
-router.use('/question', questionsRouter);
-router.use('/questions', questionsRouter); // RESTful Alias
-
 router.use('/auth', loginRouter);
-router.use('/conversations', conversationRouter);
-router.use('/messages', messageRouter);
-router.use('/', authRouter);
-router.use('/courses', coursesRouter);
-
-router.use('/testcourses', testcourseRouter);
-router.use('/test-courses', testcourseRouter); // RESTful Alias
-
-router.use('/questionTest', questiontestRouter);
-router.use('/question-tests', questiontestRouter); // RESTful Alias
 
 router.use('/adminUser', adminUsersRouter);
 router.use('/admin-users', adminUsersRouter); // RESTful Alias
@@ -71,11 +49,6 @@ router.use('/adminMetadata', adminMetadataRouter);
 router.use('/admin-metadata', adminMetadataRouter); // RESTful Alias
 
 router.use('/account', accountRouter);
-
-router.use('/statistical', statisticsRouter);
-router.use('/statistics', statisticsRouter); // RESTful Alias
-
-router.use('/', uploadRouter);
 router.use('/ml', mlRouter); 
 
 export default router;

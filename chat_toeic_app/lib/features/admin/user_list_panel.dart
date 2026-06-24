@@ -144,8 +144,8 @@ class _UserListPanelState extends State<UserListPanel> {
                                             child: Row(
                                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                               children: [
-                                                AdminActionButton(type: AdminActionButtonType.view, onTap: () {}),
-                                                AdminActionButton(type: AdminActionButtonType.edit, onTap: () {}),
+                                                AdminActionButton(type: AdminActionButtonType.view, onTap: () => _showViewUserDialog(context, u)),
+                                                AdminActionButton(type: AdminActionButtonType.edit, onTap: () => _showEditUserDialog(context, controller, u)),
                                                 AdminActionButton(
                                                   type: AdminActionButtonType.delete,
                                                   onTap: () async {
@@ -213,5 +213,243 @@ class _UserListPanelState extends State<UserListPanel> {
         ],
       );
     });
+  }
+
+  void _showViewUserDialog(BuildContext context, Map<String, dynamic> u) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Thông tin chi tiết người dùng',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                _buildDetailRow('ID', '${u['id'] ?? ''}'),
+                const SizedBox(height: 12),
+                _buildDetailRow('Username', '${u['username'] ?? '-'}'),
+                const SizedBox(height: 12),
+                _buildDetailRow('Email', '${u['email'] ?? '-'}'),
+                const SizedBox(height: 12),
+                _buildDetailRow('Vai trò', (u['roleId'] == 2 || u['role_id'] == 2) ? 'Admin' : 'User'),
+                const SizedBox(height: 12),
+                _buildDetailRow('Trạng thái', u['status'] == false ? 'Đã khóa' : 'Hoạt động'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Đóng', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  void _showEditUserDialog(BuildContext context, UserController controller, Map<String, dynamic> u) {
+    final usernameController = TextEditingController(text: u['username'] ?? '');
+    final emailController = TextEditingController(text: u['email'] ?? '');
+    int selectedRoleId = u['roleId'] ?? u['role_id'] ?? 1;
+    bool isLocked = u['status'] == false;
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E293B),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Chỉnh sửa người dùng',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: usernameController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Username',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.white24),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập username';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: emailController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.white24),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Vui lòng nhập email';
+                          }
+                          if (!value.contains('@')) {
+                            return 'Email không hợp lệ';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<int>(
+                        value: selectedRoleId,
+                        dropdownColor: const Color(0xFF1E293B),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Vai trò (Role)',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.white24),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 1,
+                            child: Text('User'),
+                          ),
+                          DropdownMenuItem(
+                            value: 2,
+                            child: Text('Admin'),
+                          ),
+                        ],
+                        onChanged: isSaving ? null : (val) {
+                          if (val != null) {
+                            setState(() {
+                              selectedRoleId = val;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text('Khóa tài khoản', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        value: isLocked,
+                        activeColor: const Color(0xFF6366F1),
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: isSaving ? null : (val) {
+                          setState(() {
+                            isLocked = val;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.white70)),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      setState(() {
+                        isSaving = true;
+                      });
+                      
+                      try {
+                        final updatedUser = await controller.updateUser(
+                          u['id'],
+                          {
+                            'username': usernameController.text,
+                            'email': emailController.text,
+                            'role_id': selectedRoleId,
+                            'status': !isLocked, // active if not locked
+                          },
+                        );
+                        
+                        if (updatedUser != null) {
+                          Navigator.of(context).pop(); // Close edit dialog
+                          Get.snackbar(
+                            'Thành công',
+                            'Cập nhật thông tin người dùng thành công',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.green.withOpacity(0.8),
+                            colorText: Colors.white,
+                          );
+                        } else {
+                          setState(() {
+                            isSaving = false;
+                          });
+                        }
+                      } catch (e) {
+                        setState(() {
+                          isSaving = false;
+                        });
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Xác nhận', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

@@ -390,6 +390,34 @@ Mỗi khi Client gửi yêu cầu truy cập các dữ liệu cần đăng nhậ
     }
     ```
 
+#### 4.2.7 Đổi mật khẩu tài khoản (Change Password)
+*   **HTTP Method:** `PUT`
+*   **Endpoint:** `/api/v1/auth/password`
+*   **Xác thực:** Yêu cầu Access Token đính kèm.
+*   **Request Body:**
+    | Tham số | Kiểu dữ liệu | Bắt buộc | Mô tả |
+    | :--- | :--- | :--- | :--- |
+    | `currentPassword` | String | Có | Mật khẩu hiện tại của tài khoản |
+    | `newPassword` | String | Có | Mật khẩu mới mong muốn thiết lập |
+*   **Response (200 OK):**
+    ```json
+    {
+      "status": "success",
+      "message": "Đổi mật khẩu thành công"
+    }
+    ```
+*   **Response (400 Bad Request):**
+    ```json
+    {
+      "status": "error",
+      "code": 400,
+      "message": "Mật khẩu hiện tại không chính xác",
+      "details": [
+        "Mật khẩu hiện tại không khớp với mật khẩu đang dùng"
+      ]
+    }
+    ```
+
 ---
 
 ### 4.3 Module 2: Khóa Học & Đề Thi (Courses & Tests)

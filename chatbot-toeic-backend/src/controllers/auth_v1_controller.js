@@ -10,6 +10,9 @@ import {
   refresh,
   logout,
   getMe,
+  changePassword,
+  sendForgotPasswordOtp,
+  resetPassword,
 } from '../services/auth_v1_service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
@@ -157,6 +160,79 @@ export const getMeController = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/v1/auth/change-password
+ */
+export const changePasswordController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return sendError(res, 400, 'Mật khẩu hiện tại và mật khẩu mới không được để trống', ['currentPassword và newPassword là bắt buộc']);
+    }
+
+    const result = await changePassword(userId, currentPassword, newPassword);
+
+    if (result.code !== 200) {
+      return sendError(res, result.code, result.message, result.details);
+    }
+
+    return sendSuccess(res, null, result.message, 200);
+  } catch (error) {
+    console.error('[CONTROLLER] changePasswordController error:', error);
+    return sendError(res, 500, 'Server error', [error.message]);
+  }
+};
+
+/**
+ * POST /api/v1/auth/password/forgot
+ */
+export const forgotPasswordController = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return sendError(res, 400, 'Email không được để trống', ['email là bắt buộc']);
+    }
+
+    const result = await sendForgotPasswordOtp(email);
+
+    if (result.code !== 200) {
+      return sendError(res, result.code, result.message, result.details);
+    }
+
+    return sendSuccess(res, null, result.message, 200);
+  } catch (error) {
+    console.error('[CONTROLLER] forgotPasswordController error:', error);
+    return sendError(res, 500, 'Server error', [error.message]);
+  }
+};
+
+/**
+ * POST /api/v1/auth/password/reset
+ */
+export const resetPasswordController = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return sendError(res, 400, 'Thông tin không được để trống', ['email, otp và newPassword là bắt buộc']);
+    }
+
+    const result = await resetPassword({ email, otp, newPassword });
+
+    if (result.code !== 200) {
+      return sendError(res, result.code, result.message, result.details);
+    }
+
+    return sendSuccess(res, null, result.message, 200);
+  } catch (error) {
+    console.error('[CONTROLLER] resetPasswordController error:', error);
+    return sendError(res, 500, 'Server error', [error.message]);
+  }
+};
+
 export default {
   registerController,
   loginController,
@@ -164,4 +240,7 @@ export default {
   refreshController,
   logoutController,
   getMeController,
+  changePasswordController,
+  forgotPasswordController,
+  resetPasswordController,
 };

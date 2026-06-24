@@ -72,10 +72,13 @@ class UserController extends GetxController {
       final userId = id is String ? int.tryParse(id) ?? id : id;
       final response = await DioClient.dio.patch('/admin-users/$userId', data: payload);
       if (response.statusCode == 200) {
-        final updated = response.data['data'] ?? response.data;
+        final updated = response.data['user'] ?? response.data['data'] ?? response.data;
         final idx = users.indexWhere((u) => u['id'] == id);
         if (idx != -1) {
           users[idx] = {...users[idx], ...updated};
+          if (users[idx]['role_id'] != null) {
+            users[idx]['roleId'] = users[idx]['role_id'];
+          }
           users.refresh();
         }
         return updated as Map<String, dynamic>;

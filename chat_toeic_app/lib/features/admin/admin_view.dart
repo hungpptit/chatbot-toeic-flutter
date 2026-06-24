@@ -235,7 +235,6 @@ class _AdminViewState extends State<AdminView> {
   bool _isSubItemSelected(String title, String parentTitle) {
     if (parentTitle == 'Quản lý người dùng') {
       if (title == 'Danh sách') return activeAdminContent == 'users';
-      if (title == 'Chức năng khác') return activeAdminContent == 'users_manage';
     } else if (parentTitle == 'Quản lý chung') {
       if (title == 'Danh sách khóa học') return activeAdminContent == 'courses';
       if (title == 'Danh sách part') return activeAdminContent == 'parts';
@@ -243,7 +242,6 @@ class _AdminViewState extends State<AdminView> {
       if (title == 'Danh sách skill') return activeAdminContent == 'skills';
     } else if (parentTitle == 'Quản lý đề thi') {
       if (title == 'Danh sách đề') return activeAdminContent == 'exams';
-      if (title == 'Thêm đề mới') return activeAdminContent == 'exams_add';
     }
     return false;
   }
@@ -355,13 +353,13 @@ class _AdminViewState extends State<AdminView> {
             _buildExpandableSidebarItem(
               Icons.people_outline, 
               'Quản lý người dùng', 
-              ['Danh sách', 'Chức năng khác'],
+              ['Danh sách'],
               collapsed: collapsed,
             ),
             _buildExpandableSidebarItem(
               Icons.quiz_outlined, 
               'Quản lý đề thi', 
-              ['Danh sách đề', 'Thêm đề mới'],
+              ['Danh sách đề'],
               collapsed: collapsed,
             ),
             _buildExpandableSidebarItem(
@@ -422,8 +420,6 @@ class _AdminViewState extends State<AdminView> {
             if (parentTitle == 'Quản lý người dùng') {
               if (title == 'Danh sách') {
                 activeAdminContent = 'users';
-              } else if (title == 'Chức năng khác') {
-                activeAdminContent = 'users_manage';
               }
             } else if (parentTitle == 'Quản lý chung') {
               if (title == 'Danh sách khóa học') {
@@ -438,8 +434,6 @@ class _AdminViewState extends State<AdminView> {
             } else if (parentTitle == 'Quản lý đề thi') {
               if (title == 'Danh sách đề') {
                 activeAdminContent = 'exams';
-              } else if (title == 'Thêm đề mới') {
-                activeAdminContent = 'exams_add';
               }
             }
           });
