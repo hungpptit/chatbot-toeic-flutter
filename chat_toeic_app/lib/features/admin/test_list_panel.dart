@@ -145,7 +145,7 @@ class _TestListPanelState extends State<TestListPanel> {
                                     final currentPage = page > 0 ? page : 1;
                                     final start = (currentPage - 1) * pageSize;
                                     final test = tests[start + index];
-                                    final List<dynamic> courses = (test['courses'] as List<dynamic>?) ?? [];
+                                    final List<dynamic> courses = (test['tags'] as List<dynamic>?) ?? [];
 
                                     return Container(
                                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),

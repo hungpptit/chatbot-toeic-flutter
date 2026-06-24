@@ -6,3 +6,10 @@ build/
 .vscode/
 .idea/
 src/config.js
+
+# ML models and artifacts
+ml/
+venv/
+__pycache__/
+*.pkl
+weak_skill_model.pkl

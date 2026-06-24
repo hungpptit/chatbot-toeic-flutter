@@ -21,10 +21,23 @@ const router = express.Router();
  * @swagger
  * /api/v1/tests:
  *   get:
- *     summary: Lấy danh sách bài thi
+ *     summary: Lấy danh sách bài thi (Có phân trang)
  *     tags: [Test (v1)]
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Số trang hiện tại
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Số lượng đề mỗi trang
  *     responses:
  *       200:
  *         description: Thành công
@@ -36,11 +49,25 @@ const router = express.Router();
  *                 - type: object
  *                   properties:
  *                     data:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Test'
+ *                       type: object
+ *                       properties:
+ *                         tests:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/Test'
+ *                         pagination:
+ *                           type: object
+ *                           properties:
+ *                             totalItems:
+ *                               type: integer
+ *                             totalPages:
+ *                               type: integer
+ *                             currentPage:
+ *                               type: integer
+ *                             limit:
+ *                               type: integer
  */
-router.get('/', authMiddleware, getTests);
+router.get('/tests', authMiddleware, getTests);
 
 /**
  * @swagger
@@ -60,7 +87,7 @@ router.get('/', authMiddleware, getTests);
  *       200:
  *         description: Thành công
  */
-router.get('/:testId/questions', authMiddleware, getTestQuestions);
+router.get('/tests/:testId/questions', authMiddleware, getTestQuestions);
 
 /**
  * @swagger
@@ -80,7 +107,7 @@ router.get('/:testId/questions', authMiddleware, getTestQuestions);
  *       201:
  *         description: Thành công
  */
-router.post('/:testId/questions', authMiddleware, adminMiddleware, createQuestionV1);
+router.post('/tests/:testId/questions', authMiddleware, adminMiddleware, createQuestionV1);
 
 /**
  * @swagger
@@ -100,38 +127,14 @@ router.post('/:testId/questions', authMiddleware, adminMiddleware, createQuestio
  *       200:
  *         description: Thành công
  */
-router.post('/:testId/attempts', authMiddleware, startTestAttempt);
-
-/**
- * @swagger
- * /api/v1/tests/{testId}/attempts/{attemptId}/cancel:
- *   post:
- *     summary: Hủy bài thi đang làm dở
- *     tags: [Test (v1)]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: testId
- *         required: true
- *         schema:
- *           type: integer
- *       - in: path
- *         name: attemptId
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Thành công
- */
-router.post('/:testId/attempts/:attemptId/cancel', authMiddleware, cancelTestAttempt);
+router.post('/tests/:testId/attempts', authMiddleware, startTestAttempt);
 
 /**
  * @swagger
  * /api/v1/tests/{testId}/attempts/{attemptId}:
  *   patch:
- *     summary: Cập nhật trạng thái lượt làm bài (Nộp bài hoặc Hủy bài)
+ *     summary: Cập nhật lượt làm bài (Nộp bài hoặc Hủy bài)
+ *     description: Sử dụng API này để nộp bài (status=completed) hoặc hủy bài (status=cancelled)
  *     tags: [Test (v1)]
  *     security:
  *       - BearerAuth: []
@@ -166,7 +169,7 @@ router.post('/:testId/attempts/:attemptId/cancel', authMiddleware, cancelTestAtt
  *       200:
  *         description: Thành công
  */
-router.patch('/:testId/attempts/:attemptId', authMiddleware, (req, res, next) => {
+router.patch('/tests/:testId/attempts/:attemptId', authMiddleware, (req, res, next) => {
     const { status } = req.body;
     if (status === 'cancelled') {
         return cancelTestAttempt(req, res, next);
@@ -178,56 +181,7 @@ router.patch('/:testId/attempts/:attemptId', authMiddleware, (req, res, next) =>
 
 /**
  * @swagger
- * /api/v1/tests/{testId}/attempts/{attemptId}/submit:
- *   post:
- *     summary: Nộp bài thi
- *     tags: [Test (v1)]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: testId
- *         required: true
- *         schema:
- *           type: integer
- *       - in: path
- *         name: attemptId
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - answers
- *             properties:
- *               answers:
- *                 type: object
- *                 description: Map of questionId to answer letter (A/B/C/D)
- *                 example:
- *                   "123": "A"
- *                   "124": "B"
- *                   "125": "C"
- *               timeSpent:
- *                 type: integer
- *                 description: Time spent in seconds
- *                 example: 1200
- *     responses:
- *       200:
- *         description: Thành công
- *       400:
- *         description: Bad request - answers required
- *       401:
- *         description: Unauthorized
- */
-router.post('/:testId/attempts/:attemptId/submit', authMiddleware, submitTestAttempt);
-
-/**
- * @swagger
- * /api/v1/tests/{testId}/attempts/latest/check:
+ * /api/v1/tests/{testId}/attempts/latest:
  *   get:
  *     summary: Kiểm tra trạng thái làm bài gần nhất
  *     tags: [Test (v1)]
@@ -243,27 +197,7 @@ router.post('/:testId/attempts/:attemptId/submit', authMiddleware, submitTestAtt
  *       200:
  *         description: Thành công
  */
-router.get('/:testId/attempts/latest/check', authMiddleware, checkLatestAttempt);
-
-/**
- * @swagger
- * /api/v1/tests/{testId}/attempts/latest:
- *   get:
- *     summary: Kiểm tra trạng thái làm bài gần nhất (Chuẩn RESTful)
- *     tags: [Test (v1)]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: testId
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Thành công
- */
-router.get('/:testId/attempts/latest', authMiddleware, checkLatestAttempt);
+router.get('/tests/:testId/attempts/latest', authMiddleware, checkLatestAttempt);
 
 /**
  * @swagger
@@ -283,7 +217,7 @@ router.get('/:testId/attempts/latest', authMiddleware, checkLatestAttempt);
  *       200:
  *         description: Thành công
  */
-router.get('/:testId/attempts/history', authMiddleware, getTestHistory);
+router.get('/tests/:testId/attempts/history', authMiddleware, getTestHistory);
 
 /**
  * @swagger
@@ -331,7 +265,6 @@ router.get('/test-attempts/:attemptId/result', authMiddleware, getAttemptResult)
  *         description: Thành công
  */
 router.post('/practice-attempts', authMiddleware, submitPracticeAttempt);
-router.post('/practice-attempts/submit', authMiddleware, submitPracticeAttempt); // Legacy compatibility
 
 /**
  * @swagger
@@ -371,6 +304,6 @@ router.patch('/questions/:id', authMiddleware, adminMiddleware, updateQuestionV1
  *       200:
  *         description: Thành công
  */
-router.patch('/:id', authMiddleware, adminMiddleware, updateTestV1);
+router.patch('/tests/:id', authMiddleware, adminMiddleware, updateTestV1);
 
 export default router;
