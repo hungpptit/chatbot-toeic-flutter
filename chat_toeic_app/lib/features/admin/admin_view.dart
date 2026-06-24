@@ -87,21 +87,9 @@ class _AdminViewState extends State<AdminView> {
                     ),
                     child: Stack(
                       children: [
-                        // Either show default placeholder or the selected admin panel
-                        if (activeAdminContent == null) ...[
-                          const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.dashboard_customize_outlined, size: 64, color: Colors.white10),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Nội dung quản trị sẽ hiển thị ở đây',
-                                  style: TextStyle(color: Colors.white24, fontSize: 18),
-                                ),
-                              ],
-                            ),
-                          ),
+                        // Either show default dashboard or the selected admin panel
+                        if (activeAdminContent == null || activeAdminContent == 'dashboard') ...[
+                          _buildDashboard(userController, testController, courseController),
                         ] else if (activeAdminContent == 'courses') ...[
                           Padding(
                             padding: const EdgeInsets.all(16.0),
