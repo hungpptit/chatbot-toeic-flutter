@@ -24,7 +24,7 @@ import { sendSuccess, sendError } from "../utils/response.js";
 export const getTests = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 1000;
         
         const { tests, total } = await getAllTestsWithCourses(page, limit);
         
