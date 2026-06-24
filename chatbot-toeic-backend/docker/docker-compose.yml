@@ -43,7 +43,7 @@ services:
       - ML_PORT=5000
       - DB_HOST=db
       - DB_PORT=1433
-      - DB_NAME=ChatbotToeic
+      - DB_NAME=ChatbotToeic_Quiz
       - DB_USERNAME=sa
       - DB_PASS=YourStrongPassword123!
     depends_on:
@@ -73,7 +73,7 @@ services:
       - PORT=8081
       - DB_HOST=db
       - DB_PORT=1433
-      - DB_NAME=ChatbotToeic
+      - DB_NAME=ChatbotToeic_Auth
       - DB_USERNAME=sa
       - DB_PASS=YourStrongPassword123!
       - DB_ENCRYPT=false
@@ -101,7 +101,7 @@ services:
       - PORT=8082
       - DB_HOST=db
       - DB_PORT=1433
-      - DB_NAME=ChatbotToeic
+      - DB_NAME=ChatbotToeic_Quiz
       - DB_USERNAME=sa
       - DB_PASS=YourStrongPassword123!
       - DB_ENCRYPT=false
@@ -127,7 +127,7 @@ services:
       - PORT=8083
       - DB_HOST=db
       - DB_PORT=1433
-      - DB_NAME=ChatbotToeic
+      - DB_NAME=ChatbotToeic_Payment
       - DB_USERNAME=sa
       - DB_PASS=YourStrongPassword123!
       - DB_ENCRYPT=false
@@ -152,7 +152,7 @@ services:
       - PORT=8084
       - DB_HOST=db
       - DB_PORT=1433
-      - DB_NAME=ChatbotToeic
+      - DB_NAME=ChatbotToeic_Chatbot
       - DB_USERNAME=sa
       - DB_PASS=YourStrongPassword123!
       - DB_ENCRYPT=false

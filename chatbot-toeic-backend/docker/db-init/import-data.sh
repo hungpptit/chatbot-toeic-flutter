@@ -9,6 +9,12 @@ for i in {1..50}; do
             echo "Running init.sql..."
             /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -i /usr/src/app/init.sql
             echo "Database initialized successfully."
+            
+            if [ -f /usr/src/app/migrate-to-microservices.sql ]; then
+                echo "Running migrate-to-microservices.sql to split database and copy data..."
+                /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -i /usr/src/app/migrate-to-microservices.sql
+                echo "Database migration completed."
+            fi
         else
             echo "Warning: init.sql not found at /usr/src/app/init.sql. Skipping initialization."
         fi
