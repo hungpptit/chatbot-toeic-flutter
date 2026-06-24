@@ -23,7 +23,7 @@ const router = express.Router();
 // === API v1 (New - RESTful Standard) ===
 router.use('/v1/auth', authLimiter, authV1Router);
 router.use('/v1/courses', courseV1Router);
-router.use('/v1/tests', testV1Router);
+router.use('/v1', testV1Router); // Handles /v1/tests and /v1/test-attempts
 router.use('/v1/statistics', statsV1Router);
 router.use('/v1/uploads', uploadV1Router);
 router.use('/v1/payments', paymentV1Router);

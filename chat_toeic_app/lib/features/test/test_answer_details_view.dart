@@ -108,8 +108,8 @@ class _TestAnswerDetailsViewState extends State<TestAnswerDetailsView> {
     }
 
     try {
-      // test_v1_router is mounted at /v1/tests, so full path is /v1/tests/test-attempts/:attemptId/result
-      final response = await DioClient.dio.get('/v1/tests/test-attempts/$resolvedId/result');
+      // New RESTful path: /v1/test-attempts/:attemptId/result
+      final response = await DioClient.dio.get('/v1/test-attempts/$resolvedId/result');
       final dynamic rawData = response.data['data'] ?? response.data;
       return _safeMap(rawData);
     } on DioException catch (error) {

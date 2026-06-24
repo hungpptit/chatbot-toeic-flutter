@@ -278,25 +278,33 @@ export const createQuestion = async (questionData, testId = null, sortOrder = nu
   }
 };
 // nộp bài 
-export const SubmitTestResult = async ({ userId, testId, answers }) => {
+export const SubmitTestResult = async ({ userId, testId, userTestId, answers }) => {
   return await db.sequelize.transaction(async (transaction) => {
     let correctCount = 0;
     const incorrectAnswers = [];
 
-    // 1. Lấy UserTest đã được tạo khi bắt đầu làm bài
-    let userTest = await db.UserTest.findOne({
-      where: { userId, testId, status: 'in_progress' },
-      order: [['startedAt', 'DESC']], // lấy lần làm mới nhất
-      transaction
-    });
+    // 1. Lấy đúng UserTest theo ID từ URL gửi lên
+    let userTest = null;
+    if (userTestId) {
+      userTest = await db.UserTest.findByPk(userTestId, { transaction });
+    }
 
-    // Nếu chưa có (trường hợp cũ), thì tạo mới
+    // Nếu không tìm thấy bằng ID hoặc không có ID, tìm lượt in_progress mới nhất (fallback)
+    if (!userTest) {
+      userTest = await db.UserTest.findOne({
+        where: { userId, testId, status: 'in_progress' },
+        order: [['startedAt', 'DESC']],
+        transaction
+      });
+    }
+
+    // Nếu vẫn chưa có thì mới tạo mới
     if (!userTest) {
       userTest = await db.UserTest.create({
         userId,
         testId,
         status: 'in_progress',
-        startedAt: new Date(), // fallback
+        startedAt: new Date(),
         score: 0
       }, { transaction });
     }
@@ -633,6 +641,7 @@ export const CheckUserHasDoneTestDetailed = async ({ userId, testId }) => {
     const userTestRecord = await db.UserTest.findOne({
       where: { userId, testId },
       attributes: ['id', 'startedAt', 'completedAt', 'status', 'score'],
+      order: [['startedAt', 'DESC']] // ✅ Lấy lượt mới nhất
     });
 
     if (!userTestRecord) {
