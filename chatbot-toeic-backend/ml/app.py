@@ -19,9 +19,12 @@ app = Flask(__name__)
 # Rule-based fallback: nếu accuracy skill thấp hơn ngưỡng này thì coi là weak
 WEAK_SKILL_ACCURACY_THRESHOLD = 0.50
 
-# Load .env từ parent directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+# Load .env
+load_dotenv()
+# Load .env từ parent directory nếu chưa được định nghĩa
+if not os.getenv("DB_NAME"):
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
