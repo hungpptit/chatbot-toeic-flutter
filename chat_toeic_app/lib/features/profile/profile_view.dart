@@ -159,6 +159,31 @@ class ProfileView extends StatelessWidget {
                                   ),
                                   const Divider(height: 32, color: Colors.white10),
                                   _buildInfoRow(
+                                    Icons.bar_chart_outlined, 
+                                    'Học tập', 
+                                    'Thống kê kết quả',
+                                    trailing: InkWell(
+                                      onTap: () => Get.toNamed('/statistics'),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5)),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text('Xem thống kê', style: TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+                                            SizedBox(width: 4),
+                                            Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF10B981)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const Divider(height: 32, color: Colors.white10),
+                                  _buildInfoRow(
                                     Icons.lock_outline, 
                                     'Mật khẩu', 
                                     '********',

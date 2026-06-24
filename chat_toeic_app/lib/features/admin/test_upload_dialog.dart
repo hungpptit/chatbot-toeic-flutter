@@ -675,6 +675,7 @@ class _TestUploadDialogState extends State<TestUploadDialog> {
     final size = MediaQuery.of(context).size;
     final dialogWidth = size.width < 1100 ? size.width - 24 : 1100.0;
     final dialogHeight = size.height < 900 ? size.height - 24 : size.height * 0.92;
+    final isMobile = size.width < 700;
 
     return Dialog(
       backgroundColor: const Color(0xFF0F172A),
@@ -694,9 +695,9 @@ class _TestUploadDialogState extends State<TestUploadDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildModeSection(),
+                          _buildModeSection(isMobile: isMobile),
                           const SizedBox(height: 16),
-                          _buildMetadataSection(),
+                          _buildMetadataSection(isMobile: isMobile),
                           if (_testType == TestUploadType.listening || _testType == TestUploadType.mixed) ...[
                             const SizedBox(height: 20),
                             _buildGlobalAudioSection(),
@@ -752,33 +753,45 @@ class _TestUploadDialogState extends State<TestUploadDialog> {
     );
   }
 
-  Widget _buildModeSection() {
+  Widget _buildModeSection({bool isMobile = false}) {
+    final uploadModeGroup = _buildChoiceGroup(
+      label: 'Kiểu upload',
+      options: const [
+        _ChoiceItem(label: 'Thủ công', value: TestUploadMode.manual),
+        _ChoiceItem(label: 'JSON', value: TestUploadMode.json),
+      ],
+      groupValue: _uploadMode,
+      onChanged: (value) => _switchUploadMode(value as TestUploadMode),
+    );
+
+    final testTypeGroup = _buildChoiceGroup(
+      label: 'Loại đề',
+      options: const [
+        _ChoiceItem(label: 'Listening only', value: TestUploadType.listening),
+        _ChoiceItem(label: 'Reading only', value: TestUploadType.reading),
+        _ChoiceItem(label: 'Mixed', value: TestUploadType.mixed),
+      ],
+      groupValue: _testType,
+      onChanged: (value) => _switchTestType(value as TestUploadType),
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          uploadModeGroup,
+          const SizedBox(height: 14),
+          testTypeGroup,
+        ],
+      );
+    }
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _buildChoiceGroup(
-            label: 'Kiểu upload',
-            options: const [
-              _ChoiceItem(label: 'Thủ công', value: TestUploadMode.manual),
-              _ChoiceItem(label: 'JSON', value: TestUploadMode.json),
-            ],
-            groupValue: _uploadMode,
-            onChanged: (value) => _switchUploadMode(value as TestUploadMode),
-          ),
-        ),
+        Expanded(child: uploadModeGroup),
         const SizedBox(width: 16),
-        Expanded(
-          child: _buildChoiceGroup(
-            label: 'Loại đề',
-            options: const [
-              _ChoiceItem(label: 'Listening only', value: TestUploadType.listening),
-              _ChoiceItem(label: 'Reading only', value: TestUploadType.reading),
-              _ChoiceItem(label: 'Mixed', value: TestUploadType.mixed),
-            ],
-            groupValue: _testType,
-            onChanged: (value) => _switchTestType(value as TestUploadType),
-          ),
-        ),
+        Expanded(child: testTypeGroup),
       ],
     );
   }
@@ -822,7 +835,32 @@ class _TestUploadDialogState extends State<TestUploadDialog> {
     );
   }
 
-  Widget _buildMetadataSection() {
+  Widget _buildMetadataSection({bool isMobile = false}) {
+    final titleField = TextField(
+      controller: _titleController,
+      style: const TextStyle(color: Colors.white),
+      decoration: const InputDecoration(labelText: 'Tiêu đề đề thi', hintText: 'Nhập tên đề thi'),
+    );
+
+    final courseDropdown = DropdownButtonFormField<int>(
+      initialValue: _selectedCourseId,
+      items: _courses.map((course) {
+        final id = _toInt(course['id']);
+        return DropdownMenuItem<int>(
+          value: id,
+          child: Text('${course['name'] ?? 'Course'} (#$id)', overflow: TextOverflow.ellipsis),
+        );
+      }).toList(),
+      onChanged: (value) => setState(() => _selectedCourseId = value),
+      decoration: const InputDecoration(labelText: 'Khóa học'),
+    );
+
+    final durationField = TextField(
+      controller: _durationController,
+      style: const TextStyle(color: Colors.white),
+      decoration: const InputDecoration(labelText: 'Thời lượng', hintText: '45 minutes'),
+    );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -835,42 +873,31 @@ class _TestUploadDialogState extends State<TestUploadDialog> {
         children: [
           const Text('Thông tin chung', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  controller: _titleController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Tiêu đề đề thi', hintText: 'Nhập tên đề thi'),
+          if (isMobile) ...[
+            titleField,
+            const SizedBox(height: 14),
+            courseDropdown,
+            const SizedBox(height: 14),
+            durationField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: titleField,
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<int>(
-                  initialValue: _selectedCourseId,
-                  items: _courses.map((course) {
-                    final id = _toInt(course['id']);
-                    return DropdownMenuItem<int>(
-                      value: id,
-                      child: Text('${course['name'] ?? 'Course'} (#$id)', overflow: TextOverflow.ellipsis),
-                    );
-                  }).toList(),
-                  onChanged: (value) => setState(() => _selectedCourseId = value),
-                  decoration: const InputDecoration(labelText: 'Khóa học'),
+                const SizedBox(width: 14),
+                Expanded(
+                  flex: 2,
+                  child: courseDropdown,
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: TextField(
-                  controller: _durationController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Thời lượng', hintText: '45 minutes'),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: durationField,
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -174,6 +174,7 @@ class CustomNavBar extends StatelessWidget {
     return Obx(() {
       final user = authController.user.value;
       final isAdmin = user != null && (user['role_id'] == 2 || user['roleId'] == 2);
+      final isLoggedIn = authController.isLoggedIn.value;
       return PopupMenuButton<String>(
         icon: const Icon(Icons.menu, color: Colors.white),
         color: const Color(0xFF1E293B),
@@ -181,6 +182,8 @@ class CustomNavBar extends StatelessWidget {
           const PopupMenuItem(value: '/home', child: Text('Trang chủ', style: TextStyle(color: Colors.white))),
           const PopupMenuItem(value: '/vocabulary', child: Text('Tra từ vựng', style: TextStyle(color: Colors.white))),
           const PopupMenuItem(value: '/chatbot', child: Text('Chat TOEIC', style: TextStyle(color: Colors.white))),
+          if (isLoggedIn)
+            const PopupMenuItem(value: '/statistics', child: Text('Thống kê kết quả', style: TextStyle(color: Colors.white))),
           if (isAdmin)
             const PopupMenuItem(
               value: '/admin', 
@@ -192,7 +195,7 @@ class CustomNavBar extends StatelessWidget {
         ],
         onSelected: (route) {
           if (Get.currentRoute != route) {
-            if (route == '/admin') {
+            if (route == '/admin' || route == '/statistics') {
               Get.toNamed(route);
             } else {
               Get.offNamed(route);

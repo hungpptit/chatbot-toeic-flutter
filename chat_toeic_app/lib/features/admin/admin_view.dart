@@ -151,15 +151,19 @@ class _AdminViewState extends State<AdminView> {
             )),
             const SizedBox(width: 8),
           ],
-          const Text(
-            'Hệ thống Quản trị - Chatbot TOEIC',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              isMobile ? 'Quản trị Chatbot TOEIC' : 'Hệ thống Quản trị - Chatbot TOEIC',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
           if (!isMobile) ...[
             // Switch to Student View Button
             OutlinedButton.icon(

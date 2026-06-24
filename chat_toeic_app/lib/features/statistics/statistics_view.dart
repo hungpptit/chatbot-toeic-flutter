@@ -32,16 +32,16 @@ class StatisticsView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(controller),
+                    _buildHeader(context, controller),
                     const SizedBox(height: 32),
-                    _buildQuickStats(controller),
+                    _buildQuickStats(context, controller),
                     const SizedBox(height: 32),
                     LayoutBuilder(builder: (context, constraints) {
                       if (constraints.maxWidth > 900) {
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(flex: 3, child: _buildAccuracyChart(controller)),
+                            Expanded(flex: 3, child: _buildAccuracyChart(context, controller)),
                             const SizedBox(width: 24),
                             Expanded(flex: 2, child: _buildPartStats(controller)),
                           ],
@@ -49,7 +49,7 @@ class StatisticsView extends StatelessWidget {
                       }
                       return Column(
                         children: [
-                          _buildAccuracyChart(controller),
+                          _buildAccuracyChart(context, controller),
                           const SizedBox(height: 24),
                           _buildPartStats(controller),
                         ],
@@ -67,202 +67,233 @@ class StatisticsView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(StatisticsController controller) {
+  Widget _buildHeader(BuildContext context, StatisticsController controller) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    final titleRow = Row(
+      children: [
+        IconButton(
+          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          style: IconButton.styleFrom(backgroundColor: Colors.white10),
+        ),
+        const SizedBox(width: 16),
+        const Expanded(
+          child: Text(
+            'Thống kê học tập',
+            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+
+    final predictButton = ElevatedButton.icon(
+      onPressed: () async {
+        // Fetch recommendations from backend and show dialog
+        try {
+          final auth = Get.find<AuthController>();
+          final user = auth.user.value;
+          if (user == null || user['id'] == null) {
+            Get.snackbar('Lỗi', 'Vui lòng đăng nhập để sử dụng tính năng này');
+            return;
+          }
+
+          final userId = user['id'].toString();
+          final loading = Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+
+          final resp = await DioClient.dio.get(
+            '/ml/recommend/details/$userId',
+            options: Options(
+              connectTimeout: const Duration(seconds: 90),
+              receiveTimeout: const Duration(seconds: 90),
+            ),
+          );
+          Get.back(); // close loading
+
+          if (resp.statusCode == 200 && resp.data != null && resp.data['data'] != null) {
+            final data = resp.data['data'];
+            final weakSkills = data['weak_skills'] as List<dynamic>? ?? [];
+            final questions = data['questions'] as List<dynamic>? ?? [];
+
+            if (weakSkills.isEmpty && questions.isEmpty) {
+              _showNoWeakSkillDialog(
+                title: 'Chúc mừng!',
+                message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
+              );
+              return;
+            }
+
+            if (weakSkills.isEmpty) {
+              _showNoWeakSkillDialog(
+                title: 'Chúc mừng!',
+                message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
+              );
+              return;
+            }
+
+            if (questions.isEmpty) {
+              _showNoWeakSkillDialog(
+                title: 'Chúc mừng!',
+                message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
+              );
+              return;
+            }
+
+            // Show bottom sheet with recommended questions
+            Get.bottomSheet(
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0F172A),
+                  borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Kỹ năng yếu', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: weakSkills.map((s) => Chip(label: Text(s.toString(), style: const TextStyle(color: Colors.white)))).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            // Start practice: preload questions into TestController and navigate
+                            final practiceTestId = DateTime.now().millisecondsSinceEpoch ~/ 1000; // unique int
+
+                            // Create a TestController with tag matching TestDetailView expectation
+                            final tag = 'test_$practiceTestId';
+                            TestController testController;
+                            try {
+                              testController = Get.find<TestController>(tag: tag);
+                            } catch (e) {
+                              testController = Get.put(TestController(), tag: tag);
+                            }
+
+                            // Preload questions (ensure they are Map<String,dynamic>)
+                            final List<Map<String, dynamic>> qList = questions.map<Map<String,dynamic>>((e) => Map<String,dynamic>.from(e as Map)).toList();
+                            testController.questions.assignAll(qList);
+                            testController.totalQuestions.value = qList.length;
+
+                            // Mark controller as practice mode and activate test state
+                            testController.isPracticeMode.value = true;
+                            testController.isTestActive.value = true;
+                            testController.testStarted.value = true;
+                            testController.testId.value = practiceTestId;
+
+                            // Navigate to test detail with our synthetic testId
+                            Get.back(); // close bottom sheet
+                            Get.toNamed('/test-detail', arguments: {'testId': practiceTestId});
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+                          child: const Text('Bắt đầu luyện tập'),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Câu hỏi gợi ý', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ...questions.map((q) {
+                        final qText = q['question'] ?? q['content'] ?? '';
+                        final questionTypeName = _extractQuestionTypeName(q);
+                        final questionTypeDescription = _extractQuestionTypeDescription(q);
+                        final questionTypeLabel = _extractQuestionTypeLabel(q);
+                        final partLabel = _extractPartLabel(q);
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF111C34),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF24324F)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                qText.toString(),
+                                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600, height: 1.35),
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _buildMetaChip(questionTypeLabel),
+                                  _buildMetaChip(partLabel),
+                                ],
+                              ),
+                              if (questionTypeName != null || questionTypeDescription != null) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  questionTypeName != null
+                                      ? 'Question Type: $questionTypeName${questionTypeDescription != null ? ' - $questionTypeDescription' : ''}'
+                                      : 'Question Type: Unknown',
+                                  style: const TextStyle(
+                                    color: Color(0xFFCBD5E1),
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ),
+              isScrollControlled: true,
+            );
+          } else {
+            Get.snackbar('Lỗi', 'Không nhận được gợi ý. Vui lòng thử lại sau.');
+          }
+        } catch (e) {
+          try { Get.back(); } catch (_) {}
+          print('Error fetching recommendations: $e');
+          Get.snackbar('Lỗi', 'Không thể lấy gợi ý luyện tập');
+        }
+      },
+      icon: const Icon(Icons.play_arrow),
+      label: const Text('Dự đoán kỹ năng yếu'),
+      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: () => Get.back(),
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              style: IconButton.styleFrom(backgroundColor: Colors.white10),
-            ),
-            const SizedBox(width: 16),
+        if (isMobile) ...[
+          titleRow,
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: predictButton,
+          ),
+        ] else ...[
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Get.back(),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                style: IconButton.styleFrom(backgroundColor: Colors.white10),
+              ),
+              const SizedBox(width: 16),
               const Text(
                 'Thống kê học tập',
                 style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  // Fetch recommendations from backend and show dialog
-                  try {
-                    final auth = Get.find<AuthController>();
-                    final user = auth.user.value;
-                    if (user == null || user['id'] == null) {
-                      Get.snackbar('Lỗi', 'Vui lòng đăng nhập để sử dụng tính năng này');
-                      return;
-                    }
-
-                    final userId = user['id'].toString();
-                    final loading = Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
-
-                    final resp = await DioClient.dio.get(
-                      '/ml/recommend/details/$userId',
-                      options: Options(
-                        connectTimeout: const Duration(seconds: 90),
-                        receiveTimeout: const Duration(seconds: 90),
-                      ),
-                    );
-                    Get.back(); // close loading
-
-                    if (resp.statusCode == 200 && resp.data != null && resp.data['data'] != null) {
-                      final data = resp.data['data'];
-                      final weakSkills = data['weak_skills'] as List<dynamic>? ?? [];
-                      final questions = data['questions'] as List<dynamic>? ?? [];
-
-                      if (weakSkills.isEmpty && questions.isEmpty) {
-                        _showNoWeakSkillDialog(
-                          title: 'Chúc mừng!',
-                          message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
-                        );
-                        return;
-                      }
-
-                      if (weakSkills.isEmpty) {
-                        _showNoWeakSkillDialog(
-                          title: 'Chúc mừng!',
-                          message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
-                        );
-                        return;
-                      }
-
-                      if (questions.isEmpty) {
-                        _showNoWeakSkillDialog(
-                          title: 'Chúc mừng!',
-                          message: 'Hiện tại bạn chưa có kỹ năng yếu nào nổi bật. Hãy tiếp tục duy trì phong độ nhé.',
-                        );
-                        return;
-                      }
-
-                      // Show bottom sheet with recommended questions
-                      Get.bottomSheet(
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF0F172A),
-                            borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-                          ),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Kỹ năng yếu', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  children: weakSkills.map((s) => Chip(label: Text(s.toString(), style: const TextStyle(color: Colors.white)))).toList(),
-                                ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      // Start practice: preload questions into TestController and navigate
-                                      final practiceTestId = DateTime.now().millisecondsSinceEpoch ~/ 1000; // unique int
-
-                                      // Create a TestController with tag matching TestDetailView expectation
-                                      final tag = 'test_$practiceTestId';
-                                      TestController testController;
-                                      try {
-                                        testController = Get.find<TestController>(tag: tag);
-                                      } catch (e) {
-                                        testController = Get.put(TestController(), tag: tag);
-                                      }
-
-                                      // Preload questions (ensure they are Map<String,dynamic>)
-                                      final List<Map<String, dynamic>> qList = questions.map<Map<String,dynamic>>((e) => Map<String,dynamic>.from(e as Map)).toList();
-                                      testController.questions.assignAll(qList);
-                                      testController.totalQuestions.value = qList.length;
-
-                                      // Mark controller as practice mode and activate test state
-                                      testController.isPracticeMode.value = true;
-                                      testController.isTestActive.value = true;
-                                      testController.testStarted.value = true;
-                                      testController.testId.value = practiceTestId;
-
-                                      // Navigate to test detail with our synthetic testId
-                                      Get.back(); // close bottom sheet
-                                      Get.toNamed('/test-detail', arguments: {'testId': practiceTestId});
-                                    },
-                                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                                    child: const Text('Bắt đầu luyện tập'),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                const Text('Câu hỏi gợi ý', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 8),
-                                ...questions.map((q) {
-                                  final qText = q['question'] ?? q['content'] ?? '';
-                                  final questionTypeName = _extractQuestionTypeName(q);
-                                  final questionTypeDescription = _extractQuestionTypeDescription(q);
-                                  final questionTypeLabel = _extractQuestionTypeLabel(q);
-                                  final partLabel = _extractPartLabel(q);
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF111C34),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: const Color(0xFF24324F)),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          qText.toString(),
-                                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600, height: 1.35),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: [
-                                            _buildMetaChip(questionTypeLabel),
-                                            _buildMetaChip(partLabel),
-                                          ],
-                                        ),
-                                        if (questionTypeName != null || questionTypeDescription != null) ...[
-                                          const SizedBox(height: 10),
-                                          Text(
-                                            questionTypeName != null
-                                                ? 'Question Type: $questionTypeName${questionTypeDescription != null ? ' - $questionTypeDescription' : ''}'
-                                                : 'Question Type: Unknown',
-                                            style: const TextStyle(
-                                              color: Color(0xFFCBD5E1),
-                                              fontSize: 13,
-                                              height: 1.4,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-                            ),
-                          ),
-                        ),
-                        isScrollControlled: true,
-                      );
-                    } else {
-                      Get.snackbar('Lỗi', 'Không nhận được gợi ý. Vui lòng thử lại sau.');
-                    }
-                  } catch (e) {
-                    try { Get.back(); } catch (_) {}
-                    print('Error fetching recommendations: $e');
-                    Get.snackbar('Lỗi', 'Không thể lấy gợi ý luyện tập');
-                  }
-                },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Dự đoán kỹ năng yếu'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
+              predictButton,
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
         const Text(
           'Theo dõi quá trình luyện tập và sự tiến bộ của bạn',
           style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16),
@@ -271,64 +302,91 @@ class StatisticsView extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickStats(StatisticsController controller) {
+  Widget _buildQuickStats(BuildContext context, StatisticsController controller) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
     final stats = controller.userStats.value;
+
+    final card1 = _buildStatCard(
+      'Tổng số bài thi',
+      '${stats['totalAttempts'] ?? 0}',
+      Icons.assignment_turned_in,
+      const Color(0xFF6366F1),
+    );
+
+    final card2 = _buildStatCard(
+      'Thời gian luyện tập',
+      controller.formatDuration(stats['totalTimeSeconds'] ?? 0),
+      Icons.timer,
+      const Color(0xFF10B981),
+    );
+
+    if (isMobile) {
+      return Column(
+        children: [
+          card1,
+          const SizedBox(height: 16),
+          card2,
+        ],
+      );
+    }
+
     return Row(
       children: [
-        _buildStatCard(
-          'Tổng số bài thi',
-          '${stats['totalAttempts'] ?? 0}',
-          Icons.assignment_turned_in,
-          const Color(0xFF6366F1),
-        ),
+        Expanded(child: card1),
         const SizedBox(width: 16),
-        _buildStatCard(
-          'Thời gian luyện tập',
-          controller.formatDuration(stats['totalTimeSeconds'] ?? 0),
-          Icons.timer,
-          const Color(0xFF10B981),
-        ),
+        Expanded(child: card2),
       ],
     );
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-          boxShadow: [
-            BoxShadow(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 20),
-            Column(
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+                Text(
+                  title, 
+                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), 
+                  maxLines: 1, 
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 4),
-                Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  value, 
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), 
+                  maxLines: 1, 
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -471,7 +529,41 @@ class StatisticsView extends StatelessWidget {
     return 0;
   }
 
-  Widget _buildAccuracyChart(StatisticsController controller) {
+  Widget _buildAccuracyChart(BuildContext context, StatisticsController controller) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    final timeframeSelector = Obx(() => Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [7, 30, 90].map((days) {
+              final isSelected = controller.selectedTimeframe.value == days;
+              return GestureDetector(
+                onTap: () => controller.selectedTimeframe.value = days,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$days ngày',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ));
+
     return Container(
       constraints: const BoxConstraints(minHeight: 450),
       padding: const EdgeInsets.all(24),
@@ -483,46 +575,25 @@ class StatisticsView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Độ chính xác theo thời gian',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              // Timeframe Selector
-              Obx(() => Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(12),
+          if (isMobile) ...[
+            const Text(
+              'Độ chính xác theo thời gian',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            timeframeSelector,
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Độ chính xác theo thời gian',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                child: Row(
-                  children: [7, 30, 90].map((days) {
-                    final isSelected = controller.selectedTimeframe.value == days;
-                    return GestureDetector(
-                      onTap: () => controller.selectedTimeframe.value = days,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '$days ngày',
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : const Color(0xFF64748B),
-                            fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              )),
-            ],
-          ),
+                timeframeSelector,
+              ],
+            ),
+          ],
           const SizedBox(height: 32),
           SizedBox(
             height: 300,
@@ -691,7 +762,12 @@ class StatisticsView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(
+                          item['title'], 
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 4),
                         Text(item['date'], style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
                       ],
