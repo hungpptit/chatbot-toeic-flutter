@@ -64,9 +64,9 @@ if OBJECT_ID('ChatbotToeic_Quiz.dbo.Questions') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Questions FROM ChatbotToeic.dbo.Questions;
     ALTER TABLE ChatbotToeic_Quiz.dbo.Questions ADD CONSTRAINT PK_Questions PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.TestQuestion') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.TestQuestion FROM ChatbotToeic.dbo.TestQuestion;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.TestQuestion ADD CONSTRAINT PK_TestQuestion PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.TestQuestions') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.TestQuestions FROM ChatbotToeic.dbo.TestQuestions;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.TestQuestions ADD CONSTRAINT PK_TestQuestions PRIMARY KEY (id);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.Part') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Part FROM ChatbotToeic.dbo.Part;
@@ -76,21 +76,21 @@ if OBJECT_ID('ChatbotToeic_Quiz.dbo.QuestionType') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.QuestionType FROM ChatbotToeic.dbo.QuestionType;
     ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionType ADD CONSTRAINT PK_QuestionType PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.skill') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.skill FROM ChatbotToeic.dbo.skill;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.skill ADD CONSTRAINT PK_skill PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.Skills') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.Skills FROM ChatbotToeic.dbo.Skills;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.Skills ADD CONSTRAINT PK_Skills PRIMARY KEY (id);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.QuestionSkills') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.QuestionSkills FROM ChatbotToeic.dbo.QuestionSkills;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionSkills ADD CONSTRAINT PK_QuestionSkills PRIMARY KEY (id);
+    ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionSkills ADD CONSTRAINT PK_QuestionSkills PRIMARY KEY (questionId, skillId);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.QuestionStats') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.QuestionStats FROM ChatbotToeic.dbo.QuestionStats;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionStats ADD CONSTRAINT PK_QuestionStats PRIMARY KEY (id);
+    ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionStats ADD CONSTRAINT PK_QuestionStats PRIMARY KEY (questionId);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.QuestionEmbeddings') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.QuestionEmbeddings FROM ChatbotToeic.dbo.QuestionEmbeddings;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionEmbeddings ADD CONSTRAINT PK_QuestionEmbeddings PRIMARY KEY (id);
+    ALTER TABLE ChatbotToeic_Quiz.dbo.QuestionEmbeddings ADD CONSTRAINT PK_QuestionEmbeddings PRIMARY KEY (questionId);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.MediaFiles') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.MediaFiles FROM ChatbotToeic.dbo.MediaFiles;
@@ -104,9 +104,9 @@ if OBJECT_ID('ChatbotToeic_Quiz.dbo.Courses') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Courses FROM ChatbotToeic.dbo.Courses;
     ALTER TABLE ChatbotToeic_Quiz.dbo.Courses ADD CONSTRAINT PK_Courses PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.TestCourse') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.TestCourse FROM ChatbotToeic.dbo.TestCourse;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.TestCourse ADD CONSTRAINT PK_TestCourse PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.Test_Courses') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.Test_Courses FROM ChatbotToeic.dbo.Test_Courses;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.Test_Courses ADD CONSTRAINT PK_Test_Courses PRIMARY KEY (testId, courseId);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.UserTests') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.UserTests FROM ChatbotToeic.dbo.UserTests;
@@ -122,25 +122,25 @@ if OBJECT_ID('ChatbotToeic_Quiz.dbo.Vocabulary') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Vocabulary FROM ChatbotToeic.dbo.Vocabulary;
     ALTER TABLE ChatbotToeic_Quiz.dbo.Vocabulary ADD CONSTRAINT PK_Vocabulary PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.UserVocabulary') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.UserVocabulary FROM ChatbotToeic.dbo.UserVocabulary;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.UserVocabulary ADD CONSTRAINT PK_UserVocabulary PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.UserVocabularies') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.UserVocabularies FROM ChatbotToeic.dbo.UserVocabularies;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.UserVocabularies ADD CONSTRAINT PK_UserVocabularies PRIMARY KEY (id);
 END
 if OBJECT_ID('ChatbotToeic_Quiz.dbo.Pronunciations') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_Quiz.dbo.Pronunciations FROM ChatbotToeic.dbo.Pronunciations;
     ALTER TABLE ChatbotToeic_Quiz.dbo.Pronunciations ADD CONSTRAINT PK_Pronunciations PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.meaning') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.meaning FROM ChatbotToeic.dbo.meaning;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.meaning ADD CONSTRAINT PK_meaning PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.Meanings') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.Meanings FROM ChatbotToeic.dbo.Meanings;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.Meanings ADD CONSTRAINT PK_Meanings PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.synonym') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.synonym FROM ChatbotToeic.dbo.synonym;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.synonym ADD CONSTRAINT PK_synonym PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.Synonyms') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.Synonyms FROM ChatbotToeic.dbo.Synonyms;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.Synonyms ADD CONSTRAINT PK_Synonyms PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Quiz.dbo.antonym') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Quiz.dbo.antonym FROM ChatbotToeic.dbo.antonym;
-    ALTER TABLE ChatbotToeic_Quiz.dbo.antonym ADD CONSTRAINT PK_antonym PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.Antonyms') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.Antonyms FROM ChatbotToeic.dbo.Antonyms;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.Antonyms ADD CONSTRAINT PK_Antonyms PRIMARY KEY (id);
 END
 PRINT 'Migrated Quiz & Vocabulary tables.';
 GO
@@ -149,17 +149,17 @@ GO
 PRINT 'Migrating Payment Service Tables...';
 USE ChatbotToeic_Payment;
 GO
-if OBJECT_ID('ChatbotToeic_Payment.dbo.Subscription') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Payment.dbo.Subscription FROM ChatbotToeic.dbo.Subscription;
-    ALTER TABLE ChatbotToeic_Payment.dbo.Subscription ADD CONSTRAINT PK_Subscription PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Payment.dbo.Subscriptions') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Payment.dbo.Subscriptions FROM ChatbotToeic.dbo.Subscriptions;
+    ALTER TABLE ChatbotToeic_Payment.dbo.Subscriptions ADD CONSTRAINT PK_Subscriptions PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Payment.dbo.UserSubscription') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Payment.dbo.UserSubscription FROM ChatbotToeic.dbo.UserSubscription;
-    ALTER TABLE ChatbotToeic_Payment.dbo.UserSubscription ADD CONSTRAINT PK_UserSubscription PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Payment.dbo.UserSubscriptions') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Payment.dbo.UserSubscriptions FROM ChatbotToeic.dbo.UserSubscriptions;
+    ALTER TABLE ChatbotToeic_Payment.dbo.UserSubscriptions ADD CONSTRAINT PK_UserSubscriptions PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Payment.dbo.Transaction') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Payment.dbo.Transaction FROM ChatbotToeic.dbo.Transaction;
-    ALTER TABLE ChatbotToeic_Payment.dbo.Transaction ADD CONSTRAINT PK_Transaction PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Payment.dbo.Transactions') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Payment.dbo.Transactions FROM ChatbotToeic.dbo.Transactions;
+    ALTER TABLE ChatbotToeic_Payment.dbo.Transactions ADD CONSTRAINT PK_Transactions PRIMARY KEY (id);
 END
 PRINT 'Migrated Payment tables.';
 GO
@@ -168,13 +168,13 @@ GO
 PRINT 'Migrating Chatbot Service Tables...';
 USE ChatbotToeic_Chatbot;
 GO
-if OBJECT_ID('ChatbotToeic_Chatbot.dbo.Conversation') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Chatbot.dbo.Conversation FROM ChatbotToeic.dbo.Conversation;
-    ALTER TABLE ChatbotToeic_Chatbot.dbo.Conversation ADD CONSTRAINT PK_Conversation PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Chatbot.dbo.Conversations') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Chatbot.dbo.Conversations FROM ChatbotToeic.dbo.Conversations;
+    ALTER TABLE ChatbotToeic_Chatbot.dbo.Conversations ADD CONSTRAINT PK_Conversations PRIMARY KEY (id);
 END
-if OBJECT_ID('ChatbotToeic_Chatbot.dbo.Message') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_Chatbot.dbo.Message FROM ChatbotToeic.dbo.Message;
-    ALTER TABLE ChatbotToeic_Chatbot.dbo.Message ADD CONSTRAINT PK_Message PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_Chatbot.dbo.Messages') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Chatbot.dbo.Messages FROM ChatbotToeic.dbo.Messages;
+    ALTER TABLE ChatbotToeic_Chatbot.dbo.Messages ADD CONSTRAINT PK_Messages PRIMARY KEY (id);
 END
 PRINT 'Migrated Chatbot tables.';
 GO
@@ -183,9 +183,9 @@ GO
 PRINT 'Migrating ML Service Tables...';
 USE ChatbotToeic_ML;
 GO
-if OBJECT_ID('ChatbotToeic_ML.dbo.MLPrediction') IS NULL BEGIN
-    SELECT * INTO ChatbotToeic_ML.dbo.MLPrediction FROM ChatbotToeic.dbo.MLPrediction;
-    ALTER TABLE ChatbotToeic_ML.dbo.MLPrediction ADD CONSTRAINT PK_MLPrediction PRIMARY KEY (id);
+if OBJECT_ID('ChatbotToeic_ML.dbo.MLPredictions') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_ML.dbo.MLPredictions FROM ChatbotToeic.dbo.MLPredictions;
+    ALTER TABLE ChatbotToeic_ML.dbo.MLPredictions ADD CONSTRAINT PK_MLPredictions PRIMARY KEY (id);
 END
 if OBJECT_ID('ChatbotToeic_ML.dbo.MLPredictionHistory') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_ML.dbo.MLPredictionHistory FROM ChatbotToeic.dbo.MLPredictionHistory;
