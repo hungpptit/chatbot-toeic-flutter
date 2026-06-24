@@ -225,7 +225,7 @@ class _TestUploadDialogState extends State<TestUploadDialog> {
         setState(() {
           _courses
             ..clear()
-            ..addAll(data.cast<Map<String, dynamic>>());
+            ..addAll(data.map((e) => Map<String, dynamic>.from(e)).toList());
           _selectedCourseId = _courses.isNotEmpty ? _toInt(_courses.first['id']) : null;
           _isLoadingCourses = false;
         });

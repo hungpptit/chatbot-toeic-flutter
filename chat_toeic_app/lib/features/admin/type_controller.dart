@@ -35,7 +35,7 @@ class TypeController extends GetxController {
         } else if (raw is Map && raw['items'] != null) {
           data = raw['items'];
         }
-        types.value = data.cast<Map<String, dynamic>>();
+        types.value = data.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách Type: $e');
@@ -51,7 +51,7 @@ class TypeController extends GetxController {
         final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         types.insert(0, created as Map<String, dynamic>);
         types.refresh();
-        return created.cast<String, dynamic>();
+        return Map<String, dynamic>.from(created);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tạo Type: $e');
@@ -69,7 +69,7 @@ class TypeController extends GetxController {
           types[idx] = {...types[idx], 'name': updated['name'] ?? name};
           types.refresh();
         }
-        return updated.cast<String, dynamic>();
+        return Map<String, dynamic>.from(updated);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể cập nhật Type: $e');

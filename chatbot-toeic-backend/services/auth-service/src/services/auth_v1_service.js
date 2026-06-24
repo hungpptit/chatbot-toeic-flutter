@@ -39,6 +39,8 @@ function buildAuthResponse(user) {
       username: user.username,
       email: user.email,
       role_id: user.role_id,
+      isVip: user.isVip,
+      vipExpireAt: user.vipExpireAt,
     },
   };
 }
@@ -461,6 +463,8 @@ export const getMe = async (user) => {
         email: dbUser.email,
         avatar: dbUser.avatar || null,
         role_id: dbUser.role_id,
+        isVip: dbUser.isVip,
+        vipExpireAt: dbUser.vipExpireAt,
       },
     };
   } catch (error) {

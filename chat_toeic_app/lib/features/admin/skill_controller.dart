@@ -35,7 +35,7 @@ class SkillController extends GetxController {
         } else if (raw is Map && raw['items'] != null) {
           data = raw['items'];
         }
-        skills.value = data.cast<Map<String, dynamic>>();
+        skills.value = data.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách Skill: $e');
@@ -51,7 +51,7 @@ class SkillController extends GetxController {
         final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         skills.insert(0, created as Map<String, dynamic>);
         skills.refresh();
-        return created.cast<String, dynamic>();
+        return Map<String, dynamic>.from(created);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tạo Skill: $e');
@@ -69,7 +69,7 @@ class SkillController extends GetxController {
           skills[idx] = {...skills[idx], 'name': updated['name'] ?? name};
           skills.refresh();
         }
-        return updated.cast<String, dynamic>();
+        return Map<String, dynamic>.from(updated);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể cập nhật Skill: $e');

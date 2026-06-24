@@ -36,7 +36,22 @@ export const getSubscriptions = async () => {
  */
 export const getVipStatus = async (userId) => {
   try {
-    const user = await User.findByPk(userId);
+    let user = null;
+    try {
+      const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:8081';
+      const authResponse = await axios.get(`${AUTH_SERVICE_URL}/api/v1/internal/users/${userId}`);
+      if (authResponse.data && authResponse.data.data) {
+        user = authResponse.data.data;
+      }
+    } catch (error) {
+      console.error('[PAYMENT_SERVICE] Failed to fetch user from Auth Service:', error.message);
+      return {
+        code: 500,
+        message: 'Không thể xác thực thông tin người dùng từ Auth Service',
+        details: [error.message]
+      };
+    }
+
     if (!user) {
       return {
         code: 404,
@@ -213,13 +228,26 @@ export const activateVipSubscription = async (orderId) => {
       return { code: 404, message: 'Không xác định được gói cước cho giao dịch này' };
     }
 
-    const user = await User.findByPk(userId, { transaction: t });
+    // 3. Lấy thông tin user hiện tại qua Auth Service API
+    let user = null;
+    try {
+      const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:8081';
+      const authResponse = await axios.get(`${AUTH_SERVICE_URL}/api/v1/internal/users/${userId}`);
+      if (authResponse.data && authResponse.data.data) {
+        user = authResponse.data.data;
+      }
+    } catch (error) {
+      await t.rollback();
+      console.error('[PAYMENT_SERVICE] Failed to fetch user from Auth Service:', error.message);
+      return { code: 500, message: 'Không thể xác thực thông tin người dùng từ Auth Service' };
+    }
+
     if (!user) {
       await t.rollback();
       return { code: 404, message: 'Người dùng không tồn tại' };
     }
 
-    // 3. Tính toán ngày hết hạn VIP mới
+    // 4. Tính toán ngày hết hạn VIP mới
     const now = new Date();
     let newVipExpireAt;
 
@@ -233,12 +261,20 @@ export const activateVipSubscription = async (orderId) => {
       newVipExpireAt.setDate(newVipExpireAt.getDate() + subscription.durationDays);
     }
 
-    // 4. Cập nhật trạng thái VIP của User
-    user.isVip = true;
-    user.vipExpireAt = newVipExpireAt;
-    await user.save({ transaction: t });
+    // 5. Cập nhật trạng thái VIP của User qua Auth Service API
+    try {
+      const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:8081';
+      await axios.patch(`${AUTH_SERVICE_URL}/api/v1/internal/users/${userId}`, {
+        isVip: true,
+        vipExpireAt: newVipExpireAt
+      });
+    } catch (error) {
+      await t.rollback();
+      console.error('[PAYMENT_SERVICE] Failed to update VIP status in Auth Service:', error.message);
+      return { code: 500, message: 'Lỗi đồng bộ trạng thái VIP lên Auth Service' };
+    }
 
-    // 5. Ghi nhận nhật ký đăng ký gói
+    // 6. Ghi nhận nhật ký đăng ký gói
     await UserSubscription.create({
       userId: user.id,
       subscriptionId: subscription.id,

@@ -45,7 +45,7 @@ class HomeController extends GetxController {
         // Updated to handle paginated response structure
         final dynamic rawData = response.data['data'];
         final List<dynamic> testsList = (rawData is Map) ? rawData['tests'] : rawData;
-        tests.value = testsList.cast<Map<String, dynamic>>();
+        tests.value = testsList.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách đề thi: $e');

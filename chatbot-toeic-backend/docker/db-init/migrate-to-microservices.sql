@@ -191,7 +191,21 @@ if OBJECT_ID('ChatbotToeic_ML.dbo.MLPredictionHistory') IS NULL BEGIN
     SELECT * INTO ChatbotToeic_ML.dbo.MLPredictionHistory FROM ChatbotToeic.dbo.MLPredictionHistory;
     ALTER TABLE ChatbotToeic_ML.dbo.MLPredictionHistory ADD CONSTRAINT PK_MLPredictionHistory PRIMARY KEY (id);
 END
-PRINT 'Migrated ML tables.';
+PRINT 'Migrated ML tables to ChatbotToeic_ML.';
+GO
+
+-- 7. Sync ML Tables to ChatbotToeic_Quiz (since quiz-service manages ML queries directly)
+USE ChatbotToeic_Quiz;
+GO
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.MLPredictions') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.MLPredictions FROM ChatbotToeic.dbo.MLPredictions;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.MLPredictions ADD CONSTRAINT PK_MLPredictions PRIMARY KEY (id);
+END
+if OBJECT_ID('ChatbotToeic_Quiz.dbo.MLPredictionHistory') IS NULL BEGIN
+    SELECT * INTO ChatbotToeic_Quiz.dbo.MLPredictionHistory FROM ChatbotToeic.dbo.MLPredictionHistory;
+    ALTER TABLE ChatbotToeic_Quiz.dbo.MLPredictionHistory ADD CONSTRAINT PK_MLPredictionHistory PRIMARY KEY (id);
+END
+PRINT 'Migrated ML tables to ChatbotToeic_Quiz.';
 GO
 
 PRINT '==================================================';

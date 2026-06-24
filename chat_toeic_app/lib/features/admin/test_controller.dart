@@ -37,7 +37,7 @@ class TestController extends GetxController {
         // Updated to handle paginated response structure
         final dynamic rawData = response.data['data'];
         final List<dynamic> testsList = (rawData is Map) ? (rawData['tests'] ?? []) : (rawData ?? []);
-        tests.value = testsList.cast<Map<String, dynamic>>();
+        tests.value = testsList.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách đề thi: $e');
@@ -51,7 +51,7 @@ class TestController extends GetxController {
       final response = await DioClient.dio.get('/v1/tests/$testId/questions');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
-        return data.cast<Map<String, dynamic>>();
+        return data.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải câu hỏi: $e');
@@ -87,7 +87,7 @@ class TestController extends GetxController {
 
   Future<bool> updateQuestion(int id, Map<String, dynamic> data) async {
     try {
-      final response = await DioClient.dio.patch('/v1/tests/questions/$id', data: data);
+      final response = await DioClient.dio.patch('/v1/questions/$id', data: data);
       if (response.statusCode == 200) {
         return true;
       }
@@ -231,7 +231,10 @@ class TestController extends GetxController {
           });
         }
 
-        await updateQuestion(q['id'], updateData);
+        final success = await updateQuestion(q['id'], updateData);
+        if (!success) {
+          throw Exception("Không thể cập nhật câu hỏi số ${i + 1} (ID: ${q['id']})");
+        }
         
         // Update progress: from 0.2 to 1.0
         uploadProgress[testId] = 0.2 + (0.8 * (i + 1) / total);

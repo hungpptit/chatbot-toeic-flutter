@@ -77,8 +77,8 @@ export const getRecommendations = async (req, res) => {
 
         console.log(`🔄 No cached prediction or cache is stale for user ${userId}, trying Python HTTP microservice...`);
 
-        const mlPort = process.env.ML_PORT || 5000;
-        const mlUrl = `http://localhost:${mlPort}/predict/${userId}`;
+        const mlServiceUrl = process.env.ML_SERVICE_URL || `http://localhost:${process.env.ML_PORT || 5000}`;
+        const mlUrl = `${mlServiceUrl}/predict/${userId}`;
         
         try {
             console.log(`📡 Sending request to ML service: ${mlUrl}`);

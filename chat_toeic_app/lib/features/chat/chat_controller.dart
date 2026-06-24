@@ -60,7 +60,7 @@ class ChatController extends GetxController {
     try {
       final response = await DioClient.dio.get('/v1/payments/subscriptions');
       if (response.statusCode == 200) {
-        subscriptions.value = (response.data['data'] as List).cast<Map<String, dynamic>>();
+        subscriptions.value = (response.data['data'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       print('Error fetching subscriptions: $e');
@@ -135,7 +135,7 @@ class ChatController extends GetxController {
     try {
       final response = await DioClient.dio.get('/v1/users/me/conversations');
       if (response.statusCode == 200) {
-        conversations.value = (response.data['data'] as List).cast<Map<String, dynamic>>();
+        conversations.value = (response.data['data'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       print('Error fetching conversations: $e');
@@ -154,7 +154,7 @@ class ChatController extends GetxController {
     try {
       final response = await DioClient.dio.get('/v1/conversations/$conversationId/messages');
       if (response.statusCode == 200) {
-        messages.value = (response.data['data'] as List).cast<Map<String, dynamic>>();
+        messages.value = (response.data['data'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
         _scrollToBottom();
       }
     } catch (e) {

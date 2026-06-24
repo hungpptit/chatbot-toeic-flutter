@@ -35,7 +35,7 @@ class PartController extends GetxController {
         } else if (raw is Map && raw['items'] != null) {
           data = raw['items'];
         }
-        parts.value = data.cast<Map<String, dynamic>>();
+        parts.value = data.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách Part: $e');
@@ -51,7 +51,7 @@ class PartController extends GetxController {
         final created = response.data is Map && response.data['data'] != null ? response.data['data'] : response.data;
         parts.insert(0, created as Map<String, dynamic>);
         parts.refresh();
-        return created.cast<String, dynamic>();
+        return Map<String, dynamic>.from(created);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tạo Part: $e');
@@ -69,7 +69,7 @@ class PartController extends GetxController {
           parts[idx] = {...parts[idx], 'name': updated['name'] ?? name};
           parts.refresh();
         }
-        return updated.cast<String, dynamic>();
+        return Map<String, dynamic>.from(updated);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể cập nhật Part: $e');

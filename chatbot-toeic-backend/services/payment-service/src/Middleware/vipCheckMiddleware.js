@@ -1,3 +1,4 @@
+import axios from 'axios';
 import db from '../models/index.js';
 import { sendError } from '../utils/response.js';
 
@@ -16,9 +17,31 @@ export const vipCheckMiddleware = async (req, res, next) => {
     }
 
     const userId = req.user.id;
+    const token = req.token;
 
-    // 1️⃣ Lấy thông tin user hiện tại từ Database
-    const user = await db.User.findByPk(userId);
+    // 1️⃣ Lấy thông tin user hiện tại từ Auth Service qua API
+    let user = null;
+    try {
+      const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:8081';
+      const authResponse = await axios.get(`${AUTH_SERVICE_URL}/api/v1/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (authResponse.data && authResponse.data.data) {
+        user = authResponse.data.data;
+      }
+    } catch (error) {
+      console.error('[VIP CHECK ERROR] Failed to fetch user from Auth Service:', error.message);
+      return sendError(
+        res,
+        500,
+        'Không thể xác thực thông tin người dùng từ Auth Service',
+        [error.message],
+        'AUTH_SERVICE_ERROR'
+      );
+    }
+
     if (!user) {
       return sendError(
         res,

@@ -31,7 +31,7 @@ class CourseController extends GetxController {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
-        courses.value = data.cast<Map<String, dynamic>>();
+        courses.value = data.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tải danh sách khóa học: $e');
@@ -51,7 +51,7 @@ class CourseController extends GetxController {
           courses[idx] = {...courses[idx], 'name': updated['name'] ?? newName};
           courses.refresh();
         }
-        return updated.cast<String, dynamic>();
+        return Map<String, dynamic>.from(updated);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể cập nhật khóa học: $e');
@@ -80,7 +80,7 @@ class CourseController extends GetxController {
         // prepend to list so user sees it immediately
         courses.insert(0, created as Map<String, dynamic>);
         courses.refresh();
-        return created.cast<String, dynamic>();
+        return Map<String, dynamic>.from(created);
       }
     } catch (e) {
       Get.snackbar('Lỗi', 'Không thể tạo khóa học: $e');

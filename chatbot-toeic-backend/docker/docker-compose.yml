@@ -113,6 +113,7 @@ services:
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:8081
       - ML_SERVICE_URL=http://ml-service:5000
       - SKIP_ML_SPAWN=true
     depends_on:
@@ -145,6 +146,7 @@ services:
       - ZALOPAY_ENDPOINT=${ZALOPAY_ENDPOINT}
       - ZALOPAY_CALLBACK_URL=${ZALOPAY_CALLBACK_URL}
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - AUTH_SERVICE_URL=http://auth-service:8081
     depends_on:
       - db
       - rabbitmq
@@ -170,6 +172,7 @@ services:
       - JWT_REFRESH_EXPIRATION=30d
       - GEMINI_API_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
       - GEMINI_API_KEYS=${GEMINI_API_KEYS}
+      - AUTH_SERVICE_URL=http://auth-service:8081
     depends_on:
       - db
 

@@ -208,7 +208,7 @@ class TestController extends GetxController {
         
         // Use questions directly without transformation
         questions.assignAll(
-          data.cast<Map<String, dynamic>>(),
+          data.map((e) => Map<String, dynamic>.from(e)).toList(),
         );
         
         totalQuestions.value = questions.length;
