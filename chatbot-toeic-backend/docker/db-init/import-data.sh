@@ -2,17 +2,17 @@
 # Wait for SQL Server to start
 echo "Waiting for SQL Server to start..."
 for i in {1..50}; do
-    /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" &>/dev/null
+    /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" &>/dev/null
     if [ $? -eq 0 ]; then
         echo "SQL Server is ready! Checking if init.sql exists..."
         if [ -f /usr/src/app/init.sql ]; then
             echo "Running init.sql..."
-            /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -i /usr/src/app/init.sql
+            /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /usr/src/app/init.sql
             echo "Database initialized successfully."
             
             if [ -f /usr/src/app/migrate-to-microservices.sql ]; then
                 echo "Running migrate-to-microservices.sql to split database and copy data..."
-                /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -i /usr/src/app/migrate-to-microservices.sql
+                /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /usr/src/app/migrate-to-microservices.sql
                 echo "Database migration completed."
             fi
         else
