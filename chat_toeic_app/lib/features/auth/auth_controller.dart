@@ -137,6 +137,98 @@ class AuthController extends GetxController {
     return false;
   }
 
+  Future<bool> sendRegisterOtp(String email) async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.post('/v1/auth/register/send-otp', data: {
+        'email': email,
+      });
+      if (response.statusCode == 200) {
+        Get.snackbar(
+          'Thông báo',
+          'Mã OTP đã được gửi đến email của bạn',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.8),
+          colorText: Colors.white,
+        );
+        return true;
+      }
+    } on DioException catch (e) {
+      final dynamic data = e.response?.data;
+      final message = data is Map
+          ? (data['message'] ?? data['error'] ?? e.message)
+          : e.message;
+      Get.snackbar(
+        'Lỗi gửi OTP',
+        message.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Lỗi gửi OTP',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+    return false;
+  }
+
+  Future<bool> registerWithOtp(String username, String email, String password, String otp) async {
+    isLoading.value = true;
+    try {
+      final response = await DioClient.dio.post('/v1/auth/register/verify-otp', data: {
+        'username': username,
+        'email': email,
+        'password': password,
+        'otp': otp,
+      });
+
+      if (response.statusCode == 201) {
+        Get.snackbar(
+          'Đăng ký thành công',
+          'Tài khoản của bạn đã được xác thực và tạo thành công!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.8),
+          colorText: Colors.white,
+        );
+        return true;
+      }
+    } on DioException catch (e) {
+      final dynamic data = e.response?.data;
+      final message = data is Map
+          ? (data['message'] ?? data['error'] ?? e.message)
+          : e.message;
+      final details = data is Map && data['details'] is List
+          ? (data['details'] as List).join('\n')
+          : '';
+
+      Get.snackbar(
+        'Xác thực thất bại',
+        [message, details].where((s) => s != null && s.toString().trim().isNotEmpty).join('\n'),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Xác thực thất bại',
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.8),
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+    return false;
+  }
+
   Future<bool> loginWithGoogle() async {
     isLoading.value = true;
     try {

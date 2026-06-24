@@ -334,14 +334,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final success = await _authController.login(email, password);
     if (success) {
-      Get.offAllNamed('/home');
+      final user = _authController.user.value;
+      if (user != null && user['role_id'] == 2) {
+        Get.offAllNamed('/admin');
+      } else {
+        Get.offAllNamed('/home');
+      }
     }
   }
 
   void _handleGoogleLogin() async {
     final success = await _authController.loginWithGoogle();
     if (success) {
-      Get.offAllNamed('/home');
+      final user = _authController.user.value;
+      if (user != null && user['role_id'] == 2) {
+        Get.offAllNamed('/admin');
+      } else {
+        Get.offAllNamed('/home');
+      }
     }
   }
 

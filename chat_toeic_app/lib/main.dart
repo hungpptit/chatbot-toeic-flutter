@@ -195,14 +195,28 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
+    final authController = Get.find<AuthController>();
     await Future.delayed(const Duration(seconds: 2));
+
+    // Wait for auth controller to finish loading profile if active
+    int attempts = 0;
+    while (authController.isLoading.value && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      attempts++;
+    }
+
     final token = await StorageService.getAccessToken();
     final currentRoute = Get.currentRoute;
+    final user = authController.user.value;
 
     if (token != null) {
       // If user is at root, go to home. Otherwise, stay where they are (deep link)
       if (currentRoute == '/' || currentRoute == '/splash') {
-        Get.offAllNamed('/home');
+        if (user != null && user['role_id'] == 2) {
+          Get.offAllNamed('/admin');
+        } else {
+          Get.offAllNamed('/home');
+        }
       }
     } else {
       // No token, force login unless already at login

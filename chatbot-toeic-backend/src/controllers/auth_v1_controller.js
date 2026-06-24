@@ -14,6 +14,10 @@ import {
   sendForgotPasswordOtp,
   resetPassword,
 } from '../services/auth_v1_service.js';
+import {
+  sendRegisterOtp,
+  verifyRegisterOtp,
+} from '../services/login_signup_service.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
 /**
@@ -233,6 +237,50 @@ export const resetPasswordController = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/v1/auth/register/send-otp
+ */
+export const sendRegisterOtpController = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return sendError(res, 400, 'Email không được để trống', ['email là bắt buộc']);
+    }
+
+    const result = await sendRegisterOtp(email);
+    if (result.code !== 200) {
+      return sendError(res, result.code, result.message);
+    }
+
+    return sendSuccess(res, null, result.message, 200);
+  } catch (error) {
+    console.error('[CONTROLLER] sendRegisterOtpController error:', error);
+    return sendError(res, 500, 'Server error', [error.message]);
+  }
+};
+
+/**
+ * POST /api/v1/auth/register/verify-otp
+ */
+export const verifyRegisterOtpController = async (req, res) => {
+  try {
+    const { email, otp, username, password } = req.body;
+    if (!email || !otp || !username || !password) {
+      return sendError(res, 400, 'Thông tin không được để trống', ['email, otp, username và password là bắt buộc']);
+    }
+
+    const result = await verifyRegisterOtp({ email, otp, name: username, password });
+    if (result.code !== 201) {
+      return sendError(res, result.code, result.message);
+    }
+
+    return sendSuccess(res, result.data, result.message, 201);
+  } catch (error) {
+    console.error('[CONTROLLER] verifyRegisterOtpController error:', error);
+    return sendError(res, 500, 'Server error', [error.message]);
+  }
+};
+
 export default {
   registerController,
   loginController,
@@ -243,4 +291,6 @@ export default {
   changePasswordController,
   forgotPasswordController,
   resetPasswordController,
+  sendRegisterOtpController,
+  verifyRegisterOtpController,
 };

@@ -288,6 +288,121 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  void _showOtpDialog(String username, String email, String password) {
+    final otpController = TextEditingController();
+    Get.dialog(
+      BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.mark_email_read_outlined, color: AppColors.accent, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Xác thực OTP',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mã xác thực đã được gửi đến email $email. Vui lòng nhập mã để hoàn tất đăng ký.',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 8, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                maxLength: 6,
+                decoration: InputDecoration(
+                  counterText: "",
+                  hintText: '• • • • • •',
+                  hintStyle: const TextStyle(color: Colors.white24, letterSpacing: 8),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.only(bottom: 16, right: 16, left: 16),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Get.back(),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Hủy', style: TextStyle(color: Colors.white70)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final otp = otpController.text.trim();
+                      if (otp.length != 6) {
+                        Get.snackbar(
+                          'Thông báo',
+                          'Vui lòng nhập đủ 6 chữ số',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.orangeAccent.withOpacity(0.8),
+                          colorText: Colors.white,
+                        );
+                        return;
+                      }
+                      
+                      Get.back(); // Đóng dialog OTP
+                      final success = await _authController.registerWithOtp(username, email, password, otp);
+                      if (success) {
+                        final loginSuccess = await _authController.login(email, password);
+                        if (loginSuccess) {
+                          Get.offAllNamed('/home');
+                        } else {
+                          Get.offAllNamed('/login');
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Xác nhận', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
   void _handleRegister() async {
     final username = _usernameController.text.trim();
     final email = _emailController.text.trim();
@@ -316,14 +431,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final success = await _authController.register(username, email, password);
+    final success = await _authController.sendRegisterOtp(email);
     if (success) {
-      final loginSuccess = await _authController.login(email, password);
-      if (loginSuccess) {
-        Get.offAllNamed('/home');
-      } else {
-        Get.offAllNamed('/login');
-      }
+      _showOtpDialog(username, email, password);
     }
   }
 }

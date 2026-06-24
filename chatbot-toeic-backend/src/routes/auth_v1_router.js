@@ -15,6 +15,8 @@ import {
   changePasswordController,
   forgotPasswordController,
   resetPasswordController,
+  sendRegisterOtpController,
+  verifyRegisterOtpController,
 } from '../controllers/auth_v1_controller.js';
 import { authMiddleware } from '../Middleware/authMiddleware.js';
 
@@ -86,6 +88,8 @@ const authV1Router = express.Router();
  *         $ref: '#/components/responses/BadRequestError'
  */
 authV1Router.post('/register', registerController);
+authV1Router.post('/register/send-otp', sendRegisterOtpController);
+authV1Router.post('/register/verify-otp', verifyRegisterOtpController);
 
 /**
  * @swagger
