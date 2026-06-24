@@ -7,6 +7,10 @@ import 'package:chat_toeic_app/features/admin/part_list_panel.dart';
 import 'package:chat_toeic_app/features/admin/type_list_panel.dart';
 import 'package:chat_toeic_app/features/admin/skill_list_panel.dart';
 import 'package:chat_toeic_app/features/admin/test_list_panel.dart';
+import 'package:chat_toeic_app/features/admin/user_controller.dart';
+import 'package:chat_toeic_app/features/admin/test_controller.dart';
+import 'package:chat_toeic_app/features/admin/course_controller.dart';
+import 'package:chat_toeic_app/features/admin/test_upload_dialog.dart';
 
 class AdminView extends StatefulWidget {
   const AdminView({super.key});
@@ -31,6 +35,11 @@ class _AdminViewState extends State<AdminView> {
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
     final user = authController.user.value;
+
+    // Instantiate controllers for dashboard metrics and operations
+    final userController = Get.put(UserController());
+    final testController = Get.put(TestController());
+    final courseController = Get.put(CourseController());
 
     final isMobile = MediaQuery.of(context).size.width < 800;
     final collapsed = isSidebarCollapsed;
@@ -155,28 +164,38 @@ class _AdminViewState extends State<AdminView> {
             const SizedBox(width: 8),
           ],
           const Text(
-            'Chatbot TOEIC',
+            'Hệ thống Quản trị - Chatbot TOEIC',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          if (!isMobile) ...[
-            const SizedBox(width: 48),
-            // Nav Items
-            _buildTopNavItem('Trang chủ', false, route: '/home'),
-            const SizedBox(width: 12),
-            _buildTopNavItem('Tra từ vựng', false, route: '/vocabulary'),
-            const SizedBox(width: 12),
-            _buildTopNavItem('Chat TOEIC', false, route: '/chatbot'),
-          ],
           const Spacer(),
+          if (!isMobile) ...[
+            // Switch to Student View Button
+            OutlinedButton.icon(
+              onPressed: () => Get.offAllNamed('/home'),
+              icon: const Icon(Icons.swap_horiz, size: 16),
+              label: const Text('Giao diện Học viên'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF6366F1),
+                side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+            ),
+            const SizedBox(width: 16),
+          ],
           // User Profile Menu
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'profile') {
                 Get.toNamed('/profile');
+              } else if (value == 'student_view') {
+                Get.offAllNamed('/home');
               } else if (value == 'logout') {
                 Get.find<AuthController>().logout();
               }
@@ -192,6 +211,16 @@ class _AdminViewState extends State<AdminView> {
                     Icon(Icons.person_outline, size: 20, color: Colors.white70),
                     SizedBox(width: 12),
                     Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'student_view',
+                child: Row(
+                  children: [
+                    Icon(Icons.school_outlined, size: 20, color: Colors.white70),
+                    SizedBox(width: 12),
+                    Text('Giao diện Học viên', style: TextStyle(color: Colors.white, fontSize: 14)),
                   ],
                 ),
               ),
@@ -317,38 +346,16 @@ class _AdminViewState extends State<AdminView> {
                   ),
             ),
             const SizedBox(height: 16),
-            
-            const SizedBox(height: 8),
-            // General Navigation (Only on Mobile Sidebar)
-            if (isMobile) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Divider(color: Colors.white10),
-              ),
-              _buildSidebarItem(
-                Icons.home_outlined, 
-                'Trang chủ', 
-                collapsed: collapsed,
-                onTap: () => Get.toNamed('/home'),
-              ),
-              _buildSidebarItem(
-                Icons.translate_outlined, 
-                'Tra từ vựng', 
-                collapsed: collapsed,
-                onTap: () => Get.toNamed('/vocabulary'),
-              ),
-              _buildSidebarItem(
-                Icons.chat_outlined, 
-                'Chat TOEIC', 
-                collapsed: collapsed,
-                onTap: () => Get.toNamed('/chatbot'),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Divider(color: Colors.white10),
-              ),
-            ],
 
+            // Trang tổng quan (Dashboard)
+            _buildSidebarItem(
+              Icons.dashboard_outlined, 
+              'Trang tổng quan', 
+              isSelected: activeAdminContent == null || activeAdminContent == 'dashboard',
+              collapsed: collapsed,
+              onTap: () => setState(() => activeAdminContent = null),
+            ),
+            
             // Menu Items
             _buildExpandableSidebarItem(
               Icons.people_outline, 
@@ -370,11 +377,25 @@ class _AdminViewState extends State<AdminView> {
             ),
             _buildSidebarItem(
               Icons.analytics_outlined, 
-              'Thống kê nhanh', 
-              isSelected: activeAdminContent == 'stats',
+              'Thống kê học tập', 
+              isSelected: false,
               collapsed: collapsed,
-              onTap: () => setState(() => activeAdminContent = 'stats'),
+              onTap: () => Get.toNamed('/statistics'),
             ),
+
+            if (isMobile) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Divider(color: Colors.white10),
+              ),
+              _buildSidebarItem(
+                Icons.swap_horiz, 
+                'Giao diện Học viên', 
+                collapsed: collapsed,
+                onTap: () => Get.offAllNamed('/home'),
+              ),
+              const SizedBox(height: 24),
+            ],
           ],
         ),
       ),
@@ -518,6 +539,488 @@ class _AdminViewState extends State<AdminView> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Beautiful Dashboard View and KPI Cards
+  Widget _buildDashboard(UserController userController, TestController testController, CourseController courseController) {
+    return Obx(() {
+      final totalUsers = userController.users.length;
+      final totalTests = testController.tests.length;
+      final totalCourses = courseController.courses.length;
+      
+      final activeUsers = userController.users.where((u) => u['status'] != false).length;
+      final adminUsers = userController.users.where((u) => u['roleId'] == 2 || u['role_id'] == 2).length;
+
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome Section
+            Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Hệ thống quản trị',
+                      style: TextStyle(
+                        color: Color(0xFF6366F1),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Tổng quan hoạt động',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                // Refresh Button
+                IconButton(
+                  onPressed: () {
+                    userController.fetchUsers();
+                    testController.fetchTests();
+                    courseController.fetchCourses();
+                  },
+                  icon: const Icon(Icons.refresh, color: Colors.white70),
+                  tooltip: 'Tải lại dữ liệu',
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.05),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // KPI Cards Row
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 900;
+                final isMedium = constraints.maxWidth > 600 && constraints.maxWidth <= 900;
+                
+                return GridView.count(
+                  crossAxisCount: isWide ? 4 : (isMedium ? 2 : 1),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: isWide ? 1.4 : 1.6,
+                  children: [
+                    _buildKPICard(
+                      'Người dùng',
+                      '$totalUsers',
+                      '$activeUsers hoạt động',
+                      Icons.people_alt_outlined,
+                      const Color(0xFF6366F1),
+                      isLoading: userController.isLoading.value,
+                    ),
+                    _buildKPICard(
+                      'Đề thi TOEIC',
+                      '$totalTests',
+                      'Đầy đủ các phần thi',
+                      Icons.quiz_outlined,
+                      const Color(0xFF10B981),
+                      isLoading: testController.isLoading.value,
+                    ),
+                    _buildKPICard(
+                      'Khóa học',
+                      '$totalCourses',
+                      'Phân chia theo cấp độ',
+                      Icons.menu_book_outlined,
+                      const Color(0xFFF59E0B),
+                      isLoading: courseController.isLoading.value,
+                    ),
+                    _buildKPICard(
+                      'Quản trị viên',
+                      '$adminUsers',
+                      'Quyền quản trị viên',
+                      Icons.admin_panel_settings_outlined,
+                      const Color(0xFFEC4899),
+                      isLoading: userController.isLoading.value,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 32),
+
+            // Main Columns
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 900;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: isWide ? 2 : 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildQuickActions(context),
+                          const SizedBox(height: 24),
+                          _buildActivityChart(),
+                        ],
+                      ),
+                    ),
+                    if (isWide) ...[
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 1,
+                        child: _buildRecentActivities(),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+            
+            // If not wide screen, show activities below
+            if (MediaQuery.of(context).size.width <= 900) ...[
+              const SizedBox(height: 24),
+              _buildRecentActivities(),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildKPICard(
+    String title,
+    String value,
+    String subtitle,
+    IconData icon,
+    Color color, {
+    bool isLoading = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (isLoading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+            )
+          else ...[
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.4),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Hành động nhanh',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 450;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _buildActionButton(
+                    'Tải lên đề thi',
+                    Icons.cloud_upload_outlined,
+                    const Color(0xFF6366F1),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => const TestUploadDialog(),
+                      );
+                    },
+                    isMobile: isMobile,
+                  ),
+                  _buildActionButton(
+                    'Quản lý đề thi',
+                    Icons.quiz_outlined,
+                    const Color(0xFF10B981),
+                    onTap: () => setState(() => activeAdminContent = 'exams'),
+                    isMobile: isMobile,
+                  ),
+                  _buildActionButton(
+                    'Quản lý học viên',
+                    Icons.people_alt_outlined,
+                    const Color(0xFFF59E0B),
+                    onTap: () => setState(() => activeAdminContent = 'users'),
+                    isMobile: isMobile,
+                  ),
+                  _buildActionButton(
+                    'Quản lý khóa học',
+                    Icons.menu_book_outlined,
+                    const Color(0xFFEC4899),
+                    onTap: () => setState(() => activeAdminContent = 'courses'),
+                    isMobile: isMobile,
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String label, IconData icon, Color color, {required VoidCallback onTap, bool isMobile = false}) {
+    return SizedBox(
+      width: isMobile ? double.infinity : 160,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityChart() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Lượt làm bài thi 7 ngày qua',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('Simulated', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 180,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildBar(40, 'Thứ 2'),
+                _buildBar(65, 'Thứ 3'),
+                _buildBar(95, 'Thứ 4'),
+                _buildBar(80, 'Thứ 5'),
+                _buildBar(110, 'Thứ 6'),
+                _buildBar(140, 'Thứ 7'),
+                _buildBar(165, 'Chủ Nhật', isToday: true),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBar(double height, String label, {bool isToday = false}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Container(
+          width: 24,
+          height: height,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isToday 
+                ? [const Color(0xFF818CF8), const Color(0xFF6366F1)]
+                : [const Color(0xFF475569), const Color(0xFF334155)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: isToday ? [
+              BoxShadow(
+                color: const Color(0xFF6366F1).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            ] : null,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: TextStyle(color: isToday ? Colors.white : Colors.white38, fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivities() {
+    final activities = [
+      {'title': 'Đề thi mới được tải lên', 'desc': 'TOEIC Practice Test 2026 #Part 5', 'time': '5 phút trước', 'icon': Icons.cloud_upload_outlined, 'color': const Color(0xFF6366F1)},
+      {'title': 'Người dùng mới đăng ký', 'desc': 'hoangnam99@gmail.com', 'time': '20 phút trước', 'icon': Icons.person_add_outlined, 'color': const Color(0xFF10B981)},
+      {'title': 'Cập nhật khóa học', 'desc': 'Thay đổi tên khóa học "TOEIC 550+"', 'time': '1 giờ trước', 'icon': Icons.edit_outlined, 'color': const Color(0xFFF59E0B)},
+      {'title': 'Giao dịch nâng cấp VIP', 'desc': 'Học viên phanhung thanh toán ZaloPay', 'time': '3 giờ trước', 'icon': Icons.payment_outlined, 'color': const Color(0xFFEC4899)},
+      {'title': 'Xóa câu hỏi không hợp lệ', 'desc': 'Admin xóa câu hỏi số #124', 'time': '1 ngày trước', 'icon': Icons.delete_outline, 'color': Colors.redAccent},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Nhật ký hoạt động gần đây',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: activities.length,
+            separatorBuilder: (context, index) => Divider(height: 24, color: Colors.white.withOpacity(0.05)),
+            itemBuilder: (context, index) {
+              final act = activities[index];
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (act['color'] as Color).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(act['icon'] as IconData, color: act['color'] as Color, size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          act['title'] as String,
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          act['desc'] as String,
+                          style: const TextStyle(color: Colors.white60, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          act['time'] as String,
+                          style: const TextStyle(color: Colors.white24, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

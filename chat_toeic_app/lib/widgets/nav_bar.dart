@@ -70,34 +70,53 @@ class CustomNavBar extends StatelessWidget {
                           ),
                           child: const Icon(Icons.person, color: Colors.white, size: 24),
                         ),
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 1,
-                            child: Row(
-                              children: [
-                                Icon(Icons.info_outline, size: 20, color: Colors.white70),
-                                SizedBox(width: 12),
-                                Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
-                              ],
+                        itemBuilder: (context) {
+                          final user = authController.user.value;
+                          final isAdmin = user != null && (user['role_id'] == 2 || user['roleId'] == 2);
+                          return [
+                            const PopupMenuItem(
+                              value: 1,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, size: 20, color: Colors.white70),
+                                  SizedBox(width: 12),
+                                  Text('Thông tin', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                ],
+                              ),
                             ),
-                          ),
-                          const PopupMenuDivider(height: 1),
-                          const PopupMenuItem(
-                            value: 2,
-                            child: Row(
-                              children: [
-                                Icon(Icons.logout, size: 20, color: Colors.redAccent),
-                                SizedBox(width: 12),
-                                Text('Đăng xuất', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
-                              ],
+                            if (isAdmin) ...[
+                              const PopupMenuDivider(height: 1),
+                              const PopupMenuItem(
+                                value: 3,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.admin_panel_settings_outlined, size: 20, color: Color(0xFF6366F1)),
+                                    SizedBox(width: 12),
+                                    Text('Admin Panel', style: TextStyle(color: Colors.white, fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const PopupMenuDivider(height: 1),
+                            const PopupMenuItem(
+                              value: 2,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                                  SizedBox(width: 12),
+                                  Text('Đăng xuất', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ];
+                        },
                         onSelected: (value) {
                           if (value == 1) {
                             Get.toNamed('/profile');
                           } else if (value == 2) {
                             authController.logout();
+                          } else if (value == 3) {
+                            Get.toNamed('/admin');
                           }
                         },
                       )
