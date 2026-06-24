@@ -33,8 +33,8 @@ services:
 
   ml-service:
     build:
-      context: ..
-      dockerfile: ml/Dockerfile
+      context: ../ml
+      dockerfile: Dockerfile
     container_name: ml_python_service
     restart: always
     ports:
@@ -51,8 +51,8 @@ services:
 
   email-service:
     build:
-      context: ..
-      dockerfile: services/email-service/Dockerfile
+      context: ../services/email-service
+      dockerfile: Dockerfile
     container_name: email_worker_service
     restart: always
     environment:
@@ -64,8 +64,8 @@ services:
 
   auth-service:
     build:
-      context: ..
-      dockerfile: services/auth-service/Dockerfile
+      context: ../services/auth-service
+      dockerfile: Dockerfile
     container_name: auth_service
     restart: always
     environment:
@@ -92,8 +92,8 @@ services:
 
   quiz-service:
     build:
-      context: ..
-      dockerfile: services/quiz-service/Dockerfile
+      context: ../services/quiz-service
+      dockerfile: Dockerfile
     container_name: quiz_service
     restart: always
     environment:
@@ -118,8 +118,8 @@ services:
 
   payment-service:
     build:
-      context: ..
-      dockerfile: services/payment-service/Dockerfile
+      context: ../services/payment-service
+      dockerfile: Dockerfile
     container_name: payment_service
     restart: always
     environment:
@@ -143,8 +143,8 @@ services:
 
   chatbot-service:
     build:
-      context: ..
-      dockerfile: services/chatbot-service/Dockerfile
+      context: ../services/chatbot-service
+      dockerfile: Dockerfile
     container_name: chatbot_service
     restart: always
     environment:
