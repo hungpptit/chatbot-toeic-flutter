@@ -5,6 +5,7 @@ import path from 'path'; // <-- THÊM IMPORT NÀY
 import { fileURLToPath } from 'url'; // <-- THÊM IMPORT NÀY (nếu dùng ES Modules)
 import fs from 'fs';
 import router from './routes/api.js'; // Import router từ file api.js
+import { apiLimiter } from './Middleware/rateLimiter.js';
 import db from './models/index.js'; // Import db từ file index.js trong thư mục models
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -101,7 +102,7 @@ app.get('/api/admin/preview-local-file', (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-app.use('/api', router); // Định nghĩa các route API SAU middleware static
+app.use('/api', apiLimiter, router); // Định nghĩa các route API SAU middleware static và gắn rate limiter
 
 // === HEALTH CHECK ENDPOINT ===
 app.get('/health', (req, res) => {

@@ -1,4 +1,5 @@
 import express from 'express';
+import { authLimiter } from '../Middleware/rateLimiter.js';
 import vocabulariesRouter from './vocabularies_router.js';
 import loginRouter from './login_signup_router.js';
 import authV1Router from './auth_v1_router.js';
@@ -20,7 +21,7 @@ import mlRouter from './ml_router.js';
 const router = express.Router();
 
 // === API v1 (New - RESTful Standard) ===
-router.use('/v1/auth', authV1Router);
+router.use('/v1/auth', authLimiter, authV1Router);
 router.use('/v1/courses', courseV1Router);
 router.use('/v1/tests', testV1Router);
 router.use('/v1/statistics', statsV1Router);
@@ -37,7 +38,7 @@ router.use('/v1', chatbotV1Router); // Handles /v1/users/me/conversations and /v
 router.use('/vocabulary', vocabulariesRouter);
 router.use('/vocabularies', vocabulariesRouter); // RESTful Alias
 
-router.use('/auth', loginRouter);
+router.use('/auth', authLimiter, loginRouter);
 
 router.use('/adminUser', adminUsersRouter);
 router.use('/admin-users', adminUsersRouter); // RESTful Alias
