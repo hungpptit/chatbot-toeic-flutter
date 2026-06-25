@@ -10,8 +10,16 @@ import cloudinary from '../config/cloudinary.js';
  */
 export const uploadFileFromPath = async (filePath, type = 'auto') => {
   try {
+    let targetPath = filePath;
+    // Convert Windows path to Linux path in Docker
+    if (process.platform === 'linux' && filePath.match(/^[a-zA-Z]:[\\/]/)) {
+      const drive = filePath[0].toLowerCase();
+      const relativePath = filePath.slice(3).replace(/\\/g, '/');
+      targetPath = `/mnt/${drive}/${relativePath}`;
+    }
+
     // Kiểm tra file có tồn tại không
-    await fs.access(filePath);
+    await fs.access(targetPath);
 
     // Xác định resource_type
     let resourceType = 'auto';
@@ -22,8 +30,8 @@ export const uploadFileFromPath = async (filePath, type = 'auto') => {
     }
 
     // Upload lên Cloudinary
-    console.log(`📤 Uploading ${filePath} to Cloudinary...`);
-    const result = await cloudinary.uploader.upload(filePath, {
+    console.log(`📤 Uploading ${targetPath} to Cloudinary...`);
+    const result = await cloudinary.uploader.upload(targetPath, {
       resource_type: resourceType,
       folder: 'toeic-test',
     });
@@ -110,10 +118,20 @@ export const batchUploadFromPaths = async (testData) => {
 export const validatePaths = async (testData) => {
   const invalidPaths = [];
 
+  const resolvePath = (filePath) => {
+    if (!filePath) return filePath;
+    if (process.platform === 'linux' && filePath.match(/^[a-zA-Z]:[\\/]/)) {
+      const drive = filePath[0].toLowerCase();
+      const relativePath = filePath.slice(3).replace(/\\/g, '/');
+      return `/mnt/${drive}/${relativePath}`;
+    }
+    return filePath;
+  };
+
   // Check global audio
   if (testData.audioPath) {
     try {
-      await fs.access(testData.audioPath);
+      await fs.access(resolvePath(testData.audioPath));
     } catch {
       invalidPaths.push(testData.audioPath);
     }
@@ -126,14 +144,14 @@ export const validatePaths = async (testData) => {
     for (const question of questions) {
       if (question.imagePath) {
         try {
-          await fs.access(question.imagePath);
+          await fs.access(resolvePath(question.imagePath));
         } catch {
           invalidPaths.push(question.imagePath);
         }
       }
       if (question.audioPath) {
         try {
-          await fs.access(question.audioPath);
+          await fs.access(resolvePath(question.audioPath));
         } catch {
           invalidPaths.push(question.audioPath);
         }

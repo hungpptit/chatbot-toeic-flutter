@@ -1,4 +1,5 @@
 import express from 'express';
+import db from '../models/index.js';
 import {
     getMyConversations,
     startConversation,
@@ -174,4 +175,42 @@ router.post('/conversations/:conversationId/messages', authMiddleware, (req, res
  */
 router.post('/conversations/:conversationId/ask', authMiddleware, vipCheckMiddleware, askChatbot);
 
+router.get('/internal/messages/count', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        if (!userId) {
+            return res.status(400).json({ code: 400, message: "userId parameter is required" });
+        }
+        
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const messageCount = await db.Message.count({
+            include: [{
+                model: db.Conversation,
+                as: 'conversation',
+                where: { userId: parseInt(userId) }
+            }],
+            where: {
+                role: 'user',
+                createdAt: {
+                    [db.Sequelize.Op.between]: [todayStart, todayEnd]
+                }
+            }
+        });
+
+        return res.status(200).json({
+            code: 200,
+            message: "Counted messages successfully",
+            data: { count: messageCount }
+        });
+    } catch (error) {
+        console.error("[CHATBOT INTERNAL] count error:", error);
+        return res.status(500).json({ code: 500, message: "Internal server error", details: [error.message] });
+    }
+});
+
 export default router;
+

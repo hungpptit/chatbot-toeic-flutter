@@ -45,12 +45,20 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Preview local file endpoint (mostly used by Admin Quiz Editor)
 app.get('/api/admin/preview-local-file', (req, res) => {
-  const filePath = req.query.path;
+  let filePath = req.query.path;
   if (!filePath) {
     return res.status(400).json({ message: 'Path is required' });
   }
+
+  // Convert Windows path to Linux path in Docker
+  if (process.platform === 'linux' && filePath.match(/^[a-zA-Z]:[\\/]/)) {
+    const drive = filePath[0].toLowerCase();
+    const relativePath = filePath.slice(3).replace(/\\/g, '/');
+    filePath = `/mnt/${drive}/${relativePath}`;
+  }
+
   if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'File not found' });
+    return res.status(404).json({ message: 'File not found: ' + filePath });
   }
   const ext = path.extname(filePath).toLowerCase();
   let contentType = 'application/octet-stream';

@@ -1,0 +1,127 @@
+{
+  "status": "success",
+  "message": "Fetched tests successfully",
+  "data": {
+    "tests": [
+      {
+        "id": 87,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 01)",
+        "duration": "45 minutes",
+        "participants": 28,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "Practice - Toeic"
+        ]
+      },
+      {
+        "id": 88,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 02)",
+        "duration": "45 minutes",
+        "participants": 11,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "Practice - Toeic"
+        ]
+      },
+      {
+        "id": 89,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 03)",
+        "duration": "45 minutes",
+        "participants": 5,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "Practice - Toeic"
+        ]
+      },
+      {
+        "id": 90,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 04)",
+        "duration": "45 minutes",
+        "participants": 6,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      },
+      {
+        "id": 91,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 05)",
+        "duration": "45 minutes",
+        "participants": 7,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      },
+      {
+        "id": 92,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 06)",
+        "duration": "45 minutes",
+        "participants": 4,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      },
+      {
+        "id": 93,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 07)",
+        "duration": "45 minutes",
+        "participants": 5,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      },
+      {
+        "id": 94,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 08)",
+        "duration": "45 minutes",
+        "participants": 4,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      },
+      {
+        "id": 95,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 09)",
+        "duration": "45 minutes",
+        "participants": 4,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      },
+      {
+        "id": 96,
+        "title": "TOEIC Reading Part 5 - Grammar Test (Set 10)",
+        "duration": "45 minutes",
+        "participants": 4,
+        "comments": null,
+        "questions": 50,
+        "tags": [
+          "TOEIC"
+        ]
+      }
+    ],
+    "pagination": {
+      "totalItems": 22,
+      "currentPage": 1,
+      "limit": 10,
+      "totalPages": 3
+    }
+  },
+  "meta": {
+    "timestamp": "2026-06-24T19:34:20.084Z"
+  }
+}

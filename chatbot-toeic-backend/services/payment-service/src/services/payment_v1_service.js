@@ -63,25 +63,18 @@ export const getVipStatus = async (userId) => {
     const now = new Date();
     const isVipActive = user.isVip && user.vipExpireAt && new Date(user.vipExpireAt) > now;
 
-    // Đếm số tin nhắn đã gửi hôm nay
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const messageCount = await db.Message.count({
-      include: [{
-        model: db.Conversation,
-        as: 'conversation',
-        where: { userId }
-      }],
-      where: {
-        role: 'user',
-        createdAt: {
-          [db.Sequelize.Op.between]: [todayStart, todayEnd]
-        }
+    // Gọi API nội bộ sang chatbot-service để lấy số lượng tin nhắn trong ngày
+    let messageCount = 0;
+    try {
+      const CHATBOT_SERVICE_URL = process.env.CHATBOT_SERVICE_URL || 'http://chatbot-service:8084';
+      const chatbotResponse = await axios.get(`${CHATBOT_SERVICE_URL}/api/v1/internal/messages/count?userId=${userId}`);
+      if (chatbotResponse.data && chatbotResponse.data.data) {
+        messageCount = chatbotResponse.data.data.count;
       }
-    });
+    } catch (error) {
+      console.error('[PAYMENT_SERVICE] Failed to fetch message count from Chatbot Service:', error.message);
+      // Giữ mặc định count = 0 nếu chatbot-service gặp lỗi
+    }
 
     return {
       code: 200,

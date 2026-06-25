@@ -325,16 +325,15 @@ class ChatView extends StatelessWidget {
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => Dialog(
+                      Get.dialog(
+                        Dialog(
                           backgroundColor: const Color(0xFF1E293B),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 500),
                             padding: const EdgeInsets.all(24),
                             child: SingleChildScrollView(
-                              child: _buildUpgradePanel(controller, ctx),
+                              child: _buildUpgradePanel(controller, Get.context!),
                             ),
                           ),
                         ),

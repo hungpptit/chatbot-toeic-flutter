@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -120,6 +118,8 @@ services:
       - db
       - rabbitmq
       - ml-service
+    volumes:
+      - D:/Downloads:/mnt/d/Downloads
 
   payment-service:
     build:
