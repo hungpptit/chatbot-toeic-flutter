@@ -167,60 +167,8 @@ graph TB
     QUIZ -->|upload media| CDN[Cloudinary]
 ```
 
-### 4.2 Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant App as Flutter App
-    participant Auth as Auth Service
-    participant MQ as RabbitMQ
-    participant Email as Email Worker
-
-    App->>Auth: POST /auth/register/send-otp
-    Auth->>MQ: Publish OTP event
-    MQ->>Email: Send OTP email to user
-
-    App->>Auth: POST /auth/register/verify-otp
-    Auth-->>App: OTP verified
-
-    App->>Auth: POST /auth/register
-    Auth-->>App: 201 { accessToken, refreshToken, user }
-```
-
-### 4.3 TOEIC Test Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> Browsing
-    Browsing --> InProgress : Start attempt
-    InProgress --> Submitted : Submit answers
-    InProgress --> Cancelled : Cancel
-    Submitted --> Review : View result & explanations
-    Review --> [*]
-    Cancelled --> [*]
-```
-
-### 4.4 Payment & VIP Activation Flow
-
-```mermaid
-sequenceDiagram
-    participant App as Flutter App
-    participant Pay as Payment Service
-    participant ZP as ZaloPay
-    participant Auth as Auth Service
-
-    App->>Pay: POST /payments/create
-    Pay->>ZP: Create order (HMAC signed)
-    ZP-->>App: Payment URL
-
-    App->>ZP: User completes payment
-    ZP->>Pay: Callback {data, mac}
-    Pay->>Pay: Validate HMAC-SHA256
-    Pay->>Auth: PATCH /internal/users/:id { isVip: true }
-    Auth-->>Pay: VIP activated
-```
-
 ---
+
 
 ## 5. Kết quả & Hiệu quả
 
