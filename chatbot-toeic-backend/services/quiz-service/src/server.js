@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger.js';
 import router from './routes/api.js';
 import { apiLimiter } from './Middleware/rateLimiter.js';
 import db from './models/index.js';
@@ -73,6 +75,20 @@ app.get('/api/admin/preview-local-file', (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
+// === SWAGGER UI DOCUMENTATION ===
+console.log('[SWAGGER] Swagger docs available at /api/docs');
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  swaggerOptions: {
+    persistAuthorization: true, // Lưu Authorization token khi reload page
+  },
+}));
+
+// API Endpoint to get raw OpenAPI JSON (For Flutter team)
+app.get('/api/docs-json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 app.use('/api', apiLimiter, router);
 
 app.get('/health', (req, res) => {
@@ -91,4 +107,5 @@ import "./cronJobs/mlRetrainCron.js";
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`✅ Quiz & Learning Service listening on http://0.0.0.0:${port}`);
+  console.log(`📚 Swagger API Docs: http://localhost:8080/api/docs`);
 });

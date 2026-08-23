@@ -478,6 +478,14 @@ Chỉ in kết quả, không thêm gì khác.`;
 const getItemWithAI = async (item, conversationId) => {
   let { type, questionText, options: rawOptions, word } = item || {};
 
+  if (type === 'Violated') {
+    return {
+      type: 'Free',
+      source: 'ai',
+      answer: 'Xin lỗi, tôi là trợ lý chuyên biệt hỗ trợ học tiếng Anh và ôn thi TOEIC. Tôi không thể giải đáp các thắc mắc ngoài lĩnh vực này (như lập trình, kinh tế, chính trị...). Bạn vui lòng đặt câu hỏi liên quan đến tiếng Anh nhé! 📘'
+    };
+  }
+
   const hasText = typeof questionText === 'string' && questionText.trim().length > 0;
   const hasWord = typeof word === 'string' && word.trim().length > 0;
 
@@ -647,9 +655,18 @@ const getItemWithAI = async (item, conversationId) => {
 const parseUserInputMulti = async (rawText, conversationId) => {
   const { data: history } = await getMessagesForGemini(conversationId);
 
-  const prompt = `Bạn là trợ lý trích xuất dữ liệu câu hỏi tiếng Anh. 
-Dưới đây là chuỗi đầu vào chứa nhiều câu hỏi, hãy phân tích và trả về một mảng JSON gồm các object có định dạng như sau:
+  const prompt = `Bạn là trợ lý trích xuất dữ liệu câu hỏi tiếng Anh và kiểm duyệt nội dung.
+Nhiệm vụ của bạn là phân tích chuỗi đầu vào của người dùng:
+1. Đảm bảo nội dung chỉ xoay quanh việc học tiếng Anh, ôn thi TOEIC, ngữ pháp, từ vựng, dịch thuật hoặc giao tiếp thông thường liên quan đến học tập tiếng Anh.
+2. Nếu nội dung nằm ngoài phạm vi này (ví dụ: hỏi về lập trình/viết code, kinh tế, phân tích chính trị, tôn giáo, toán học chuyên sâu, công nghệ khác không liên quan đến học tiếng Anh...), bạn phải từ chối bằng cách trả về đúng cấu trúc JSON sau:
+[
+  {
+    "type": "Violated",
+    "reason": "Yêu cầu nằm ngoài phạm vi hỗ trợ học tiếng Anh."
+  }
+]
 
+Nếu nội dung hợp lệ và chứa câu hỏi trắc nghiệm tiếng Anh, hãy trả về một mảng JSON gồm các object có định dạng như sau:
 [
   {
     "type": "MultipleChoice",
@@ -663,7 +680,7 @@ Dưới đây là chuỗi đầu vào chứa nhiều câu hỏi, hãy phân tíc
   }
 ]
 
-Nếu chỉ là câu chào hoặc hội thoại thông thường (ví dụ: "hi", "hello", "chào bạn") thì hãy trả về đúng JSON sau:
+Nếu chỉ là câu chào, hội thoại tiếng Anh thông thường hoặc hỏi đáp về ngữ pháp/từ vựng chung không có dạng trắc nghiệm, hãy trả về:
 [
   {
     "type": "Free",
@@ -671,8 +688,7 @@ Nếu chỉ là câu chào hoặc hội thoại thông thường (ví dụ: "hi"
   }
 ]
 
-Chỉ trả về JSON thuần túy, không markdown hay giải thích. 
-Nếu một dòng không đủ dữ liệu thì bỏ qua.
+Chỉ trả về JSON thuần túy, không markdown hay giải thích.
 
 Lịch sử hội thoại: ${JSON.stringify(history)}
 Chuỗi mới:
