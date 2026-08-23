@@ -1,4 +1,4 @@
-﻿# PORTFOLIO SUMMARY — Chatbot TOEIC Platform
+# PORTFOLIO SUMMARY — Chatbot TOEIC Platform
 ## Dự án Nổi Bật | Software Engineer & Backend Developer
 
 > **Stack:** Node.js · Express · Microservices · Docker · SQL Server · Python ML · Flutter · Google Gemini AI · ZaloPay
@@ -144,269 +144,80 @@ Xây dựng một hệ thống full-stack, production-ready phục vụ việc l
 
 ```mermaid
 graph TB
-    subgraph Client["📱 Client Layer"]
-        APP["Flutter App\n(Android / iOS / Web)"]
-    end
+    APP[Flutter App] --> GW[Nginx Gateway :8080]
 
-    subgraph Gateway["🔀 API Gateway Layer"]
-        NGINX["Nginx Reverse Proxy\nport 8080\n(Routing + Security Headers)"]
-    end
+    GW --> AUTH[Auth Service :8081]
+    GW --> QUIZ[Quiz Service :8082]
+    GW --> CHAT[Chatbot Service :8084]
+    GW --> PAY[Payment Service :8083]
+    GW --> ML[ML Service :5000]
 
-    subgraph Services["⚙️ Microservices Layer"]
-        AUTH["Auth Service\n:8081\nNode.js + Express"]
-        QUIZ["Quiz Service\n:8082\nNode.js + Express"]
-        CHAT["Chatbot Service\n:8084\nNode.js + Express"]
-        PAY["Payment Service\n:8083\nNode.js + Express"]
-        ML["ML Service\n:5000\nPython Flask"]
-        EMAIL["Email Worker\nNode.js\n(RabbitMQ Consumer)"]
-    end
+    AUTH --> DB1[(MSSQL Auth DB)]
+    QUIZ --> DB2[(MSSQL Quiz DB)]
+    CHAT --> DB3[(MSSQL Chatbot DB)]
+    PAY  --> DB4[(MSSQL Payment DB)]
 
-    subgraph Data["🗄️ Data Layer"]
-        DB_AUTH["MSSQL\nChatbotToeic_Auth"]
-        DB_QUIZ["MSSQL\nChatbotToeic_Quiz"]
-        DB_CHAT["MSSQL\nChatbotToeic_Chatbot"]
-        DB_PAY["MSSQL\nChatbotToeic_Payment"]
-        MQ["RabbitMQ\nMessage Queue"]
-        CDN["Cloudinary\nMedia CDN"]
-    end
+    AUTH -->|async| MQ[RabbitMQ]
+    PAY  -->|async| MQ
+    MQ   --> EMAIL[Email Worker]
 
-    subgraph External["🌐 External APIs"]
-        GEMINI["Google Gemini 2.5 Flash\nGenerative AI"]
-        ZALOPAY["ZaloPay Sandbox\nPayment Gateway"]
-        GOOGLE["Google OAuth 2.0"]
-    end
-
-    APP -->|"HTTPS :8080"| NGINX
-    NGINX -->|"/api/v1/auth"| AUTH
-    NGINX -->|"/api/v1/tests\n/api/v1/courses\n/api/v1/statistics"| QUIZ
-    NGINX -->|"/api/v1/conversations"| CHAT
-    NGINX -->|"/api/v1/payments"| PAY
-    NGINX -->|"/api/ml"| QUIZ
-    QUIZ -->|"REST HTTP"| ML
-
-    AUTH --- DB_AUTH
-    QUIZ --- DB_QUIZ
-    CHAT --- DB_CHAT
-    PAY --- DB_PAY
-
-    AUTH -->|"Publish OTP event"| MQ
-    PAY -->|"Publish payment event"| MQ
-    MQ -->|"Consume & send email"| EMAIL
-
-    PAY -->|"PATCH /internal/users/:id\n(VIP activation)"| AUTH
-    CHAT -->|"GET /internal/users/:id\n(VIP check)"| AUTH
-
-    QUIZ -->|"Upload media"| CDN
-    CHAT -->|"generateContent"| GEMINI
-    PAY -->|"Create order / Verify callback"| ZALOPAY
-    AUTH -->|"Verify ID Token"| GOOGLE
+    CHAT -->|generateContent| GEMINI[Google Gemini AI]
+    PAY  -->|payment| ZALOPAY[ZaloPay]
+    AUTH -->|verify token| GOOGLE[Google OAuth]
+    QUIZ -->|upload media| CDN[Cloudinary]
 ```
 
 ### 4.2 Authentication Flow
 
 ```mermaid
 sequenceDiagram
-    participant C as Flutter App
-    participant G as Nginx Gateway
-    participant A as Auth Service
-    participant DB as MSSQL Auth DB
+    participant App as Flutter App
+    participant Auth as Auth Service
     participant MQ as RabbitMQ
-    participant E as Email Service
+    participant Email as Email Worker
 
-    C->>G: POST /api/v1/auth/register/send-otp
-    G->>A: Forward request
-    A->>DB: Check email not exists
-    A->>MQ: Publish {email, otp, type: "register"}
-    MQ->>E: Consume message
-    E-->>C: Send OTP email
-    A-->>C: 200 OTP sent
+    App->>Auth: POST /auth/register/send-otp
+    Auth->>MQ: Publish OTP event
+    MQ->>Email: Send OTP email to user
 
-    C->>G: POST /api/v1/auth/register/verify-otp
-    G->>A: Forward request
-    A->>DB: Validate OTP (TTL 10 min)
-    A-->>C: 200 OTP verified
+    App->>Auth: POST /auth/register/verify-otp
+    Auth-->>App: OTP verified
 
-    C->>G: POST /api/v1/auth/register
-    G->>A: Forward request
-    A->>DB: Create user (bcrypt password)
-    A-->>C: 201 {user, accessToken, refreshToken}
-
-    Note over C,E: Subsequent requests use accessToken in Authorization header
+    App->>Auth: POST /auth/register
+    Auth-->>App: 201 { accessToken, refreshToken, user }
 ```
 
-### 4.3 TOEIC Test Attempt Lifecycle
+### 4.3 TOEIC Test Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Browse : GET /api/v1/tests
-    Browse --> Loading : GET /api/v1/tests/:id/questions
-    Loading --> InProgress : POST /api/v1/tests/:id/attempts\n(status = in_progress)
-    InProgress --> Submitted : PATCH attempts/:id\n(status = completed, answers, timeSpent)
-    InProgress --> Cancelled : PATCH attempts/:id\n(status = cancelled)
-    Submitted --> Review : GET /api/v1/test-attempts/:id/result\n(show correct answers + explanations)
-    Cancelled --> [*]
+    [*] --> Browsing
+    Browsing --> InProgress : Start attempt
+    InProgress --> Submitted : Submit answers
+    InProgress --> Cancelled : Cancel
+    Submitted --> Review : View result & explanations
     Review --> [*]
-
-    note right of Submitted
-        Auto-scoring:
-        - Compare answers vs correctAnswer
-        - Calculate per-part scores
-        - Map to TOEIC scale
-        - Store listeningScore + readingScore
-        - Trigger ML prediction (if enabled)
-    end note
+    Cancelled --> [*]
 ```
 
-### 4.4 AI Chatbot Flow (with VIP Gating)
+### 4.4 Payment & VIP Activation Flow
 
 ```mermaid
 sequenceDiagram
-    participant C as Flutter App
-    participant G as Nginx Gateway
-    participant CS as Chatbot Service
-    participant AS as Auth Service
-    participant DB as Chatbot DB
-    participant GEM as Gemini AI API
+    participant App as Flutter App
+    participant Pay as Payment Service
+    participant ZP as ZaloPay
+    participant Auth as Auth Service
 
-    C->>G: POST /api/v1/conversations/:id/messages\n{rawText: "Explain present perfect..."}
-    G->>CS: Forward (with JWT)
-    CS->>CS: authMiddleware: verify JWT
-    CS->>AS: GET /api/v1/internal/users/:id\n(check VIP status)
-    AS-->>CS: {isVip: false, role_id: 2}
+    App->>Pay: POST /payments/create
+    Pay->>ZP: Create order (HMAC signed)
+    ZP-->>App: Payment URL
 
-    alt Free User - Check daily limit
-        CS->>DB: COUNT messages WHERE role=user AND today
-        DB-->>CS: count = 14
-
-        alt count < 15
-            CS->>DB: Fetch conversation history
-            DB-->>CS: [{role: user, content: ...}, ...]
-            CS->>GEM: POST generateContent\n{system_prompt + history + rawText}
-            GEM-->>CS: AI response text
-            CS->>DB: Save user message (role=user)
-            CS->>DB: Save AI response (role=model)
-            CS-->>C: 200 {role: model, content: "..."}
-        else count >= 15
-            CS-->>C: 429 Daily limit reached\nUpgrade to VIP
-        end
-    else VIP User - No limit
-        CS->>DB: Fetch conversation history
-        CS->>GEM: POST generateContent
-        GEM-->>CS: AI response
-        CS-->>C: 200 {role: model, content: "..."}
-    end
-```
-
-### 4.5 ZaloPay Payment Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Flutter App
-    participant G as Nginx Gateway
-    participant PS as Payment Service
-    participant AS as Auth Service
-    participant ZP as ZaloPay Sandbox
-
-    C->>G: POST /api/v1/payments/create\n{subscriptionId: 1, paymentGateway: zalopay}
-    G->>PS: Forward (with JWT)
-    PS->>PS: Lookup subscription price (50,000 VND)
-    PS->>ZP: POST /v2/create\n(HMAC-SHA256 signed order)
-    ZP-->>PS: {order_url, app_trans_id}
-    PS-->>C: 200 {orderUrl: "https://zalopay..."}
-
-    C->>ZP: User opens payment URL & completes payment
-    ZP->>G: POST /api/v1/payments/zalopay-callback\n{data, mac}
-    G->>PS: Forward callback
-    PS->>PS: Validate HMAC-SHA256 signature
-    
-    alt Valid signature
-        PS->>PS: Parse embed_data (userId, subscriptionId)
-        PS->>PS: Calculate new vipExpireAt (cumulative)
-        PS->>AS: PATCH /api/v1/internal/users/:id\n{isVip: true, vipExpireAt: ...}
-        AS-->>PS: 200 Updated
-        PS-->>ZP: {return_code: 1, return_message: "Success"}
-    else Invalid signature
-        PS-->>ZP: {return_code: -1, return_message: "MAC validation failed"}
-    end
-```
-
-### 4.6 ML Score Prediction Pipeline
-
-```mermaid
-flowchart TD
-    A[User completes TOEIC test] --> B[Quiz Service stores attempt results]
-    B --> C{ML_AUTO_PREDICTION\nenabled?}
-    C -->|Yes| D[Call ML Service\nPOST /predict]
-    C -->|No| Z[End]
-    
-    D --> E[ML Service reads ChatbotToeic_Quiz DB]
-    E --> F[Feature Engineering\n- Part accuracy 1-7\n- Avg time per question\n- Score trend\n- Total attempts]
-    F --> G[Load unified_model.pkl\nscikit-learn RandomForest]
-    G --> H[Generate predictions:\n- TOEIC total score\n- Listening / Reading split\n- Weak skill identification]
-    H --> I[Return recommendations\nto Quiz Service]
-    I --> J[Store & return to Flutter App]
-
-    subgraph Retrain["Auto-Retrain (Daily 2:00 AM)"]
-        K[mlRetrainCron.js triggers] --> L[Call ML Service\nPOST /retrain]
-        L --> M[Fetch latest attempt data from DB]
-        M --> N[Re-train RandomForest model]
-        N --> O[Save new unified_model.pkl]
-        O --> P[Model ready for next predictions]
-    end
-```
-
-### 4.7 Docker Infrastructure
-
-```mermaid
-graph LR
-    subgraph HOST["Host Machine (Windows)"]
-        ENV[".env file\n(secrets)"]
-        VOL["D:/Downloads\n(local media)"]
-    end
-
-    subgraph COMPOSE["Docker Compose Network (chatbot_network)"]
-        direction TB
-        
-        subgraph PROXY["Gateway"]
-            NGINX["nginx:alpine\napi_gateway\n:8080"]
-        end
-
-        subgraph NODES["Node.js Services"]
-            AS["auth_service\n:8081"]
-            QS["quiz_service\n:8082"]
-            PS["payment_service\n:8083"]
-            CS["chatbot_service\n:8084"]
-            ES["email_worker_service"]
-        end
-
-        subgraph PYTHON["Python Service"]
-            ML["ml_python_service\n:5000"]
-        end
-
-        subgraph INFRA["Infrastructure"]
-            DB["mssql_db\n:1433\n(4 databases)"]
-            RMQ["rabbitmq_queue\n:5672 / :15672"]
-        end
-    end
-
-    NGINX --> AS
-    NGINX --> QS
-    NGINX --> PS
-    NGINX --> CS
-    NGINX --> ML
-
-    AS --> DB
-    QS --> DB
-    PS --> DB
-    CS --> DB
-    ML --> DB
-
-    AS --> RMQ
-    PS --> RMQ
-    RMQ --> ES
-
-    ENV -.->|"env_file"| COMPOSE
-    VOL -.->|"volume mount\n/mnt/d/Downloads"| QS
+    App->>ZP: User completes payment
+    ZP->>Pay: Callback {data, mac}
+    Pay->>Pay: Validate HMAC-SHA256
+    Pay->>Auth: PATCH /internal/users/:id { isVip: true }
+    Auth-->>Pay: VIP activated
 ```
 
 ---
